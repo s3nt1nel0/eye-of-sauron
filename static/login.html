@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>Sign in · Eye of Sauron</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body class="login-body">
+  <main class="login-card">
+    <div class="brand big"><img src="/static/favicon.svg" alt="" width="34" height="34"><span>Eye of Sauron</span></div>
+    <p class="muted">Your threat-intel reading room.</p>
+    <form id="loginForm" class="form" autocomplete="on">
+      <label>Username <input name="username" type="text" required maxlength="64" autocomplete="username" autofocus></label>
+      <label>Password <input name="password" type="password" required maxlength="256" autocomplete="current-password"></label>
+      <p id="loginError" class="error" role="alert"></p>
+      <button type="submit" class="btn primary wide">Sign in</button>
+    </form>
+  </main>
+  <script src="/static/login.js" defer></script>
+</body>
+</html>

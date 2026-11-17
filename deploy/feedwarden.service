@@ -1,0 +1,39 @@
+# systemd unit for running Eye of Sauron without Docker (e.g. a Proxmox LXC).
+# Install: see docs/DEPLOYMENT.md, section 4 "Linux without Docker (systemd)".
+[Unit]
+Description=Eye of Sauron RSS aggregator
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=feedwarden
+Group=feedwarden
+WorkingDirectory=/opt/feedwarden
+EnvironmentFile=-/etc/feedwarden/feedwarden.env
+Environment=FEEDWARDEN_DATA_DIR=/var/lib/feedwarden
+ExecStart=/opt/feedwarden/.venv/bin/uvicorn app.main:create_app --factory --host 0.0.0.0 --port 8080 --no-server-header
+Restart=on-failure
+RestartSec=5
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+CapabilityBoundingSet=
+StateDirectory=feedwarden
+StateDirectoryMode=0700
+ReadWritePaths=/var/lib/feedwarden
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Starter list of security feeds. Import via Settings -> Feeds -> Import OPML.
+     Publishers occasionally move feeds; failing ones show a warning icon in the sidebar. -->
+<opml version="2.0">
+  <head><title>Feedwarden cyber starter pack</title></head>
+  <body>
+    <outline text="News">
+      <outline type="rss" text="Krebs on Security" xmlUrl="https://krebsonsecurity.com/feed/" htmlUrl="https://krebsonsecurity.com/"/>
+      <outline type="rss" text="BleepingComputer" xmlUrl="https://www.bleepingcomputer.com/feed/" htmlUrl="https://www.bleepingcomputer.com/"/>
+      <outline type="rss" text="The Hacker News" xmlUrl="https://feeds.feedburner.com/TheHackersNews" htmlUrl="https://thehackernews.com/"/>
+      <outline type="rss" text="The Record" xmlUrl="https://therecord.media/feed" htmlUrl="https://therecord.media/"/>
+      <outline type="rss" text="Dark Reading" xmlUrl="https://www.darkreading.com/rss.xml" htmlUrl="https://www.darkreading.com/"/>
+      <outline type="rss" text="Schneier on Security" xmlUrl="https://www.schneier.com/feed/atom/" htmlUrl="https://www.schneier.com/"/>
+    </outline>
+    <outline text="Threat Intelligence">
+      <outline type="rss" text="Cisco Talos" xmlUrl="https://blog.talosintelligence.com/rss/" htmlUrl="https://blog.talosintelligence.com/"/>
+      <outline type="rss" text="Unit 42" xmlUrl="https://unit42.paloaltonetworks.com/feed/" htmlUrl="https://unit42.paloaltonetworks.com/"/>
+      <outline type="rss" text="Securelist (Kaspersky)" xmlUrl="https://securelist.com/feed/" htmlUrl="https://securelist.com/"/>
+      <outline type="rss" text="Microsoft Security Blog" xmlUrl="https://www.microsoft.com/en-us/security/blog/feed/" htmlUrl="https://www.microsoft.com/en-us/security/blog/"/>
+      <outline type="rss" text="SANS Internet Storm Center" xmlUrl="https://isc.sans.edu/rssfeed_full.xml" htmlUrl="https://isc.sans.edu/"/>
+    </outline>
+    <outline text="Advisories">
+      <outline type="rss" text="NCSC UK" xmlUrl="https://www.ncsc.gov.uk/api/1/services/v1/all-rss-feed.xml" htmlUrl="https://www.ncsc.gov.uk/"/>
+    </outline>
+  </body>
+</opml>

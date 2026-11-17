@@ -1,0 +1,726 @@
+"""SQLite storage layer.
+
+* Every query in the code base uses bound parameters - never string formatting
+  of user input into SQL.
+* One short-lived connection per unit of work (thread-safe, WAL mode).
+"""
+
+from __future__ import annotations
+
+import sqlite3
+import time
+from contextlib import contextmanager
+from pathlib import Path
+from typing import Iterator
+
+SCHEMA_VERSION = 9
+
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS users (
+    id            INTEGER PRIMARY KEY,
+    username      TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    created_at    INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS sessions (
+    id          INTEGER PRIMARY KEY,
+    token_hash  TEXT NOT NULL UNIQUE,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    csrf_token  TEXT NOT NULL,
+    created_at  INTEGER NOT NULL,
+    last_seen   INTEGER NOT NULL,
+    expires_at  INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS api_tokens (
+    id          INTEGER PRIMARY KEY,
+    name        TEXT NOT NULL,
+    token_hash  TEXT NOT NULL UNIQUE,
+    prefix      TEXT NOT NULL,
+    scopes      TEXT NOT NULL,
+    created_at  INTEGER NOT NULL,
+    last_used   INTEGER,
+    expires_at  INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS folders (
+    id        INTEGER PRIMARY KEY,
+    name      TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    position  INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS feeds (
+    id              INTEGER PRIMARY KEY,
+    folder_id       INTEGER REFERENCES folders(id) ON DELETE SET NULL,
+    title           TEXT NOT NULL DEFAULT '',
+    custom_title    INTEGER NOT NULL DEFAULT 0,
+    url             TEXT NOT NULL UNIQUE,
+    site_url        TEXT,
+    refresh_minutes INTEGER,
+    retention_days  INTEGER,                    -- NULL = global setting, 0 = keep forever
+    max_articles    INTEGER,                    -- NULL = global setting, 0 = unlimited
+    kind            TEXT NOT NULL DEFAULT 'rss', -- rss | html | json (scraping) | youtube | hfpapers | x | telegram
+    scrape          TEXT,                       -- JSON scraping rules for kind html/json (validated by the API)
+    source          TEXT,                       -- JSON source config for youtube/hfpapers/x/telegram (validated)
+    enabled         INTEGER NOT NULL DEFAULT 1,
+    etag            TEXT,
+    last_modified   TEXT,
+    last_fetched    INTEGER,
+    next_fetch      INTEGER,
+    error_count     INTEGER NOT NULL DEFAULT 0,
+    last_error      TEXT,
+    created_at      INTEGER NOT NULL,
+    social_platform TEXT,                       -- v9: set for social accounts (Accounts tab): bluesky, mastodon, ...
+    full_text       TEXT                        -- v9: fetch the full article page: NULL/'auto' (short items), 'always', 'never'
+);
+CREATE INDEX IF NOT EXISTS idx_feeds_next ON feeds(enabled, next_fetch);
+
+CREATE TABLE IF NOT EXISTS articles (
+    id            INTEGER PRIMARY KEY,
+    feed_id       INTEGER NOT NULL REFERENCES feeds(id) ON DELETE CASCADE,
+    guid          TEXT NOT NULL,
+    url           TEXT,
+    title         TEXT NOT NULL DEFAULT '',
+    author        TEXT,
+    content_html  TEXT NOT NULL DEFAULT '',
+    text_content  TEXT NOT NULL DEFAULT '',
+    published     INTEGER,
+    fetched_at    INTEGER NOT NULL,
+    sort_ts       INTEGER NOT NULL,
+    is_read       INTEGER NOT NULL DEFAULT 0,
+    is_starred    INTEGER NOT NULL DEFAULT 0,
+    starred_at    INTEGER,
+    fulltext      INTEGER,                    -- v9: full article fetched from the page: NULL not tried, 1 done, -1 failed
+    UNIQUE(feed_id, guid)
+);
+CREATE INDEX IF NOT EXISTS idx_articles_sort ON articles(sort_ts);
+CREATE INDEX IF NOT EXISTS idx_articles_feed_sort ON articles(feed_id, sort_ts);
+CREATE INDEX IF NOT EXISTS idx_articles_unread ON articles(is_read, sort_ts);
+CREATE INDEX IF NOT EXISTS idx_articles_starred ON articles(is_starred, sort_ts);
+CREATE INDEX IF NOT EXISTS idx_articles_feed_url ON articles(feed_id, url);
+CREATE INDEX IF NOT EXISTS idx_articles_url ON articles(url);
+
+-- Remembers GUIDs of articles removed by retention so they are not re-imported.
+CREATE TABLE IF NOT EXISTS article_tombstones (
+    feed_id    INTEGER NOT NULL REFERENCES feeds(id) ON DELETE CASCADE,
+    guid       TEXT NOT NULL,
+    removed_at INTEGER NOT NULL,
+    manual     INTEGER NOT NULL DEFAULT 0,     -- v9: 1 = you removed it (kept for good, never re-added by back-fills)
+    PRIMARY KEY (feed_id, guid)
+);
+
+CREATE VIRTUAL TABLE IF NOT EXISTS articles_fts USING fts5(
+    title, text_content,
+    content='articles', content_rowid='id',
+    tokenize='unicode61 remove_diacritics 2'
+);
+CREATE TRIGGER IF NOT EXISTS articles_ai AFTER INSERT ON articles BEGIN
+    INSERT INTO articles_fts(rowid, title, text_content) VALUES (new.id, new.title, new.text_content);
+END;
+CREATE TRIGGER IF NOT EXISTS articles_ad AFTER DELETE ON articles BEGIN
+    INSERT INTO articles_fts(articles_fts, rowid, title, text_content)
+    VALUES ('delete', old.id, old.title, old.text_content);
+END;
+CREATE TRIGGER IF NOT EXISTS articles_au AFTER UPDATE OF title, text_content ON articles BEGIN
+    INSERT INTO articles_fts(articles_fts, rowid, title, text_content)
+    VALUES ('delete', old.id, old.title, old.text_content);
+    INSERT INTO articles_fts(rowid, title, text_content) VALUES (new.id, new.title, new.text_content);
+END;
+
+-- "Collections": user categories for articles (Ransomware, Advisories, APT ...).
+CREATE TABLE IF NOT EXISTS tags (
+    id     INTEGER PRIMARY KEY,
+    name   TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    color  TEXT NOT NULL DEFAULT '#6b7280'
+);
+
+CREATE TABLE IF NOT EXISTS article_tags (
+    article_id INTEGER NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
+    tag_id     INTEGER NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+    source     TEXT NOT NULL DEFAULT 'manual' CHECK (source IN ('manual', 'rule')),
+    created_at INTEGER NOT NULL,
+    PRIMARY KEY (article_id, tag_id)
+);
+CREATE INDEX IF NOT EXISTS idx_article_tags_tag ON article_tags(tag_id);
+
+CREATE TABLE IF NOT EXISTS webhooks (
+    id          INTEGER PRIMARY KEY,
+    name        TEXT NOT NULL,
+    url         TEXT NOT NULL,
+    secret      TEXT,
+    enabled     INTEGER NOT NULL DEFAULT 1,
+    last_status INTEGER,
+    last_error  TEXT,
+    last_sent   INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS rules (
+    id               INTEGER PRIMARY KEY,
+    name             TEXT NOT NULL,
+    keywords         TEXT NOT NULL,          -- JSON array of literal strings (any of them; may be [] for a scoped rule)
+    exclude_keywords TEXT NOT NULL DEFAULT '[]',
+    require_keywords TEXT NOT NULL DEFAULT '[]', -- v9: AND at least one of these too
+    cve_severity     TEXT,                   -- v9: article must mention a CVE with this severity
+    cve_owasp        TEXT,                   -- v9: ... or a CVE whose CWE maps to this OWASP category ('2025:A01')
+    cve_category     TEXT,                   -- ... or a CVE in this CVE-tracking category slug ('rce', 'kev', ...)
+    keywords_in_title INTEGER NOT NULL DEFAULT 0, -- v9: the main keywords must be in the title (other lists: match_in)
+    match_in         TEXT NOT NULL DEFAULT 'title_content' CHECK (match_in IN ('title', 'title_content')),
+    feed_id          INTEGER REFERENCES feeds(id) ON DELETE CASCADE,
+    folder_id        INTEGER REFERENCES folders(id) ON DELETE CASCADE,
+    tag_id           INTEGER REFERENCES tags(id) ON DELETE SET NULL,
+    webhook_id       INTEGER REFERENCES webhooks(id) ON DELETE SET NULL,
+    star             INTEGER NOT NULL DEFAULT 0,
+    mark_read        INTEGER NOT NULL DEFAULT 0,
+    ai_summarize     INTEGER NOT NULL DEFAULT 0,  -- v8: summarise matching new articles with the AI provider
+    alert_channel_id INTEGER REFERENCES delivery_channels(id) ON DELETE SET NULL,  -- v8: instant alert
+    enabled          INTEGER NOT NULL DEFAULT 1,
+    position         INTEGER NOT NULL DEFAULT 0
+);
+
+-- Watchlists: named dictionaries of entities (threat actors, ransomware groups,
+-- countries, sectors, vendors, AI-threat topics, or anything user-defined).
+CREATE TABLE IF NOT EXISTS watchlists (
+    id          INTEGER PRIMARY KEY,
+    name        TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    slug        TEXT UNIQUE,                 -- set for built-in lists (templates refer to these)
+    description TEXT NOT NULL DEFAULT '',
+    position    INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS entities (
+    id           INTEGER PRIMARY KEY,
+    watchlist_id INTEGER NOT NULL REFERENCES watchlists(id) ON DELETE CASCADE,
+    name         TEXT NOT NULL,
+    aliases      TEXT NOT NULL DEFAULT '[]', -- JSON array of literal strings
+    UNIQUE (watchlist_id, name)
+);
+
+-- Pre-computed mention index: which articles mention which entities.
+CREATE TABLE IF NOT EXISTS article_entities (
+    article_id INTEGER NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
+    entity_id  INTEGER NOT NULL REFERENCES entities(id) ON DELETE CASCADE,
+    PRIMARY KEY (article_id, entity_id)
+);
+CREATE INDEX IF NOT EXISTS idx_article_entities_entity ON article_entities(entity_id, article_id);
+
+-- "Not this one": a mention you rejected for one article (the indexer never re-adds it).
+CREATE TABLE IF NOT EXISTS entity_rejections (
+    article_id INTEGER NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
+    entity_id  INTEGER NOT NULL REFERENCES entities(id) ON DELETE CASCADE,
+    created_at INTEGER NOT NULL,
+    PRIMARY KEY (article_id, entity_id)
+);
+
+-- Ad clean-up: how many articles of a feed carry a block (sig = hash of its text; sig '*' = articles counted)
+CREATE TABLE IF NOT EXISTS feed_blocks (
+    feed_id   INTEGER NOT NULL REFERENCES feeds(id) ON DELETE CASCADE,
+    sig       TEXT NOT NULL,
+    n         INTEGER NOT NULL,
+    last_seen INTEGER NOT NULL,
+    PRIMARY KEY (feed_id, sig)
+) WITHOUT ROWID;
+
+-- 🔭 Observatory: cached public threat data for the dashboards (NVD totals, ransomware claims, DShield, Spamhaus)
+CREATE TABLE IF NOT EXISTS observatory_cache (
+    key        TEXT PRIMARY KEY,
+    data       TEXT NOT NULL,
+    fetched_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS dashboards (
+    id         INTEGER PRIMARY KEY,
+    name       TEXT NOT NULL,
+    position   INTEGER NOT NULL DEFAULT 0,
+    widgets    TEXT NOT NULL DEFAULT '[]',   -- JSON, validated by the API on write
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+
+
+
+-- CVE tracking: records from the NVD CVE API 2.0, enriched with CISA KEV and MITRE CWE.
+CREATE TABLE IF NOT EXISTS cves (
+    id             TEXT PRIMARY KEY,            -- CVE-YYYY-NNNN
+    published      INTEGER,
+    last_modified  INTEGER,
+    status         TEXT NOT NULL DEFAULT '',    -- NVD vulnStatus (Rejected records are hidden by default)
+    description    TEXT NOT NULL DEFAULT '',
+    score          REAL,                        -- CVSS base score of the preferred metric
+    cvss_version   TEXT,
+    severity       TEXT NOT NULL DEFAULT 'UNSCORED',
+    vector         TEXT,
+    kev            INTEGER NOT NULL DEFAULT 0,  -- in CISA Known Exploited Vulnerabilities
+    kev_added      INTEGER,
+    kev_due        INTEGER,
+    kev_ransomware INTEGER NOT NULL DEFAULT 0,
+    kev_name       TEXT,
+    exploitation   TEXT,                        -- SSVC exploitation: none | poc | active
+    refs           TEXT NOT NULL DEFAULT '[]',
+    source         TEXT NOT NULL DEFAULT 'nvd',
+    fetched_at     INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_cves_published ON cves(published);
+CREATE INDEX IF NOT EXISTS idx_cves_modified ON cves(last_modified);
+CREATE INDEX IF NOT EXISTS idx_cves_severity ON cves(severity, published);
+CREATE INDEX IF NOT EXISTS idx_cves_kev ON cves(kev, kev_added);
+
+CREATE TABLE IF NOT EXISTS cve_cwes (
+    cve_id TEXT NOT NULL REFERENCES cves(id) ON DELETE CASCADE,
+    cwe_id INTEGER NOT NULL,
+    PRIMARY KEY (cve_id, cwe_id)
+);
+CREATE INDEX IF NOT EXISTS idx_cve_cwes_cwe ON cve_cwes(cwe_id);
+
+CREATE TABLE IF NOT EXISTS cve_products (
+    cve_id        TEXT NOT NULL REFERENCES cves(id) ON DELETE CASCADE,
+    vendor_key    TEXT NOT NULL,               -- normalised: lowercase alphanumerics only
+    product_key   TEXT NOT NULL,
+    vendor_label  TEXT NOT NULL,
+    product_label TEXT NOT NULL,
+    PRIMARY KEY (cve_id, vendor_key, product_key)
+);
+CREATE INDEX IF NOT EXISTS idx_cve_products_vendor ON cve_products(vendor_key);
+
+-- Classification categories (edge devices, RCE, AI/ML, ...): built-in seeds, user-editable.
+CREATE TABLE IF NOT EXISTS cve_categories (
+    id          INTEGER PRIMARY KEY,
+    slug        TEXT NOT NULL UNIQUE,
+    name        TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    builtin     INTEGER NOT NULL DEFAULT 0,
+    enabled     INTEGER NOT NULL DEFAULT 1,
+    cwe_ids     TEXT NOT NULL DEFAULT '[]',
+    keywords    TEXT NOT NULL DEFAULT '[]',
+    products    TEXT NOT NULL DEFAULT '[]',
+    position    INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS cve_category_map (
+    cve_id      TEXT NOT NULL REFERENCES cves(id) ON DELETE CASCADE,
+    category_id INTEGER NOT NULL REFERENCES cve_categories(id) ON DELETE CASCADE,
+    PRIMARY KEY (cve_id, category_id)
+);
+CREATE INDEX IF NOT EXISTS idx_cve_category_map_cat ON cve_category_map(category_id, cve_id);
+
+-- MITRE CWE catalog (names) and OWASP Top Ten mappings derived from it.
+CREATE TABLE IF NOT EXISTS cwe_entries (
+    id   INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    kind TEXT NOT NULL DEFAULT 'weakness'
+);
+CREATE TABLE IF NOT EXISTS cwe_owasp (
+    cwe_id  INTEGER NOT NULL,
+    edition TEXT NOT NULL,                     -- '2021' | '2025'
+    code    TEXT NOT NULL,                     -- 'A01'
+    name    TEXT NOT NULL,
+    PRIMARY KEY (cwe_id, edition)
+);
+
+CREATE VIRTUAL TABLE IF NOT EXISTS cves_fts USING fts5(
+    id, description, content='cves', content_rowid='rowid', tokenize='unicode61 remove_diacritics 2'
+);
+CREATE TRIGGER IF NOT EXISTS cves_ai AFTER INSERT ON cves BEGIN
+    INSERT INTO cves_fts(rowid, id, description) VALUES (new.rowid, new.id, new.description);
+END;
+CREATE TRIGGER IF NOT EXISTS cves_ad AFTER DELETE ON cves BEGIN
+    INSERT INTO cves_fts(cves_fts, rowid, id, description) VALUES ('delete', old.rowid, old.id, old.description);
+END;
+CREATE TRIGGER IF NOT EXISTS cves_au AFTER UPDATE OF description ON cves BEGIN
+    INSERT INTO cves_fts(cves_fts, rowid, id, description) VALUES ('delete', old.rowid, old.id, old.description);
+    INSERT INTO cves_fts(rowid, id, description) VALUES (new.rowid, new.id, new.description);
+END;
+
+-- App passwords for native RSS apps (Google Reader API). argon2id hashes only.
+CREATE TABLE IF NOT EXISTS reader_apps (
+    id            INTEGER PRIMARY KEY,
+    name          TEXT NOT NULL,
+    password_hash TEXT NOT NULL,
+    created_at    INTEGER NOT NULL,
+    last_used     INTEGER
+);
+
+-- Third-party integrations (YouTube Data API, X API / bridge, Telegram account). `secret` is a
+-- secretbox-encrypted JSON object and is never returned by the API.
+CREATE TABLE IF NOT EXISTS integrations (
+    id          INTEGER PRIMARY KEY,
+    name        TEXT NOT NULL UNIQUE,
+    config      TEXT NOT NULL DEFAULT '{}',
+    secret      TEXT,
+    updated_at  INTEGER NOT NULL
+);
+
+-- YouTube library: one row per video article.
+CREATE TABLE IF NOT EXISTS videos (
+    article_id    INTEGER PRIMARY KEY REFERENCES articles(id) ON DELETE CASCADE,
+    video_id      TEXT NOT NULL,
+    channel_id    TEXT,
+    channel_title TEXT,
+    thumbnail     TEXT,
+    duration_s    INTEGER,
+    views         INTEGER,
+    published     INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_videos_video ON videos(video_id);
+
+-- Keyword topics across all sources (YouTube library now, topic hub later).
+CREATE TABLE IF NOT EXISTS topics (
+    id        INTEGER PRIMARY KEY,
+    name      TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    keywords  TEXT NOT NULL,                 -- JSON list
+    color     TEXT NOT NULL DEFAULT '#64748b',
+    builtin   INTEGER NOT NULL DEFAULT 0,
+    enabled   INTEGER NOT NULL DEFAULT 1
+);
+-- v9: your own video groups / series (playlists need no table: they are their own feeds)
+CREATE TABLE IF NOT EXISTS video_groups (
+    id          INTEGER PRIMARY KEY,
+    name        TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    description TEXT NOT NULL DEFAULT '',
+    created_at  INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS video_group_items (
+    group_id   INTEGER NOT NULL REFERENCES video_groups(id) ON DELETE CASCADE,
+    article_id INTEGER NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
+    position   INTEGER NOT NULL DEFAULT 0,
+    added_at   INTEGER NOT NULL,
+    PRIMARY KEY (group_id, article_id)
+);
+CREATE INDEX IF NOT EXISTS idx_video_group_items_article ON video_group_items(article_id);
+-- A playlist moved into one of your groups: shown inside the group instead of on the main page (one group each).
+CREATE TABLE IF NOT EXISTS video_group_playlists (
+    feed_id  INTEGER PRIMARY KEY REFERENCES feeds(id) ON DELETE CASCADE,
+    group_id INTEGER NOT NULL REFERENCES video_groups(id) ON DELETE CASCADE,
+    added_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_video_group_playlists_group ON video_group_playlists(group_id);
+-- The order you dragged playlists ("p:<feed>") and groups ("g:<id>") into. Unlisted ones follow, oldest first.
+CREATE TABLE IF NOT EXISTS video_group_order (
+    ref      TEXT PRIMARY KEY,
+    position INTEGER NOT NULL
+);
+
+
+-- Channel groups (Videos → Channels ▾): your own sets of channels, e.g. "Podcasts"
+CREATE TABLE IF NOT EXISTS channel_groups (
+    id         INTEGER PRIMARY KEY,
+    name       TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    created_at INTEGER NOT NULL
+);
+-- 📺 Favourite topics (★ in Videos → Topics ▾): a filter shows videos from any of them
+CREATE TABLE IF NOT EXISTS favorite_topics (
+    topic_id   INTEGER PRIMARY KEY REFERENCES topics(id) ON DELETE CASCADE,
+    created_at INTEGER NOT NULL
+);
+
+-- 📺 Favourite channels (★ in Videos): a filter shows only their videos
+CREATE TABLE IF NOT EXISTS favorite_channels (
+    channel_key TEXT PRIMARY KEY,          -- "UC…" channel id, or "feed:<id>" for a feed without one
+    created_at  INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS channel_group_members (
+    group_id    INTEGER NOT NULL REFERENCES channel_groups(id) ON DELETE CASCADE,
+    channel_key TEXT NOT NULL,             -- "UC…" channel id, or "feed:<id>" for a feed without one
+    PRIMARY KEY (group_id, channel_key)
+);
+
+-- 🎙 Podcast episodes: the audio file of a feed entry (podcast feeds have kind = 'podcast')
+CREATE TABLE IF NOT EXISTS episodes (
+    article_id INTEGER PRIMARY KEY REFERENCES articles(id) ON DELETE CASCADE,
+    audio_url  TEXT NOT NULL,
+    audio_type TEXT,
+    duration_s INTEGER,
+    image      TEXT
+);
+
+-- 🎙 → ▶ A show's YouTube channel(s) / playlist(s), their videos, and each episode's own video
+CREATE TABLE IF NOT EXISTS podcast_youtube (
+    feed_id     INTEGER PRIMARY KEY REFERENCES feeds(id) ON DELETE CASCADE,
+    sources     TEXT NOT NULL DEFAULT '[]',   -- JSON [{"kind": "channel"|"playlist", "id", "title"}]
+    how         TEXT NOT NULL,                -- site | feed | videos | search | manual | none
+    detected_at INTEGER NOT NULL,
+    listed_at   INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS podcast_youtube_videos (
+    feed_id   INTEGER NOT NULL REFERENCES feeds(id) ON DELETE CASCADE,
+    video_id  TEXT NOT NULL,
+    title     TEXT NOT NULL,
+    published INTEGER,
+    PRIMARY KEY (feed_id, video_id)
+);
+CREATE TABLE IF NOT EXISTS episode_youtube (
+    article_id INTEGER PRIMARY KEY REFERENCES articles(id) ON DELETE CASCADE,
+    video_id   TEXT NOT NULL,
+    how        TEXT                            -- title | number | words
+);
+
+-- A show's own categories for its episodes (e.g. darknetdiaries.com/categories)
+CREATE TABLE IF NOT EXISTS episode_categories (
+    article_id INTEGER NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
+    category   TEXT NOT NULL,
+    PRIMARY KEY (article_id, category)
+);
+
+CREATE TABLE IF NOT EXISTS article_topics (
+    article_id INTEGER NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
+    topic_id   INTEGER NOT NULL REFERENCES topics(id) ON DELETE CASCADE,
+    source     TEXT NOT NULL DEFAULT 'keyword',  -- keyword | channel (the channel's main topic) | general
+    PRIMARY KEY (article_id, topic_id)
+);
+CREATE INDEX IF NOT EXISTS idx_article_topics_topic ON article_topics(topic_id, article_id);
+
+-- ---- Stage 3: AI summaries, delivery channels, digests and alerts ------------------------
+-- AI output is stored as plain text and always rendered as text (never as HTML).
+CREATE TABLE IF NOT EXISTS article_summaries (
+    article_id  INTEGER PRIMARY KEY REFERENCES articles(id) ON DELETE CASCADE,
+    summary     TEXT NOT NULL,
+    provider    TEXT NOT NULL,
+    model       TEXT NOT NULL,
+    tokens_in   INTEGER,
+    tokens_out  INTEGER,
+    created_at  INTEGER NOT NULL
+);
+
+-- Daily AI request/token counters (budget enforcement). day = YYYY-MM-DD (UTC).
+CREATE TABLE IF NOT EXISTS ai_usage (
+    day         TEXT PRIMARY KEY,
+    requests    INTEGER NOT NULL DEFAULT 0,
+    tokens_in   INTEGER NOT NULL DEFAULT 0,
+    tokens_out  INTEGER NOT NULL DEFAULT 0,
+    failures    INTEGER NOT NULL DEFAULT 0
+);
+
+-- Where digests and alerts are sent: email | telegram | ntfy | discord | slack | webhook.
+-- `credentials` is secretbox-encrypted JSON (SMTP password, bot token, webhook URLs) and never returned.
+CREATE TABLE IF NOT EXISTS delivery_channels (
+    id          INTEGER PRIMARY KEY,
+    name        TEXT NOT NULL,
+    kind        TEXT NOT NULL,
+    config      TEXT NOT NULL DEFAULT '{}',
+    credentials TEXT,
+    enabled     INTEGER NOT NULL DEFAULT 1,
+    created_at  INTEGER NOT NULL,
+    last_sent   INTEGER,
+    last_error  TEXT
+);
+
+-- Scheduled digests: what to include (scope JSON), when (local time + weekdays + timezone), where.
+CREATE TABLE IF NOT EXISTS digests (
+    id          INTEGER PRIMARY KEY,
+    name        TEXT NOT NULL,
+    enabled     INTEGER NOT NULL DEFAULT 1,
+    config      TEXT NOT NULL,             -- validated JSON (see app/digests.py DigestConfig)
+    last_run    INTEGER,
+    next_run    INTEGER,
+    created_at  INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS digest_runs (
+    id          INTEGER PRIMARY KEY,
+    digest_id   INTEGER NOT NULL REFERENCES digests(id) ON DELETE CASCADE,
+    created_at  INTEGER NOT NULL,
+    status      TEXT NOT NULL,             -- ok | partial | failed | preview
+    item_count  INTEGER NOT NULL DEFAULT 0,
+    cve_count   INTEGER NOT NULL DEFAULT 0,
+    subject     TEXT NOT NULL DEFAULT '',
+    body        TEXT NOT NULL DEFAULT '',  -- plain text
+    error       TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_digest_runs ON digest_runs(digest_id, created_at);
+
+-- CVE alert rules (new high-severity / KEV / category / vendor matches) and a dedupe log.
+CREATE TABLE IF NOT EXISTS alert_rules (
+    id          INTEGER PRIMARY KEY,
+    name        TEXT NOT NULL,
+    enabled     INTEGER NOT NULL DEFAULT 1,
+    config      TEXT NOT NULL,             -- validated JSON (see app/alerts.py CveAlertConfig)
+    created_at  INTEGER NOT NULL,
+    last_fired  INTEGER
+);
+CREATE TABLE IF NOT EXISTS alerts_sent (
+    id          INTEGER PRIMARY KEY,
+    source      TEXT NOT NULL,             -- 'cve_rule' | 'article_rule'
+    rule_id     INTEGER NOT NULL,
+    item_key    TEXT NOT NULL,             -- e.g. CVE id or article id
+    title       TEXT NOT NULL DEFAULT '',
+    sent_at     INTEGER NOT NULL,
+    status      TEXT NOT NULL DEFAULT 'sent',
+    error       TEXT,
+    UNIQUE (source, rule_id, item_key)
+);
+CREATE INDEX IF NOT EXISTS idx_alerts_sent_at ON alerts_sent(sent_at);
+
+-- MITRE ATT&CK (synced from MITRE's STIX data by app/attack_sync.py; replaced on every sync).
+CREATE TABLE IF NOT EXISTS attack_groups (
+    id          TEXT PRIMARY KEY,               -- G0007
+    name        TEXT NOT NULL,
+    aliases     TEXT NOT NULL DEFAULT '[]',     -- JSON array
+    description TEXT NOT NULL DEFAULT '',
+    domains     TEXT NOT NULL DEFAULT '[]',     -- enterprise-attack / ics-attack / mobile-attack
+    url         TEXT NOT NULL DEFAULT '',
+    created     TEXT,
+    modified    TEXT
+);
+CREATE TABLE IF NOT EXISTS attack_techniques (
+    id             TEXT PRIMARY KEY,            -- T1566 / T1566.001 / T0803
+    name           TEXT NOT NULL,
+    tactics        TEXT NOT NULL DEFAULT '[]',  -- JSON array of tactic names
+    domain         TEXT NOT NULL,
+    is_subtechnique INTEGER NOT NULL DEFAULT 0,
+    url            TEXT NOT NULL DEFAULT '',
+    description    TEXT NOT NULL DEFAULT '',
+    modified       TEXT
+);
+CREATE TABLE IF NOT EXISTS attack_group_techniques (
+    group_id     TEXT NOT NULL REFERENCES attack_groups(id) ON DELETE CASCADE,
+    technique_id TEXT NOT NULL REFERENCES attack_techniques(id) ON DELETE CASCADE,
+    PRIMARY KEY (group_id, technique_id)
+);
+CREATE INDEX IF NOT EXISTS idx_agt_technique ON attack_group_techniques(technique_id);
+
+-- The tactics of MITRE's matrices, in matrix order (ATT&CK domains and 'atlas'); written by the syncs.
+CREATE TABLE IF NOT EXISTS attack_tactics (
+    id       TEXT PRIMARY KEY,            -- TA0001 / AML.TA0002
+    name     TEXT NOT NULL,
+    domain   TEXT NOT NULL,
+    position INTEGER NOT NULL DEFAULT 0,
+    url      TEXT NOT NULL DEFAULT ''
+);
+-- Which technique / sub-technique / tactic entity files an article into which tactic collection (app/ttp_filing.py).
+CREATE TABLE IF NOT EXISTS ttp_entity_tags (
+    entity_id INTEGER NOT NULL REFERENCES entities(id) ON DELETE CASCADE,
+    tag_id    INTEGER NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+    PRIMARY KEY (entity_id, tag_id)
+) WITHOUT ROWID;
+CREATE INDEX IF NOT EXISTS idx_ttp_entity_tags_tag ON ttp_entity_tags(tag_id);
+-- Reports & guidance (app/reports.py): items that are an advisory, guidance or report from a government agency / CERT
+-- or a security vendor's research team.
+CREATE TABLE IF NOT EXISTS publications (
+    article_id INTEGER PRIMARY KEY REFERENCES articles(id) ON DELETE CASCADE,
+    publisher  TEXT NOT NULL,
+    kind       TEXT NOT NULL,              -- government | vendor
+    doc_type   TEXT NOT NULL,              -- advisory | guidance | report
+    created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_publications_kind ON publications(kind, doc_type);
+-- Threat actor catalogue (app/threat_actors.py): which entity is which catalogue actor, plus what the catalogue says about it.
+CREATE TABLE IF NOT EXISTS threat_actor_meta (
+    entity_id INTEGER PRIMARY KEY REFERENCES entities(id) ON DELETE CASCADE,
+    key       TEXT NOT NULL UNIQUE,
+    country   TEXT NOT NULL DEFAULT '',
+    kind      TEXT NOT NULL DEFAULT '',
+    sources   TEXT NOT NULL DEFAULT '[]'
+);
+-- A tactic collection you took an article out of by hand: the technique filing never puts it back.
+CREATE TABLE IF NOT EXISTS ttp_tag_removed (
+    article_id INTEGER NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
+    tag_id     INTEGER NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+    PRIMARY KEY (article_id, tag_id)
+) WITHOUT ROWID;
+
+-- Internal key/value state for background jobs (not user settings).
+CREATE TABLE IF NOT EXISTS sync_state (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS settings (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
+"""
+
+_db_path: Path | None = None
+
+
+def _configure(conn: sqlite3.Connection) -> None:
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA busy_timeout = 15000")
+    conn.execute("PRAGMA synchronous = NORMAL")
+
+
+def init_db(path: Path) -> None:
+    global _db_path
+    path.parent.mkdir(parents=True, exist_ok=True)
+    _db_path = path
+    conn = sqlite3.connect(path, timeout=15)
+    try:
+        _configure(conn)
+        conn.execute("PRAGMA journal_mode = WAL")
+        conn.executescript(SCHEMA)
+        _migrate(conn)
+        conn.execute(f"PRAGMA user_version = {int(SCHEMA_VERSION)}")
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    """Additive, idempotent migrations for databases created by older versions."""
+    feed_columns = {row[1] for row in conn.execute("PRAGMA table_info(feeds)")}
+    for column in ("retention_days", "max_articles"):  # v4 - fixed names, not user input
+        if column not in feed_columns:
+            conn.execute(f"ALTER TABLE feeds ADD COLUMN {column} INTEGER")
+    if "kind" not in feed_columns:  # v5: website scraping
+        conn.execute("ALTER TABLE feeds ADD COLUMN kind TEXT NOT NULL DEFAULT 'rss'")
+    if "scrape" not in feed_columns:
+        conn.execute("ALTER TABLE feeds ADD COLUMN scrape TEXT")
+    if "source" not in feed_columns:  # v7: YouTube / HF papers / X / Telegram sources
+        conn.execute("ALTER TABLE feeds ADD COLUMN source TEXT")
+    if "social_platform" not in feed_columns:  # v9: Accounts tab
+        conn.execute("ALTER TABLE feeds ADD COLUMN social_platform TEXT")
+    if "full_text" not in feed_columns:  # v9: full article text for summary-only feeds
+        conn.execute("ALTER TABLE feeds ADD COLUMN full_text TEXT")
+    topic_link_columns = {row[1] for row in conn.execute("PRAGMA table_info(article_topics)")}
+    if topic_link_columns and "source" not in topic_link_columns:  # v10: channel / General fallback topics
+        conn.execute("ALTER TABLE article_topics ADD COLUMN source TEXT NOT NULL DEFAULT 'keyword'")
+    article_columns = {row[1] for row in conn.execute("PRAGMA table_info(articles)")}
+    if "fulltext" not in article_columns:
+        conn.execute("ALTER TABLE articles ADD COLUMN fulltext INTEGER")
+    if "story_id" not in article_columns:  # v11: articles about the same story share the first one's id
+        conn.execute("ALTER TABLE articles ADD COLUMN story_id INTEGER")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_articles_story ON articles(story_id) WHERE story_id IS NOT NULL")
+    entity_columns = {row[1] for row in conn.execute("PRAGMA table_info(entities)")}
+    if "muted" not in entity_columns:  # v11: names you told the matcher to stop using (kept across MITRE syncs)
+        conn.execute("ALTER TABLE entities ADD COLUMN muted TEXT NOT NULL DEFAULT '[]'")
+    tomb_columns = {row[1] for row in conn.execute("PRAGMA table_info(article_tombstones)")}
+    if tomb_columns and "manual" not in tomb_columns:  # v9: videos you removed yourself
+        conn.execute("ALTER TABLE article_tombstones ADD COLUMN manual INTEGER NOT NULL DEFAULT 0")
+    rule_columns = {row[1] for row in conn.execute("PRAGMA table_info(rules)")}
+    if "ai_summarize" not in rule_columns:  # v8: AI summaries + instant alerts from rules
+        conn.execute("ALTER TABLE rules ADD COLUMN ai_summarize INTEGER NOT NULL DEFAULT 0")
+    if "alert_channel_id" not in rule_columns:
+        conn.execute("ALTER TABLE rules ADD COLUMN alert_channel_id INTEGER REFERENCES delivery_channels(id) ON DELETE SET NULL")
+    for column, ddl in (("require_keywords", "TEXT NOT NULL DEFAULT '[]'"), ("cve_severity", "TEXT"),
+                        ("cve_owasp", "TEXT"), ("keywords_in_title", "INTEGER NOT NULL DEFAULT 0"),
+                        ("cve_category", "TEXT")):  # v9: richer collection rules (fixed names, not user input)
+        if column not in rule_columns:
+            conn.execute(f"ALTER TABLE rules ADD COLUMN {column} {ddl}")
+
+
+@contextmanager
+def get_db() -> Iterator[sqlite3.Connection]:
+    if _db_path is None:
+        raise RuntimeError("Database not initialised")
+    conn = sqlite3.connect(_db_path, timeout=15)
+    try:
+        _configure(conn)
+        yield conn
+        conn.commit()
+    except BaseException:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+def now() -> int:
+    return int(time.time())
+
+
+def placeholders(count: int) -> str:
+    """Return '?,?,?' for an IN clause. Only the *count* is interpolated, never values."""
+    if count <= 0:
+        raise ValueError("placeholders() needs at least one value")
+    return ",".join("?" * count)

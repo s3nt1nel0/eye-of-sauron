@@ -1,0 +1,29 @@
+# RSSHub: a self-hosted feed bridge for sites without feeds (X, and many others).
+# Eye of Sauron reads it like any feed. See docs/DEPLOYMENT.md -> "Feed bridge (RSSHub)".
+#
+#   1. Copy this folder somewhere OUTSIDE the Eye of Sauron repository (the .env file holds a credential).
+#   2. cp .env.example .env   and fill in what you need (X needs TWITTER_AUTH_TOKEN).
+#   3. docker compose up -d
+#   4. Eye of Sauron: set FEEDWARDEN_PRIVATE_ALLOWLIST=127.0.0.1:1200 (or rsshub:1200 when both run in one compose
+#      network), restart, then Settings -> Integrations -> X -> Bridge: RSSHub, address http://127.0.0.1:1200
+#
+# Pin the image to a digest for reproducible deployments: docker pull ghcr.io/diygod/rsshub && docker inspect --format
+# '{{index .RepoDigests 0}}' ghcr.io/diygod/rsshub, then use image: ghcr.io/diygod/rsshub@sha256:...
+services:
+  rsshub:
+    image: ghcr.io/diygod/rsshub:latest   # also on Docker Hub as diygod/rsshub
+    container_name: rsshub
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:1200:1200"     # local only: never expose a bridge holding your X session to the network
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      CACHE_EXPIRE: "600"         # seconds; fewer requests to X
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL

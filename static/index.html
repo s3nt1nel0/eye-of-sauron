@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>Eye of Sauron</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/dashboard.css">
+  <link rel="stylesheet" href="/static/social.css">
+  <link rel="stylesheet" href="/static/sources.css">
+  <link rel="stylesheet" href="/static/ai.css">
+  <link rel="stylesheet" href="/static/threatmap.css">
+  <link rel="stylesheet" href="/static/intel.css">
+</head>
+<body>
+  <div id="app" class="app">
+    <header class="topbar">
+      <button id="menuBtn" class="icon-btn mobile-only" type="button" aria-label="Toggle sidebar">☰</button>
+      <div class="brand"><img src="/static/favicon.svg" alt="" width="22" height="22"><span>Eye of Sauron</span></div>
+      <button id="addFeedBtn" class="add-plus" type="button" title="Add a feed, channel or source" aria-label="Add a feed">＋</button>
+      <div class="mode-switch" role="group" aria-label="Interface">
+        <button type="button" id="modeReader" aria-pressed="true" title="Articles (d to toggle)">📰 <span>Articles</span></button>
+        <button type="button" id="modeDash" aria-pressed="false" title="Dashboards (d to toggle)">📊 <span>Dashboards</span></button>
+        <button type="button" id="modeLibrary" aria-pressed="false" title="Videos: YouTube channels and videos by topic">📺 <span>Videos</span></button>
+        <button type="button" id="modeAccounts" aria-pressed="false" title="Accounts: posts from social media accounts you follow, by topic">👥 <span>Accounts</span></button>
+        <button type="button" id="modePodcasts" aria-pressed="false" title="Podcasts: follow shows and listen in the app">🎙 <span>Podcasts</span></button>
+        <button type="button" id="modeThreatmap" aria-pressed="false" title="Threat Map: where threats in your feeds are reported, plus vendor live attack maps">🌍 <span>Threat Map</span></button>
+      </div>
+      <div class="search">
+        <input id="search" type="search" placeholder="Search titles &amp; content…  ( / )" maxlength="200" autocomplete="off" spellcheck="false" aria-label="Search articles">
+      </div>
+      <div class="top-actions">
+        <button id="refreshBtn" class="icon-btn" type="button" title="Refresh all feeds (r)" aria-label="Refresh all feeds">⟳</button>
+        <button id="settingsBtn" class="icon-btn" type="button" title="Settings" aria-label="Settings">⚙</button>
+      </div>
+    </header>
+
+    <aside id="sidebar" class="sidebar" aria-label="Navigation"></aside>
+
+    <section id="listPane" class="list-pane" aria-label="Articles">
+      <div class="list-header">
+        <div class="list-title">
+          <h2 id="viewTitle">Loading…</h2>
+          <button id="feedSettingsBtn" class="btn small" type="button" hidden title="All settings for this feed">⚙ Feed settings</button>
+          <span id="viewCount" class="muted"></span>
+        </div>
+        <div class="list-tools">
+          <select id="rangeSelect" aria-label="Date range">
+            <option value="">Any time</option>
+            <option value="86400">Last 24 hours</option>
+            <option value="259200">Last 3 days</option>
+            <option value="604800">Last 7 days</option>
+            <option value="2592000">Last 30 days</option>
+            <option value="7776000">Last 90 days</option>
+            <option value="31536000">Last year</option>
+          </select>
+          <select id="sortSelect" aria-label="Sort order">
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+          </select>
+          
+          <button id="actorsBtn" class="btn" type="button" title="Filter by threat actor: every tracked actor with its articles, videos and podcasts">🎭 Threat actors</button>
+          <button id="markAllBtn" class="btn" type="button" title="Mark all in this view as read">✓ Mark read</button>
+          <span id="tagsToggleSlot"></span>
+          <button id="selectModeBtn" class="btn" type="button" aria-pressed="false" title="Pick several articles to mark read/unread, star or file them (x; Shift+click selects a range)">☑ Select</button>
+        </div>
+      </div>
+      <div id="bulkBar" class="bulk-bar" role="toolbar" aria-label="Selected articles" hidden></div>
+      <div id="newBanner" class="new-banner" hidden><button type="button" id="newBannerBtn">New articles available — click to load</button></div>
+      <div id="ttpStrip" class="ttp-strip" hidden></div>
+      <div id="articleList" class="article-list" role="list"></div>
+      <div class="list-footer"><button id="loadMoreBtn" class="btn" type="button" hidden>Load more</button></div>
+    </section>
+
+    <main id="reader" class="reader" aria-label="Article"></main>
+    <div id="sideResizer" class="pane-resizer side-resizer" title="Drag to resize (double-click to reset)" aria-label="Resize sidebar"></div>
+    <div id="listResizer" class="pane-resizer list-resizer" title="Drag to resize (double-click to reset)" aria-label="Resize article list"></div>
+
+    <section id="dashboardView" class="dashboard-view" aria-label="Dashboards" hidden></section>
+
+    <section id="libraryView" class="studio-view library-view" aria-label="Videos" hidden></section>
+    <section id="accountsView" class="studio-view library-view" aria-label="Social accounts" hidden></section>
+    <section id="podcastsView" class="studio-view library-view" aria-label="Podcasts" hidden></section>
+    <section id="threatmapView" class="studio-view threatmap-view" aria-label="Threat Map" hidden></section>
+  </div>
+
+  <dialog id="widgetDialog" class="dialog widget-dialog"></dialog>
+  <dialog id="feedDialog" class="dialog social-dialog feed-dialog"></dialog>
+  <aside id="drawer" class="drawer" aria-label="Matching articles" hidden></aside>
+
+  <dialog id="addFeedDialog" class="dialog">
+    <form id="addFeedForm" method="dialog" class="form">
+      <h3>Add a feed or source</h3>
+      <label>Address <input name="url" type="text" inputmode="url" required maxlength="2048" autocomplete="off" spellcheck="false" placeholder="Website, RSS feed, YouTube / X / Telegram link, huggingface.co/papers"></label>
+      <label>Type <select name="kind">
+        <option value="auto">Auto-detect</option>
+        <option value="rss">Website / RSS / Atom</option>
+        <option value="youtube">YouTube channel or playlist</option>
+        <option value="x">X (Twitter) profile</option>
+        <option value="telegram">Telegram channel</option>
+        <option value="hfpapers">Hugging Face Daily Papers</option>
+      </select></label>
+      <label>Custom title <span class="muted">(optional)</span><input name="title" type="text" maxlength="300"></label>
+      <label>Folder <select name="folder_id" id="addFeedFolder"></select></label>
+      <label>Keep (retention) <select name="retention_days" id="addFeedKeep">
+        <option value="">Default</option>
+        <option value="30">Last 30 days</option>
+        <option value="90">Last 90 days</option>
+        <option value="180">Last 6 months</option>
+        <option value="365">Last year</option>
+        <option value="730">Last 2 years</option>
+        <option value="1825">Last 5 years</option>
+        <option value="0">Everything (keep forever)</option>
+      </select></label>
+      <label><input type="checkbox" name="load_older"> Also download older items from that time frame</label>
+      <div class="field"><span>Refresh every</span><span id="addFeedRefresh"></span></div>
+      <p id="addFeedError" class="error" role="alert"></p>
+      <div class="form-actions">
+        <button type="button" class="btn" data-close>Cancel</button>
+        <button type="submit" class="btn primary">Subscribe</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="sourceDialog" class="dialog source-dialog"></dialog>
+  <dialog id="intelDialog" class="dialog intel-dialog" aria-label="Details"></dialog>
+
+  <dialog id="settingsDialog" class="dialog settings-dialog">
+    <div class="settings">
+      <nav id="settingsNav" class="settings-nav" aria-label="Settings sections"></nav>
+      <div class="settings-body">
+        <div class="settings-head">
+          <h3 id="settingsTitle">Settings</h3>
+          <button type="button" class="icon-btn" data-close aria-label="Close settings">✕</button>
+        </div>
+        <div id="settingsPanel" class="settings-panel"></div>
+      </div>
+    </div>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="/static/app.js" defer></script>
+  <script src="/static/charts.js" defer></script>
+  <script src="/static/feeds.js" defer></script>
+  <script src="/static/feedtools.js" defer></script>
+  <script src="/static/cve.js" defer></script>
+  <script src="/static/dashboard.js" defer></script>
+  <script src="/static/sources.js" defer></script>
+  <script src="/static/accounts.js" defer></script>
+  <script src="/static/podcasts.js" defer></script>
+  <script src="/static/ai.js" defer></script>
+  <script src="/static/threatmap.js" defer></script>
+  <script src="/static/intel.js" defer></script>
+</body>
+</html>

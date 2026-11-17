@@ -1,0 +1,27 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.env
+data/
+secrets/
+*.db
+*.db-shm
+*.db-wal
+initial_admin_password.txt
+pentest-data*/
+# secrets & keys (never commit)
+*.key
+*.key.*
+*.pem
+*.p12
+.env.*
+!.env.example
+secret_key.txt
+*.exposed-*
+*.bak-*
+data-dev/
+
+# local screenshots (may show personal feeds/data)
+screenshots/
+!docs/screenshots/

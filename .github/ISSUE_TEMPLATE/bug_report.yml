@@ -1,0 +1,28 @@
+name: Bug report
+description: Something does not work as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "Security problems: please do NOT file an issue — use Security → Report a vulnerability."
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Settings → About
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How do you run it?
+      options: [Docker Compose, Docker (other), systemd / Python, Kubernetes, Other]
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+      description: Steps to reproduce help a lot. Remove secrets and personal data from logs.
+    validations:
+      required: true

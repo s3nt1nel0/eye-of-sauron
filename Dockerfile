@@ -1,0 +1,43 @@
+# syntax=docker/dockerfile:1
+# Base image pinned by digest (supply-chain integrity, reproducible builds).
+# Refresh monthly for OS security patches:  docker pull python:3.12-slim && docker image inspect
+#   python:3.12-slim --format '{{index .RepoDigests 0}}'   -> paste the new digest in BOTH stages.
+FROM python:3.12-slim@sha256:5e2bdb1b0d542d5039cffb8181c65930093949194a65c365dfb1b0fe13a4fa5b AS build
+ENV PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1
+WORKDIR /build
+# requirements.lock = every (transitive) dependency pinned with sha256 hashes; pip refuses anything else.
+# Regenerate after editing requirements.txt - see docs/GUIDE.md section 9 ("Updating dependencies").
+COPY requirements.lock .
+RUN python -m venv /opt/venv \
+ && /opt/venv/bin/pip install --no-cache-dir --require-hashes --no-deps -r requirements.lock
+
+FROM python:3.12-slim@sha256:5e2bdb1b0d542d5039cffb8181c65930093949194a65c365dfb1b0fe13a4fa5b
+LABEL org.opencontainers.image.title="Eye of Sauron" \
+      org.opencontainers.image.description="Lightweight, security-focused RSS aggregator" \
+      org.opencontainers.image.licenses="AGPL-3.0-or-later"
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH="/opt/venv/bin:$PATH" \
+    FEEDWARDEN_DATA_DIR=/data
+
+# Unprivileged runtime user; application code is owned by root and read-only to it.
+RUN groupadd --system --gid 10001 feedwarden \
+ && useradd --system --uid 10001 --gid feedwarden --home-dir /nonexistent --shell /usr/sbin/nologin feedwarden \
+ && mkdir -p /data && chown feedwarden:feedwarden /data && chmod 0700 /data
+
+COPY --from=build /opt/venv /opt/venv
+WORKDIR /app
+COPY app ./app
+COPY static ./static
+
+USER 10001:10001
+EXPOSE 8080
+VOLUME ["/data"]
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD ["python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/healthz', timeout=4).status == 200 else 1)"]
+
+# Single worker by design (in-process scheduler + login throttle).
+# Behind a reverse proxy set FORWARDED_ALLOW_IPS to the proxy's IP so client IPs are correct.
+CMD ["uvicorn", "app.main:create_app", "--factory", "--host", "0.0.0.0", "--port", "8080", \
+     "--no-server-header", "--timeout-graceful-shutdown", "10"]

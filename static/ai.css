@@ -1,0 +1,18 @@
+/* AI summaries, AI settings and the Alerts & digests panel. Theme tokens come from styles.css. */
+.ai-summary {
+  margin: 12px 0 18px; padding: 10px 14px; border-radius: var(--radius);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  background: color-mix(in srgb, var(--accent) 6%, var(--panel));
+}
+.ai-summary-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.ai-summary-text { white-space: pre-wrap; line-height: 1.5; font-size: .95em; }
+.check-list { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.plain-list { list-style: none; margin: 0 0 8px; padding: 0; }
+.plain-list li { padding: 6px 0; border-bottom: 1px solid var(--border); }
+.plain-list li .row-form { margin-top: 4px; }
+.span-2 { grid-column: 1 / -1; margin: 10px 0 0; font-size: .9em; color: var(--muted); }
+.digest-body {
+  white-space: pre-wrap; max-height: 60vh; overflow: auto; background: var(--panel-2); padding: 12px;
+  border-radius: var(--radius); font-size: .88em; line-height: 1.45;
+}
+.card select[multiple] { min-width: 220px; }

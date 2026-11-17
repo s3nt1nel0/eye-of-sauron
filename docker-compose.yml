@@ -1,0 +1,45 @@
+services:
+  eye-of-sauron:
+    build: .
+    image: eye-of-sauron:1.0.0
+    container_name: eye-of-sauron
+    restart: unless-stopped
+    ports:
+      # Bind to localhost if a reverse proxy on the same host terminates TLS:
+      #   - "127.0.0.1:8080:8080"
+      - "127.0.0.1:8080:8080"   # local only; use "8080:8080" behind a firewall or reverse proxy (see docs)
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      TZ: ${TZ:-UTC}
+    # Optional (recommended): keep secrets OUT of the data volume as Docker secrets.
+    # The credential-encryption key protects social/webhook credentials if a backup leaks.
+    # secrets:
+    #   - feedwarden_admin_password
+    #   - feedwarden_secret_key
+    volumes:
+      - eye-of-sauron-data:/data
+    # ---- hardening ----
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    init: true
+    mem_limit: 512m
+    pids_limit: 256
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+volumes:
+  eye-of-sauron-data:
+
+# secrets:
+#   feedwarden_admin_password:
+#     file: ./secrets/admin_password.txt   # then set FEEDWARDEN_ADMIN_PASSWORD_FILE=/run/secrets/feedwarden_admin_password
+#   feedwarden_secret_key:
+#     file: ./secrets/secret_key.txt       # then set FEEDWARDEN_SECRET_KEY_FILE=/run/secrets/feedwarden_secret_key
+#                                          # create with: docker compose run --rm feedwarden python -m app.cli gen-secret-key
