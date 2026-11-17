@@ -5,6 +5,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+- The bundled threat-actor catalogue (`app/data/threat_actors.json`) was missing from git checkouts because the
+  `data/` ignore rule also matched `app/data/`; the rule is now anchored to the repository root (`/data/`). Fresh
+  clones and CI get all 1,100+ actors again.
+
 ## [1.0.0] — first public release
 
 ### Reading

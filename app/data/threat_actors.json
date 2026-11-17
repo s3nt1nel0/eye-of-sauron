@@ -1,0 +1,13324 @@
+{
+"version": 1,
+"built": "2026-11-16",
+"misp_version": 359,
+"actors": [
+{
+"name": "1937CN",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "313 Team",
+"match_name": true,
+"aliases": [],
+"country": "IQ",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "[Unnamed group]",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "[Vault 7/8]",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Ababil of Minab",
+"match_name": true,
+"aliases": [],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Abyssal Bear",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "state",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "Actor240524",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Adrastea",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "AeroBlade",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Aggressive Inventory Zombies",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "ALLANITE",
+"match_name": true,
+"aliases": [
+"Palmetto Fusion"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy",
+"Dragos"
+]
+},
+{
+"name": "Alpha Spider",
+"match_name": true,
+"aliases": [
+"ALPHV Ransomware Group"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Altahrea Team",
+"match_name": true,
+"aliases": [],
+"country": "IQ",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "ALTDOS",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Altoufan Team",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Amaranth-Dragon",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Amethyst Rain",
+"match_name": true,
+"aliases": [
+"VolcanicTimber",
+"Volatile Cedar"
+],
+"country": "LB",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "ANDROMEDA SPIDER",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Angry Likho",
+"match_name": true,
+"aliases": [
+"Sticky Werewolf"
+],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Anonymous KSA",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Anonymous Sudan",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Anonymous64",
+"match_name": true,
+"aliases": [],
+"country": "TW",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "ANTHROPOID SPIDER",
+"match_name": true,
+"aliases": [
+"Empire Monkey",
+"CobaltGoblin"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Aoqin Dragon",
+"match_name": true,
+"aliases": [
+"UNC94"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "AppMilad",
+"match_name": true,
+"aliases": [],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APT-C-12",
+"match_name": true,
+"aliases": [
+"Sapphire Mushroom",
+"Blue Mushroom",
+"NuclearCrisis"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APT-C-27",
+"match_name": true,
+"aliases": [
+"GoldMouse",
+"Golden RAT",
+"ATK80"
+],
+"country": "SY",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APT-C-34",
+"match_name": true,
+"aliases": [
+"Golden Falcon"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APT-C-36",
+"match_name": true,
+"aliases": [
+"Blind Eagle"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APT-C-60",
+"match_name": true,
+"aliases": [
+"APT-Q-12"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APT.3102",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APT1",
+"match_name": true,
+"aliases": [
+"COMMENT PANDA",
+"PLA Unit 61398",
+"Comment Crew",
+"Byzantine Candor",
+"Group 3",
+"TG-8223",
+"Comment Group",
+"Brown Fox",
+"GIF89a",
+"ShadyRAT",
+"G0006"
+],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APT10",
+"match_name": true,
+"aliases": [
+"STONE PANDA",
+"Menupass Team",
+"happyyongzi",
+"POTASSIUM",
+"Red Apollo",
+"HOGFISH",
+"Cloud Hopper",
+"BRONZE RIVERSIDE",
+"ATK41",
+"G0045",
+"Granite Taurus",
+"TA429",
+"Purple Typhoon"
+],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APT12",
+"match_name": true,
+"aliases": [
+"NUMBERED PANDA",
+"TG-2754",
+"BeeBus",
+"Group 22",
+"DynCalc",
+"Calc Team",
+"DNSCalc",
+"Crimson Iron",
+"IXESHE",
+"BRONZE GLOBE",
+"Hexagon Typhoon"
+],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APT14",
+"match_name": true,
+"aliases": [
+"ANCHOR PANDA",
+"QAZTeam",
+"ALUMINUM"
+],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APT15",
+"match_name": true,
+"aliases": [
+"VIXEN PANDA",
+"Ke3Chang",
+"Playful Dragon",
+"Metushy",
+"Social Network Team",
+"Royal APT",
+"BRONZE PALACE",
+"BRONZE DAVENPORT",
+"BRONZE IDLEWOOD",
+"NICKEL",
+"G0004",
+"Red Vulture",
+"Nylon Typhoon",
+"RIVER CASTLE"
+],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APT16",
+"match_name": true,
+"aliases": [
+"SVCMONDR",
+"G0023"
+],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APT17",
+"match_name": true,
+"aliases": [
+"Group 8",
+"AURORA PANDA",
+"Hidden Lynx",
+"Tailgater Team",
+"BRONZE KEYSTONE",
+"G0025",
+"Group 72",
+"G0001",
+"HELIUM",
+"Heart Typhoon"
+],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APT18",
+"match_name": true,
+"aliases": [
+"DYNAMITE PANDA",
+"TG-0416",
+"SCANDIUM",
+"PLA Navy",
+"Wekby",
+"G0026",
+"Satin Typhoon"
+],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APT19",
+"match_name": true,
+"aliases": [
+"DEEP PANDA",
+"Codoso",
+"WebMasters",
+"KungFu Kittens",
+"Black Vine",
+"TEMP.Avengers",
+"Group 13",
+"PinkPanther",
+"Shell Crew",
+"BRONZE FIRESTONE",
+"G0009",
+"G0073",
+"Sunshop Group",
+"Checkered Typhoon"
+],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APT2",
+"match_name": true,
+"aliases": [
+"PLA Unit 61486",
+"PUTTER PANDA",
+"MSUpdater",
+"4HCrew",
+"SULPHUR",
+"SearchFire",
+"TG-6952",
+"G0024"
+],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APT20",
+"match_name": true,
+"aliases": [
+"VIOLIN PANDA",
+"TH3Bug",
+"Crawling Taurus",
+"RIDGE CASTLE"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APT21",
+"match_name": true,
+"aliases": [
+"HAMMER PANDA",
+"TEMP.Zhenbao",
+"NetTraveler"
+],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APT22",
+"match_name": true,
+"aliases": [
+"G0039",
+"Suckfly",
+"BRONZE OLIVE",
+"Group 46"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APT23",
+"match_name": true,
+"aliases": [
+"PIRATE PANDA",
+"KeyBoy",
+"Tropic Trooper",
+"BRONZE HOBART",
+"G0081",
+"Red Orthrus",
+"Earth Centaur"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APT24",
+"match_name": true,
+"aliases": [
+"PITTY PANDA",
+"G0011",
+"Temp.Pittytiger"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APT26",
+"match_name": true,
+"aliases": [
+"JerseyMikes",
+"TURBINE PANDA",
+"BRONZE EXPRESS",
+"TECHNETIUM",
+"Taffeta Typhoon"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APT27",
+"match_name": true,
+"aliases": [
+"GreedyTaotie",
+"TG-3390",
+"EMISSARY PANDA",
+"TEMP.Hippo",
+"Red Phoenix",
+"Budworm",
+"Group 35",
+"ZipToken",
+"Iron Tiger",
+"BRONZE UNION",
+"Lucky Mouse",
+"G0027",
+"Iron Taurus",
+"Earth Smilodon",
+"Circle Typhoon",
+"Linen Typhoon",
+"SHORE CASTLE"
+],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APT28",
+"match_name": true,
+"aliases": [
+"Pawn Storm",
+"FANCY BEAR",
+"Sednit",
+"SNAKEMACKEREL",
+"Tsar Team",
+"TG-4127",
+"STRONTIUM",
+"Swallowtail",
+"IRON TWILIGHT",
+"Group 74",
+"SIG40",
+"Grizzly Steppe",
+"G0007",
+"ATK5",
+"Fighting Ursa",
+"ITG05",
+"Blue Athena",
+"TA422",
+"T-APT-12",
+"APT-C-20",
+"UAC-0028",
+"UAC-0001",
+"FROZENLAKE",
+"Sofacy",
+"Forest Blizzard",
+"BlueDelta",
+"GruesomeLarch",
+"LAKE RELIC"
+],
+"country": "RU",
+"kind": "state",
+"sources": [
+"MISP galaxy",
+"CrowdStrike",
+"MITRE ATLAS"
+]
+},
+{
+"name": "APT29",
+"match_name": true,
+"aliases": [
+"Group 100",
+"COZY BEAR",
+"The Dukes",
+"Minidionis",
+"SeaDuke",
+"YTTRIUM",
+"IRON HEMLOCK",
+"Grizzly Steppe",
+"G0016",
+"ATK7",
+"Cloaked Ursa",
+"TA421",
+"Blue Kitsune",
+"ITG11",
+"BlueBravo",
+"UAC-0029",
+"ICECAP",
+"ICE RELIC"
+],
+"country": "RU",
+"kind": "state",
+"sources": [
+"MISP galaxy",
+"CrowdStrike"
+]
+},
+{
+"name": "APT3",
+"match_name": true,
+"aliases": [
+"GOTHIC PANDA",
+"TG-0110",
+"Group 6",
+"Boyusec",
+"BORON",
+"BRONZE MAYFAIR",
+"Red Sylvan",
+"Brocade Typhoon"
+],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APT30",
+"match_name": true,
+"aliases": [
+"G0013",
+"ISTHMUS CASTLE"
+],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APT31",
+"match_name": true,
+"aliases": [
+"ZIRCONIUM",
+"JUDGMENT PANDA",
+"BRONZE VINEWOOD",
+"Red keres",
+"Violet Typhoon",
+"TA412",
+"TIDE CASTLE"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APT32",
+"match_name": true,
+"aliases": [
+"OceanLotus Group",
+"Ocean Lotus",
+"Cobalt Kitty",
+"APT-C-00",
+"SeaLotus",
+"Ocean Buffalo",
+"POND LOACH",
+"TIN WOODLAWN",
+"BISMUTH",
+"ATK17",
+"G0050",
+"Canvas Cyclone"
+],
+"country": "VN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APT33",
+"match_name": true,
+"aliases": [
+"MAGNALLIUM",
+"Refined Kitten",
+"HOLMIUM",
+"COBALT TRINITY",
+"G0064",
+"ATK35",
+"Peach Sandstorm",
+"TA451",
+"BLEAK ION"
+],
+"country": "IR",
+"kind": "state",
+"sources": [
+"MISP galaxy",
+"Dragos"
+]
+},
+{
+"name": "APT35",
+"match_name": true,
+"aliases": [
+"Newscaster Team",
+"Magic Hound",
+"G0059",
+"Mint Sandstorm",
+"TunnelVision",
+"COBALT MIRAGE",
+"Agent Serpens",
+"RICH ION"
+],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APT37",
+"match_name": true,
+"aliases": [
+"Group 123",
+"InkySquid",
+"Operation Daybreak",
+"Operation Erebus",
+"Reaper Group",
+"Red Eyes",
+"Ricochet Chollima",
+"ScarCruft",
+"Venus 121",
+"ATK4",
+"G0067",
+"Moldy Pisces",
+"APT-C-28",
+"PLAIN NEPTUNE"
+],
+"country": "KP",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APT39",
+"match_name": true,
+"aliases": [
+"Chafer",
+"REMIX KITTEN",
+"COBALT HICKMAN",
+"G0087",
+"Radio Serpens",
+"TA454",
+"ITG07",
+"Burgundy Sandstorm",
+"CINDER ION"
+],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APT4",
+"match_name": true,
+"aliases": [
+"PLA Navy",
+"MAVERICK PANDA",
+"BRONZE EDISON",
+"SODIUM",
+"Salmon Typhoon"
+],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APT40",
+"match_name": true,
+"aliases": [
+"TEMP.Periscope",
+"TEMP.Jumper",
+"BRONZE MOHAWK",
+"GADOLINIUM",
+"KRYPTONITE PANDA",
+"G0065",
+"ATK29",
+"TA423",
+"Red Ladon",
+"ITG09",
+"MUDCARP",
+"ISLANDDREAMS",
+"Gingham Typhoon",
+"ISLAND CASTLE"
+],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APT41",
+"match_name": true,
+"aliases": [
+"G0096",
+"TA415",
+"Blackfly",
+"Grayfly",
+"BARIUM",
+"WICKED SPIDER",
+"WICKED PANDA",
+"BRONZE ATLAS",
+"BRONZE EXPORT",
+"Red Kelpie",
+"G0044",
+"Earth Baku",
+"HOODOO",
+"Brass Typhoon",
+"Winnti",
+"Double Dragon",
+"TG-2633",
+"Leopard Typhoon",
+"SPIRE CASTLE"
+],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy",
+"CrowdStrike"
+]
+},
+{
+"name": "APT42",
+"match_name": true,
+"aliases": [
+"UNC788",
+"CALANQUE",
+"CALANQUE ION"
+],
+"country": "IR",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APT43",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APT45",
+"match_name": true,
+"aliases": [
+"GRASS NEPTUNE"
+],
+"country": "KP",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APT5",
+"match_name": true,
+"aliases": [
+"KEYHOLE PANDA",
+"MANGANESE",
+"BRONZE FLEETWOOD",
+"TEMP.Bottle",
+"Mulberry Typhoon",
+"Poisoned Flight",
+"BASALT CASTLE"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APT6",
+"match_name": true,
+"aliases": [
+"1.php Group"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APT73",
+"match_name": true,
+"aliases": [
+"Eraleig"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APT9",
+"match_name": true,
+"aliases": [
+"NIGHTSHADE PANDA",
+"Red Pegasus",
+"Group 27"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "APTIran",
+"match_name": true,
+"aliases": [],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "ArcaneDoor",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "AridViper",
+"match_name": true,
+"aliases": [
+"Desert Falcon",
+"APT-C-23",
+"Bearded Barbie",
+"Two-tailed Scorpion"
+],
+"country": "PS",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Armored Likho",
+"match_name": true,
+"aliases": [
+"Eagle Werewolf"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Aslan Neferler Tim",
+"match_name": true,
+"aliases": [
+"Lion Soldiers Team",
+"Phantom Turk"
+],
+"country": "TR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Asnarök",
+"match_name": true,
+"aliases": [
+"Personal Panda"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "AtlasCross",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Attor",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Avivore",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Awaken Likho",
+"match_name": true,
+"aliases": [
+"Core Werewolf"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Ayyıldız Tim",
+"match_name": true,
+"aliases": [
+"Crescent and Star"
+],
+"country": "TR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "AZURITE",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"Dragos"
+]
+},
+{
+"name": "AzzaSec",
+"match_name": true,
+"aliases": [],
+"country": "IT",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "BackdoorDiplomacy",
+"match_name": true,
+"aliases": [
+"BackDip",
+"CloudComputating",
+"Quarian"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "BadRory",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Bahamut",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "BAMBOO SPIDER",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "BANISHED KITTEN",
+"match_name": true,
+"aliases": [
+"Storm-0842",
+"Red Sandstorm"
+],
+"country": "IR",
+"kind": "state",
+"sources": [
+"MISP galaxy",
+"CrowdStrike"
+]
+},
+{
+"name": "BatShadow",
+"match_name": true,
+"aliases": [],
+"country": "VN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "BAUXITE",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"Dragos"
+]
+},
+{
+"name": "BazarCall",
+"match_name": true,
+"aliases": [
+"BazzarCall",
+"BazaCall"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Bearlyfy",
+"match_name": true,
+"aliases": [],
+"country": "UA",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Beijing Group",
+"match_name": true,
+"aliases": [
+"SNEAKY PANDA",
+"Elderwood",
+"Elderwood Gang",
+"SIG22",
+"G0066"
+],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "BelialDemon",
+"match_name": true,
+"aliases": [
+"Matanbuchus"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Belsen Group",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "BENTONITE",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"Dragos"
+]
+},
+{
+"name": "BiBiGun",
+"match_name": true,
+"aliases": [],
+"country": "PS",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "BIG PANDA",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Bignosa",
+"match_name": true,
+"aliases": [],
+"country": "KE",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "BITWISE SPIDER",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "crime",
+"sources": [
+"MISP galaxy",
+"CrowdStrike"
+]
+},
+{
+"name": "Blackatom",
+"match_name": true,
+"aliases": [],
+"country": "PS",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Blackgear",
+"match_name": true,
+"aliases": [
+"Comnie"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "BlackLock",
+"match_name": true,
+"aliases": [
+"El Dorado",
+"BlackLocks",
+"Mamona",
+"GLOBAL GROUP"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "BlackMaskers",
+"match_name": true,
+"aliases": [
+"BlackMaskers Team"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Blackmeta",
+"match_name": true,
+"aliases": [
+"SN Blackmeta"
+],
+"country": "PS",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "BlackOasis",
+"match_name": true,
+"aliases": [
+"G0063"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Blacktail",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "BlackTech",
+"match_name": true,
+"aliases": [
+"CIRCUIT PANDA",
+"Temp.Overboard",
+"HUAPI",
+"Palmerworm",
+"G0098",
+"T-APT-03",
+"Manga Taurus",
+"Red Djinn",
+"Earth Hundun",
+"Canary Typhoon",
+"Mobwork",
+"CAVERN CASTLE"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Blackwood",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "BladedFeline",
+"match_name": true,
+"aliases": [],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "BladeHawk",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Blind Spider",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "crime",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "Blue Termite",
+"match_name": true,
+"aliases": [
+"Cloudy Omega",
+"Emdivi"
+],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Blue Tsunami",
+"match_name": true,
+"aliases": [
+"Black Cube"
+],
+"country": "IL",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "BlueBottle",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "BlueHornet",
+"match_name": true,
+"aliases": [
+"APT49",
+"AgainstTheWest"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Bohrium",
+"match_name": false,
+"aliases": [
+"Smoke Sandstorm",
+"IMPERIAL KITTEN"
+],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Bondnet",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Booba Project",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Boolka",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "BOSON SPIDER",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "BOSS SPIDER",
+"match_name": true,
+"aliases": [
+"GOLD LOWELL"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Boulder Bear",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Bounty Jackal",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "hacktivist",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "Brash Spider",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "crime",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "BrazenBamboo",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "BreachLaboratory",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "BREEZE COMET",
+"match_name": true,
+"aliases": [
+"UNC5669"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "BRONZE EDGEWOOD",
+"match_name": true,
+"aliases": [
+"Red Hariasa"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "BRONZE HIGHLAND",
+"match_name": true,
+"aliases": [
+"Evasive Panda",
+"Daggerfly"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "BRONZE SPIRAL",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "BRONZE SPRING",
+"match_name": true,
+"aliases": [
+"UNC302"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "BRONZE STARLIGHT",
+"match_name": true,
+"aliases": [
+"SLIME34",
+"DEV-0401",
+"Cinnamon Tempest",
+"Emperor Dragonfly"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "BRONZE VAPOR",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Budminer",
+"match_name": true,
+"aliases": [
+"Budminer cyberespionage group"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "BuhTrap",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "ByteToBreach",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Cadelle",
+"match_name": true,
+"aliases": [],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Caliente Bandits",
+"match_name": true,
+"aliases": [
+"TA2721"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Callisto",
+"match_name": true,
+"aliases": [
+"COLDRIVER",
+"SEABORGIUM",
+"TA446",
+"GOSSAMER BEAR",
+"BlueCharlie",
+"Star Blizzard",
+"TAG-53",
+"IRON FRONTIER",
+"UNC4057",
+"Blue Callisto",
+"COLD RELIC"
+],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Calypso",
+"match_name": true,
+"aliases": [
+"BRONZE MEDLEY",
+"Red Lamassu"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Camaro Dragon",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Caracal Kitten",
+"match_name": true,
+"aliases": [
+"APT-Q-58"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Caramel Tsunami",
+"match_name": true,
+"aliases": [
+"SOURGUM",
+"Candiru"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Carderbee",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "CardinalLizard",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Careto",
+"match_name": true,
+"aliases": [],
+"country": "ES",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Carmine Tsunami",
+"match_name": true,
+"aliases": [
+"DEV-0196",
+"QuaDream"
+],
+"country": "IL",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "CashRewindo",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Cavern Manticore",
+"match_name": true,
+"aliases": [],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "CeranaKeeper",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "ChainedShark",
+"match_name": true,
+"aliases": [
+"Actor240820"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Chamelgang",
+"match_name": true,
+"aliases": [
+"CamoFei"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Charming Kitten",
+"match_name": true,
+"aliases": [
+"Newscaster",
+"Parastoo",
+"iKittens",
+"Group 83",
+"NewsBeef",
+"G0058",
+"CharmingCypress",
+"Mint Sandstorm"
+],
+"country": "IR",
+"kind": "state",
+"sources": [
+"MISP galaxy",
+"CrowdStrike"
+]
+},
+{
+"name": "Chaya_004",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Chernovite",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy",
+"Dragos"
+]
+},
+{
+"name": "Chronus Group",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "CHRYSENE",
+"match_name": true,
+"aliases": [
+"OilRig",
+"Greenbug"
+],
+"country": "",
+"kind": "state",
+"sources": [
+"MISP galaxy",
+"Dragos"
+]
+},
+{
+"name": "CiberInteligenciaSV",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "CikLeak",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "CIRCUS SPIDER",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "CL-STA-0043",
+"match_name": true,
+"aliases": [
+"Phantom Taurus",
+"TGR-STA-0043"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "CL-STA-0048",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "CL-STA-1009",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "CL-STA-1020",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "CL-STA-1087",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "CL-UNK-1068",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Cleaver",
+"match_name": false,
+"aliases": [
+"Operation Cleaver",
+"Op Cleaver",
+"Tarh Andishan",
+"TG-2889",
+"Cobalt Gypsy",
+"G0003"
+],
+"country": "IR",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Clever Kitten",
+"match_name": true,
+"aliases": [
+"Group 41"
+],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "CLOCKWORK SPIDER",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "CloudSorcerer",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Cobalt",
+"match_name": false,
+"aliases": [
+"Cobalt Group",
+"Cobalt Gang",
+"GOLD KINGSWOOD",
+"COBALT SPIDER",
+"G0080",
+"Mule Libra"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "COBALT JUNO",
+"match_name": true,
+"aliases": [
+"APT-C-38 (QiAnXin)",
+"SABER LION",
+"TG-2884 (SCWX CTU)"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "COBALT KATANA",
+"match_name": true,
+"aliases": [
+"Hive0081 (IBM)",
+"SectorD01 (NHSC)",
+"xHunt campaign (Palo Alto)",
+"Hunter Serpens"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Codefinger",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Coinbase Cartel",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Cold River",
+"match_name": true,
+"aliases": [
+"Nahr Elbard",
+"Nahr el bared"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "ComicForm",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Common Raven",
+"match_name": true,
+"aliases": [
+"OPERA1ER",
+"NXSMS",
+"DESKTOP-GROUP"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Conference Crew",
+"match_name": true,
+"aliases": [
+"CONFERENCE CASTLE"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Confucious",
+"match_name": true,
+"aliases": [],
+"country": "IN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Conquerors Electronic Army",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Contagious Interview",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Cookie Spider",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "crime",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "CopyKittens",
+"match_name": true,
+"aliases": [
+"Slayer Kitten",
+"G0052"
+],
+"country": "IR",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "CoralRaider",
+"match_name": true,
+"aliases": [],
+"country": "VN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Cordial Spider",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "crime",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "Corsair Jackal",
+"match_name": true,
+"aliases": [
+"TunisianCyberArmy"
+],
+"country": "TN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Cosmic Lynx",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "CosmicBeetle",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "CostaRicto",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Cotton Sandstorm",
+"match_name": true,
+"aliases": [
+"Emennet Pasargad",
+"Holy Souls",
+"MARNANBRIDGE",
+"NEPTUNIUM",
+"HAYWIRE KITTEN"
+],
+"country": "IR",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "CoughingDown",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Crimson Collective",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "CRPxO",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Crude Bear",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "state",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "CryptoChameleon",
+"match_name": true,
+"aliases": [
+"UNC5356"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "CRYSTALRAY",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Cuboid Sandstorm",
+"match_name": true,
+"aliases": [
+"DEV-0228"
+],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Curious Gorge",
+"match_name": true,
+"aliases": [
+"UNC3742"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Curly COMrades",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Cutting Kitten",
+"match_name": true,
+"aliases": [
+"ITsecTeam"
+],
+"country": "IR",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Cyber Alliance",
+"match_name": true,
+"aliases": [],
+"country": "UA",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Cyber Army of Russia Reborn",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Cyber Av3ngers",
+"match_name": true,
+"aliases": [
+"Shahid Kaveh Group"
+],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Cyber Berkut",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Cyber Caliphate Army",
+"match_name": true,
+"aliases": [
+"Islamic State Hacking Division",
+"United Cyber Caliphate",
+"CyberCaliphate"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Cyber fighters of Izz Ad-Din Al Qassam",
+"match_name": false,
+"aliases": [
+"Fraternal Jackal"
+],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Cyber Islamic Resistance",
+"match_name": true,
+"aliases": [],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Cyber Partisans",
+"match_name": true,
+"aliases": [
+"Partisan Zmiy"
+],
+"country": "BY",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Cyber Serp",
+"match_name": true,
+"aliases": [
+"UAC-0255"
+],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Cyber Toufan",
+"match_name": true,
+"aliases": [],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Cyber.Anarchy.Squad",
+"match_name": true,
+"aliases": [],
+"country": "UA",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "CyberCartel",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "CyberNiggers",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "DAGGER PANDA",
+"match_name": true,
+"aliases": [
+"IceFog",
+"RedFoxtrot",
+"Red Wendigo",
+"PLA Unit 69010",
+"UAT-7290"
+],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Daixin Team",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Dalbit",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Dancing Salome",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "DangerousSavanna",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "DaOnlySpark",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Dark Basin",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Dark Caracal",
+"match_name": true,
+"aliases": [
+"G0070"
+],
+"country": "LB",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "DarkBlinders",
+"match_name": true,
+"aliases": [],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "DarkCasino",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "DarkGaboon",
+"match_name": true,
+"aliases": [
+"Vengeful Wolf",
+"room155"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "DarkHotel",
+"match_name": true,
+"aliases": [
+"DUBNIUM",
+"Fallout Team",
+"Nemim",
+"Nemin",
+"Tapaoux",
+"Shadow Crane",
+"APT-C-06",
+"SIG25",
+"TUNGSTEN BRIDGE",
+"T-APT-02",
+"G0012",
+"ATK52",
+"Zigzag Hail"
+],
+"country": "KR",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "DarkHydrus",
+"match_name": true,
+"aliases": [
+"LazyMeerkat",
+"G0079",
+"Obscure Serpens"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "DarkPink",
+"match_name": true,
+"aliases": [
+"Saaiwc"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "DarkRaaS",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "DarkSpectre",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "DarkVishnya",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "DataSuckers",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Deadeye Jackal",
+"match_name": true,
+"aliases": [
+"SyrianElectronicArmy"
+],
+"country": "SY",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "DefrayX",
+"match_name": true,
+"aliases": [
+"Hive0091"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Denim Tsunami",
+"match_name": true,
+"aliases": [
+"KNOTWEED",
+"DSIRF"
+],
+"country": "AT",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Desorden Group",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "DEV-0147",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "DEV-0270",
+"match_name": true,
+"aliases": [
+"Nemesis Kitten",
+"Storm-0270"
+],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "DEV-0569",
+"match_name": true,
+"aliases": [
+"Storm-0569"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "DEV-0586",
+"match_name": true,
+"aliases": [
+"Ruinous Ursa",
+"Cadet Blizzard"
+],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "DEV-0928",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "DEV-0950",
+"match_name": true,
+"aliases": [
+"Lace Tempest"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "DEV-1028",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "DEXTOROUS SPIDER",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "DiceyF",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "DieNet",
+"match_name": true,
+"aliases": [
+"Shiite_Harvest"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "DIZZY PANDA",
+"match_name": true,
+"aliases": [
+"LadyBoyle"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "DNSpionage",
+"match_name": true,
+"aliases": [
+"COBALT EDGEWATER"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Domestic Kitten",
+"match_name": true,
+"aliases": [
+"Bouncing Golf",
+"APT-C-50"
+],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "DOPPEL SPIDER",
+"match_name": true,
+"aliases": [
+"GOLD HERON"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "DragonBreath",
+"match_name": true,
+"aliases": [
+"Golden Eye Dog",
+"APT-Q-27"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Dragonbridge",
+"match_name": true,
+"aliases": [
+"Spamouflage Dragon"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "DragonForce",
+"match_name": true,
+"aliases": [],
+"country": "MY",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "DragonOK",
+"match_name": true,
+"aliases": [
+"Moafee",
+"BRONZE OVERBROOK",
+"G0017",
+"G0002",
+"Shallow Taurus"
+],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "DragonRank",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "DragonSpark",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "DriftingCloud",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "DriveSurge",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "DUNGEON SPIDER",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Dust Storm",
+"match_name": true,
+"aliases": [
+"G0031"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "DustSquad",
+"match_name": true,
+"aliases": [
+"Nomadic Octopus"
+],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Earth Alux",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Earth Baxia",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Earth Berberoka",
+"match_name": true,
+"aliases": [
+"GamblingPuppet"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Earth Estries",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Earth Freybug",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Earth Kapre",
+"match_name": true,
+"aliases": [
+"RedCurl",
+"Red Wolf",
+"GOLD BLADE"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Earth Kitsune",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Earth Krahang",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Earth Kurma",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Earth Lamia",
+"match_name": true,
+"aliases": [
+"UNC5454"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Earth Longzhi",
+"match_name": true,
+"aliases": [
+"SnakeCharmer"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Earth Lusca",
+"match_name": true,
+"aliases": [
+"CHROMIUM",
+"ControlX",
+"TAG-22",
+"FISHMONGER",
+"BRONZE UNIVERSITY",
+"AQUATIC PANDA",
+"Red Dev 10",
+"RedHotel",
+"Charcoal Typhoon",
+"BountyGlad",
+"Red Scylla"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Earth Naga",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Earth Sirrush",
+"match_name": true,
+"aliases": [
+"SHADOW-EARTH-065"
+],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Earth Wendigo",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Earth Yako",
+"match_name": true,
+"aliases": [
+"Operation RestyLink",
+"Enelink"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "EC2 Grouper",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Edalat-e Ali",
+"match_name": true,
+"aliases": [],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Educated Manticore",
+"match_name": true,
+"aliases": [],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "El Machete",
+"match_name": true,
+"aliases": [
+"machete-apt",
+"APT-C-43",
+"G0095"
+],
+"country": "",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "ELECTRIC PANDA",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "ELOQUENT PANDA",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "ELUSIVE COMET",
+"match_name": true,
+"aliases": [],
+"country": "KP",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "ENERGETIC BEAR",
+"match_name": true,
+"aliases": [
+"BERSERK BEAR",
+"ALLANITE",
+"CASTLE",
+"DYMALLOY",
+"TG-4192",
+"Crouching Yeti",
+"Group 24",
+"Havex",
+"Koala Team",
+"IRON LIBERTY",
+"G0035",
+"ATK6",
+"ITG15",
+"BROMINE",
+"Blue Kraken",
+"Ghost Blizzard"
+],
+"country": "RU",
+"kind": "state",
+"sources": [
+"MISP galaxy",
+"Dragos"
+]
+},
+{
+"name": "Equation Group",
+"match_name": true,
+"aliases": [
+"Tilded Team",
+"EQGRP",
+"G0020"
+],
+"country": "US",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Evasive Panda",
+"match_name": true,
+"aliases": [
+"BRONZE HIGHLAND"
+],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Evil Corp",
+"match_name": true,
+"aliases": [
+"GOLD DRAKE"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Evilbyte",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Evilnum",
+"match_name": true,
+"aliases": [
+"DeathStalker",
+"TA4563",
+"Jointworm",
+"KNOCKOUT SPIDER"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "EvilPost",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "EvilTraffic",
+"match_name": true,
+"aliases": [
+"Operation EvilTraffic"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "EvilWeb",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "ExCobalt",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "ExfilSquad",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Exilware",
+"match_name": true,
+"aliases": [],
+"country": "BR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "EXOTIC LILY",
+"match_name": true,
+"aliases": [
+"DEV-0413"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Fail0verflow",
+"match_name": true,
+"aliases": [
+"Team Twiizer"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "FASTCash",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Femwar02",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Ferocious Kitten",
+"match_name": true,
+"aliases": [],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "FIN1",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "FIN10",
+"match_name": true,
+"aliases": [
+"G0051"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "FIN11",
+"match_name": true,
+"aliases": [
+"TEMP.Warlock",
+"UNC902",
+"RAZOR COMET"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "FIN13",
+"match_name": true,
+"aliases": [
+"TG2003",
+"Elephant Beetle"
+],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "FIN5",
+"match_name": true,
+"aliases": [
+"G0053"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "FIN6",
+"match_name": true,
+"aliases": [
+"SKELETON SPIDER",
+"ITG08",
+"MageCart Group 6",
+"White Giant",
+"GOLD FRANKLIN",
+"ATK88",
+"G0037",
+"Camouflage Tempest",
+"TA4557",
+"Storm-0538",
+"SQUID COMET"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "FIN7",
+"match_name": true,
+"aliases": [
+"CARBON SPIDER",
+"GOLD NIAGARA",
+"ATK32",
+"G0046",
+"G0008",
+"Coreid",
+"Carbanak",
+"Sangria Tempest",
+"ELBRUS",
+"JokerStash",
+"WILD COMET"
+],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "FIN8",
+"match_name": true,
+"aliases": [
+"ATK113",
+"G0061",
+"PUNCH COMET"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Fishing Elephant",
+"match_name": true,
+"aliases": [
+"Outrider Tiger"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "FishMedley",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Flash Kitten",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Flax Typhoon",
+"match_name": true,
+"aliases": [
+"Ethereal Panda",
+"Storm-0919"
+],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy",
+"CrowdStrike"
+]
+},
+{
+"name": "FlowerStorm",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Flying Kitten",
+"match_name": true,
+"aliases": [
+"SaffronRose",
+"AjaxSecurityTeam",
+"Group 26"
+],
+"country": "IR",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "FlyingYeti",
+"match_name": true,
+"aliases": [
+"Storm-1837"
+],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Fox Kitten",
+"match_name": true,
+"aliases": [
+"PIONEER KITTEN",
+"PARISITE",
+"UNC757",
+"Lemon Sandstorm",
+"RUBIDIUM"
+],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy",
+"Dragos"
+]
+},
+{
+"name": "Fox Tempest",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "FOXY PANDA",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "FrostyNeighbor",
+"match_name": true,
+"aliases": [],
+"country": "BY",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "FulcrumSec",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "FunkSec",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "FusionCore",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Fxmsp",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GALLIUM",
+"match_name": true,
+"aliases": [
+"Red Dev 4",
+"Alloy Taurus",
+"Granite Typhoon",
+"PHANTOM PANDA"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Gallmaker",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GamaCopy",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Gamaredon Group",
+"match_name": true,
+"aliases": [
+"ACTINIUM",
+"DEV-0157",
+"Blue Otso",
+"BlueAlpha",
+"G0047",
+"IRON TILDEN",
+"PRIMITIVE BEAR",
+"Shuckworm",
+"Trident Ursa",
+"UAC-0010",
+"Winterflounder",
+"Aqua Blizzard"
+],
+"country": "RU",
+"kind": "state",
+"sources": [
+"MISP galaxy",
+"CrowdStrike"
+]
+},
+{
+"name": "GambleForce",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Gammax",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GANANITE",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"Dragos"
+]
+},
+{
+"name": "GC01",
+"match_name": true,
+"aliases": [
+"Golden Chickens",
+"Golden Chickens01"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GC02",
+"match_name": true,
+"aliases": [
+"Golden Chickens",
+"Golden Chickens02"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GCMAN",
+"match_name": true,
+"aliases": [
+"G0036"
+],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Gelsemium",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Ghost Jackal",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GHOST STADIUM",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GhostAction",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GhostEmperor",
+"match_name": true,
+"aliases": [
+"FamousSparrow",
+"UNC2286",
+"Salt Typhoon",
+"RedMike",
+"OPERATOR PANDA"
+],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy",
+"CrowdStrike"
+]
+},
+{
+"name": "GhostNet",
+"match_name": true,
+"aliases": [
+"Snooping Dragon"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GhostR",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GhostRedirector",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GhostSec",
+"match_name": true,
+"aliases": [
+"Ghost Security"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Ghostwriter",
+"match_name": true,
+"aliases": [
+"UNC1151",
+"TA445",
+"PUSHCHA",
+"Storm-0257",
+"DEV-0257",
+"UAC-0057"
+],
+"country": "BY",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GIBBERISH PANDA",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Gitloker",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GlobalSecretGroup",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Gnosticplayers",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GOBLIN PANDA",
+"match_name": true,
+"aliases": [
+"Conimes",
+"Cycldek"
+],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GOFFEE",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GOLD BURLAP",
+"match_name": true,
+"aliases": [
+"CYBORG SPIDER"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GOLD CABIN",
+"match_name": true,
+"aliases": [
+"Shakthak",
+"TA551",
+"ATK236",
+"G0127",
+"Monster Libra"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GOLD DUPONT",
+"match_name": true,
+"aliases": [
+"SPRITE SPIDER"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GOLD EVERGREEN",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GOLD FAIRFAX",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GOLD FLANDERS",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GOLD GALLEON",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GOLD GARDEN",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GOLD MANSARD",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GOLD NORTHFIELD",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GOLD OGRE",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GOLD PRELUDE",
+"match_name": true,
+"aliases": [
+"TA569",
+"UNC1543"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GOLD REBELLION",
+"match_name": true,
+"aliases": [
+"WANDERING SPIDER",
+"White Dev 115",
+"Dark Scorpius"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GOLD RIVERVIEW",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GOLD SKYLINE",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GOLD SOUTHFIELD",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GOLD SYMPHONY",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GOLD WATERFALL",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GOLD WINTER",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Golden Chollima",
+"match_name": true,
+"aliases": [],
+"country": "KP",
+"kind": "state",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "GoldenJackal",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GoldFactory",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GopherWhisper",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GozNym",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GRAPHITE",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"Dragos"
+]
+},
+{
+"name": "Gray Sandstorm",
+"match_name": true,
+"aliases": [
+"DEV-0343"
+],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GrayBravo",
+"match_name": true,
+"aliases": [
+"TAG-150"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GrayCharlie",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Grayling",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GreedyBear",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Greenbug",
+"match_name": true,
+"aliases": [],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GreenSpot",
+"match_name": true,
+"aliases": [
+"PoisonVine",
+"APT-Q-20"
+],
+"country": "TW",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GreyEnergy",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GreyVibe",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GRIM SPIDER",
+"match_name": true,
+"aliases": [
+"GOLD ULRICK"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Groundbait",
+"match_name": true,
+"aliases": [],
+"country": "UA",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Group5",
+"match_name": true,
+"aliases": [
+"G0043"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GTFire",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GTG-04001",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GTG-10007",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GTG-1002",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy",
+"MITRE ATLAS"
+]
+},
+{
+"name": "GTG-14010",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GTG-14020",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GTG-14021",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GTG-14022",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GTG-15001",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GTG-16001",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GTG-16002",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GTG-16003",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GTG-16005",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GTG-16006",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GTG-16008",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GTG-16012",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GTG-17001",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GTG-17002",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GTG-17003",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GTG-20006",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GTG-24015",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GTG-27005",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GTG-27006",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GTG-30004",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GTG-30005",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GTG-30006",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GTG-34001",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GTG-34007",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GTG-50014",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GTG-50020",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GTG-50027",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GTG-50029",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GTG-54002",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GTG-54004",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GTG-54006",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GTG-54009",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GTG-84002",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GTG-84005",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GTG-84006",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GTG-87001",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Guacamaya",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "GURU SPIDER",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Hacking Team",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "HAFNIUM",
+"match_name": true,
+"aliases": [
+"ATK233",
+"G0125",
+"Operation Exchange Marauder",
+"Red Dev 13",
+"Silk Typhoon",
+"MURKY PANDA"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Hagga",
+"match_name": true,
+"aliases": [
+"Aggah",
+"TH-157"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Handala",
+"match_name": true,
+"aliases": [],
+"country": "PS",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Hazard Spider",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "crime",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "HAZY TIGER",
+"match_name": true,
+"aliases": [
+"T-APT-17",
+"APT-C-08",
+"Orange Yali",
+"TA397"
+],
+"country": "IN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Head Mare",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "HellHounds",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Hellsing",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "HenBox",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Herald Spider",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "crime",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "HexagonalRodent",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "HiddenArt",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Higaisa",
+"match_name": true,
+"aliases": [],
+"country": "KR",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Hijack Spider",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "crime",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "HikkI-Chan",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "HIVE-0145",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Hive0117",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Hive0137",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Hive0163",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "HollowQuill",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "HomeLand Justice",
+"match_name": true,
+"aliases": [],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Honeybee",
+"match_name": false,
+"aliases": [
+"G0072"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Hook Spider",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "crime",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "HookAds",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Houken",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "HOUND SPIDER",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Houndstooth Typhoon",
+"match_name": true,
+"aliases": [
+"HASSIUM",
+"DRAGNET PANDA",
+"isoon",
+"deepclif"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "HummingBad",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Hunt3r Kill3rs",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "HURRICANE PANDA",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Hyadina",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Hydro Kitten",
+"match_name": true,
+"aliases": [],
+"country": "IR",
+"kind": "state",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "IAmNotAVillain",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "IcePeony",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "IMPERSONATING PANDA",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Imposter Spider",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "crime",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "Inception Framework",
+"match_name": true,
+"aliases": [
+"Clean Ursa",
+"Cloud Atlas",
+"OXYGEN",
+"G0100",
+"ATK116",
+"Blue Odin"
+],
+"country": "RU",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "IndigoZebra",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "INDOHAXSEC TEAM",
+"match_name": true,
+"aliases": [],
+"country": "ID",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "INDRIK SPIDER",
+"match_name": true,
+"aliases": [
+"Manatee Tempest"
+],
+"country": "RU",
+"kind": "crime",
+"sources": [
+"MISP galaxy",
+"CrowdStrike"
+]
+},
+{
+"name": "Infrastructure Destruction Squad",
+"match_name": true,
+"aliases": [
+"Dark Engine"
+],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Infy",
+"match_name": false,
+"aliases": [
+"Operation Mermaid",
+"Prince of Persia",
+"Foudre"
+],
+"country": "IR",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "INJ3CTOR3",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Inteid",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "IntelBroker",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "InvisiMole",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "IRIDIUM",
+"match_name": true,
+"aliases": [],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "IRLeaks",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Iron Group",
+"match_name": true,
+"aliases": [
+"Iron Cyber Group"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "IronErn440",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "IronHusky",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "ItaDuke",
+"match_name": true,
+"aliases": [
+"DarkUniverse",
+"SIG27"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Jabaroot",
+"match_name": true,
+"aliases": [
+"Jabaroot DZ"
+],
+"country": "DZ",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "JACKPOT PANDA",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "JadePuffer",
+"match_name": true,
+"aliases": [
+"Storm-3168"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "JavaGhost",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Jingle Thief",
+"match_name": true,
+"aliases": [
+"CL-CRI-1032"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "JINX-0126",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "JINX-0164",
+"match_name": true,
+"aliases": [],
+"country": "KP",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "JuiceLedger",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "k0t",
+"match_name": false,
+"aliases": [
+"CryptoFeel",
+"Member19",
+"QazWsxShop"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "KAMACITE",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"Dragos"
+]
+},
+{
+"name": "Karakurt",
+"match_name": true,
+"aliases": [
+"Karakurt Lair"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Karkadann",
+"match_name": true,
+"aliases": [
+"Piwiks"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Kasablanka",
+"match_name": true,
+"aliases": [],
+"country": "MA",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "KAX17",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Keksec",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "KelvinSecurity",
+"match_name": true,
+"aliases": [],
+"country": "ES",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Keymous+",
+"match_name": true,
+"aliases": [
+"Keymous Plus"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Killnet",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Kimsuky",
+"match_name": true,
+"aliases": [
+"Velvet Chollima",
+"Black Banshee",
+"Operation Stolen Pencil",
+"G0086",
+"APT43",
+"Emerald Sleet",
+"Springtail",
+"Sparkling Pisces"
+],
+"country": "KP",
+"kind": "state",
+"sources": [
+"MISP galaxy",
+"CrowdStrike"
+]
+},
+{
+"name": "Kinsing",
+"match_name": true,
+"aliases": [
+"Money Libra"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Kiss-a-Dog",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "KOSTOVITE",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"Dragos"
+]
+},
+{
+"name": "KromSec",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Krybit",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "LabHost",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Lamashtu",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Lancefly",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "LAPSUS",
+"match_name": true,
+"aliases": [
+"DEV-0537",
+"SLIPPY SPIDER",
+"Strawberry Tempest",
+"UNC3661"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Larva-208",
+"match_name": true,
+"aliases": [
+"EncryptHub"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Larva-24005",
+"match_name": true,
+"aliases": [],
+"country": "KP",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Larva-24009",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Larva-24010",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Larva-26002",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Larva-26005",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Larva-26009",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Larva-26010",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Larva‑25012",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "LAURIONITE",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"Dragos"
+]
+},
+{
+"name": "Lazarus Group",
+"match_name": true,
+"aliases": [
+"Operation DarkSeoul",
+"Dark Seoul",
+"Hidden Cobra",
+"Hastati Group",
+"Andariel",
+"Unit 121",
+"Bureau 121",
+"NewRomanic Cyber Army Team",
+"Bluenoroff",
+"Subgroup: Bluenoroff",
+"Group 77",
+"Labyrinth Chollima",
+"Operation Troy",
+"Operation GhostSecret",
+"Operation AppleJeus",
+"APT38",
+"Stardust Chollima",
+"Whois Hacking Team",
+"Appleworm",
+"Nickel Academy",
+"APT-C-26",
+"NICKEL GLADSTONE",
+"COVELLITE",
+"ATK3",
+"G0032",
+"ATK117",
+"G0082",
+"Citrine Sleet",
+"DEV-0139",
+"DEV-1222"
+],
+"country": "KP",
+"kind": "state",
+"sources": [
+"MISP galaxy",
+"CrowdStrike"
+]
+},
+{
+"name": "Libyan Scorpions",
+"match_name": true,
+"aliases": [],
+"country": "LY",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Lifting Zmiy",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "LightBasin",
+"match_name": true,
+"aliases": [
+"UNC1945",
+"CL-CRI-0025"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Lightning Spider",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "crime",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "Lilac Typhoon",
+"match_name": true,
+"aliases": [
+"DEV-0234"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "LilacSquid",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "LIMINAL PANDA",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "LinkC Pub",
+"match_name": true,
+"aliases": [
+"LinkC"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "LofyGang",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Longhorn",
+"match_name": false,
+"aliases": [
+"Lamberts",
+"the Lamberts",
+"APT-C-39",
+"PLATINUM TERMINAL"
+],
+"country": "US",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "LongNosedGoblin",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "LOTUS PANDA",
+"match_name": true,
+"aliases": [
+"Spring Dragon",
+"ST Group",
+"DRAGONFISH",
+"BRONZE ELGIN",
+"ATK1",
+"G0030",
+"Red Salamander",
+"Lotus BLossom",
+"Billbug"
+],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Lucky Cat",
+"match_name": true,
+"aliases": [
+"TA413",
+"White Dev 9"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "LulzIntel",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "LulzSec Black",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Luna Moth",
+"match_name": true,
+"aliases": [
+"Silent Ransom",
+"TG2729",
+"SilentRansomGroup"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "LUNAR SPIDER",
+"match_name": true,
+"aliases": [
+"GOLD SWATHMORE"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "luoxk",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Luxury Spider",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "crime",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "LYCEUM",
+"match_name": true,
+"aliases": [
+"COBALT LYCEUM",
+"HEXANE",
+"UNC1530",
+"Spirlin",
+"MYSTICDOME",
+"siamesekitten",
+"Chrono Kitten",
+"Storm-0133"
+],
+"country": "IR",
+"kind": "state",
+"sources": [
+"MISP galaxy",
+"Dragos"
+]
+},
+{
+"name": "MageCart",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Magic Kitten",
+"match_name": true,
+"aliases": [
+"Group 42",
+"VOYEUR"
+],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "MAGNETIC SPIDER",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "MalKamak",
+"match_name": true,
+"aliases": [],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "MALLARD SPIDER",
+"match_name": true,
+"aliases": [
+"GOLD LAGOON"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Malsmoke",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Malteiro",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Mana Team",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Markopolo",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Masked Spider",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "crime",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "Massgrave",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Metador",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "MIMIC SPIDER",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Mimori",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Mirage Tiger",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "MirrorFace",
+"match_name": true,
+"aliases": [
+"Earth Kasha"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Mocha Manakin",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "ModernStealer",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "ModifiedElephant",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Mofang",
+"match_name": true,
+"aliases": [
+"BRONZE WALKER"
+],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Mogilevich",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Molatori",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Molerats",
+"match_name": true,
+"aliases": [
+"Gaza Hackers Team",
+"Gaza cybergang",
+"Operation Molerats",
+"Extreme Jackal",
+"ALUMINUM SARATOGA",
+"G0021",
+"BLACKSTEM"
+],
+"country": "PS",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "MoneyTaker",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "MONTY SPIDER",
+"match_name": true,
+"aliases": [
+"Spandex Tempest"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Mora_001",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "MORH4x",
+"match_name": true,
+"aliases": [],
+"country": "MA",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "MosesStaff",
+"match_name": true,
+"aliases": [
+"Marigold Sandstorm",
+"DEV-0500",
+"VENGEFUL KITTEN"
+],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Moshen Dragon",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Moskalvzapoe",
+"match_name": true,
+"aliases": [
+"MAN1",
+"TA511"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "MoustachedBouncer",
+"match_name": true,
+"aliases": [],
+"country": "BY",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Mr_Rot13",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "MuddyWater",
+"match_name": true,
+"aliases": [
+"TEMP.Zagros",
+"Static Kitten",
+"Seedworm",
+"MERCURY",
+"COBALT ULSTER",
+"G0069",
+"ATK51",
+"Boggy Serpens",
+"Mango Sandstorm",
+"TA450",
+"Earth Vetala",
+"MUDDYCOAST",
+"MUDDY ION"
+],
+"country": "IR",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "MUMMY SPIDER",
+"match_name": true,
+"aliases": [
+"TA542",
+"GOLD CRESTWOOD"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "MurenShark",
+"match_name": true,
+"aliases": [
+"Actor210426"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "MUSTANG PANDA",
+"match_name": true,
+"aliases": [
+"BRONZE PRESIDENT",
+"HoneyMyte",
+"Red Lich",
+"TEMP.HEX",
+"BASIN",
+"Earth Preta",
+"TA416",
+"Stately Taurus",
+"LuminousMoth",
+"TANTALUM",
+"Twill Typhoon",
+"BASIN CASTLE",
+"ITG27",
+"Hive0154",
+"UNK_SteadySplit"
+],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Mustard Tempest",
+"match_name": true,
+"aliases": [
+"DEV-0206",
+"Purple Vallhund"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Mutant Spider",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "crime",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "Mysterious Elephant",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Mythic Likho",
+"match_name": true,
+"aliases": [
+"Arcane Werewolf"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "N4ughtysecTU",
+"match_name": true,
+"aliases": [],
+"country": "BR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Naikon",
+"match_name": true,
+"aliases": [
+"PLA Unit 78020",
+"OVERRIDE PANDA",
+"Camerashy",
+"BRONZE GENEVA",
+"G0019",
+"BRONZE STERLING",
+"G0013",
+"NAIKON CASTLE"
+],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Nam3L3ss",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Narketing163",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "NARWHAL SPIDER",
+"match_name": true,
+"aliases": [
+"GOLD ESSEX",
+"TA544",
+"Storm-0302"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Natohub",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Nazar",
+"match_name": false,
+"aliases": [
+"SIG37"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "NB65",
+"match_name": true,
+"aliases": [
+"Network Battalion 65"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "NEODYMIUM",
+"match_name": true,
+"aliases": [
+"G0055"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "NetRunnerPR",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "NewsPenguin",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Nexus Zeta",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Nickel Alley",
+"match_name": true,
+"aliases": [],
+"country": "KP",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Night Dragon",
+"match_name": true,
+"aliases": [
+"G0014"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "NightEagle",
+"match_name": true,
+"aliases": [
+"APT-Q-95"
+],
+"country": "US",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Nitro",
+"match_name": false,
+"aliases": [
+"Covert Grove"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Nitro Spider",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "crime",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "NOCTURNAL SPIDER",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "NOMAD PANDA",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "NoName057(16)",
+"match_name": true,
+"aliases": [
+"NoName057",
+"05716nnm",
+"Nnm05716"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "NOTROBIN",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Nullbulge",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "NyxarGroup",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "OilAlpha",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "OilRig",
+"match_name": true,
+"aliases": [
+"Twisted Kitten",
+"Cobalt Gypsy",
+"Crambus",
+"Helix Kitten",
+"APT 34",
+"IRN2",
+"ATK40",
+"G0049",
+"Evasive Serpens",
+"Hazel Sandstorm",
+"EUROPIUM",
+"TA452",
+"Earth Simnavaz",
+"SOLAR ION"
+],
+"country": "IR",
+"kind": "state",
+"sources": [
+"MISP galaxy",
+"CrowdStrike"
+]
+},
+{
+"name": "OldGremlin",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "OnionDog",
+"match_name": true,
+"aliases": [],
+"country": "KP",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Opal Sleet",
+"match_name": true,
+"aliases": [
+"OSMIUM",
+"Konni",
+"Vedalia"
+],
+"country": "KP",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Operation BugDrop",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Operation C-Major",
+"match_name": true,
+"aliases": [
+"C-Major",
+"Transparent Tribe",
+"Mythic Leopard",
+"ProjectM",
+"APT36",
+"TMP.Lapis",
+"Green Havildar",
+"COPPER FIELDSTONE",
+"Earth Karkaddan",
+"Storm-0156"
+],
+"country": "PK",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Operation Cobalt Whisper",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Operation Comando",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Operation DRBControl",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Operation Emmental",
+"match_name": true,
+"aliases": [
+"Retefe Gang",
+"Retefe Group"
+],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Operation ForumTroll",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Operation Ghoul",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Operation Kabar Cobra",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Operation Parliament",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Operation Poison Needles",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Operation Red Signature",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Operation Shadow Force",
+"match_name": true,
+"aliases": [
+"TA-ShadowCricket",
+"Larva-24013"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Operation ShadowHammer",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Operation Sharpshooter",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Operation Soft Cell",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Operation Triangulation",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Operation WizardOpium",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Operation Wocao",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Orangeworm",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "OurMine",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "OUTLAW SPIDER",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "OverFlame",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "OVERLORD SPIDER",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Pacha Group",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Packrat",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "PALE PANDA",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "PARINACOTA",
+"match_name": true,
+"aliases": [
+"Wine Tempest"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Partisan Jackal",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "hacktivist",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "PassCV",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Patched Lightning",
+"match_name": true,
+"aliases": [
+"Storm-0113"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "PayTool",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Pearl Sleet",
+"match_name": true,
+"aliases": [
+"DEV-0215",
+"LAWRENCIUM"
+],
+"country": "KP",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "People's Cyber Army of Russia",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "PerSwaysion",
+"match_name": true,
+"aliases": [],
+"country": "VN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "PETROVITE",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"Dragos"
+]
+},
+{
+"name": "PhantomControl",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Phlox Tempest",
+"match_name": true,
+"aliases": [
+"DEV-0796"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Pickaxe",
+"match_name": false,
+"aliases": [
+"Prying Libra"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "PINCHY SPIDER",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Pink Sandstorm",
+"match_name": true,
+"aliases": [
+"AMERICIUM",
+"BlackShadow",
+"DEV-0022",
+"Agrius",
+"Agonizing Serpens",
+"UNC2428",
+"SPECTRAL KITTEN"
+],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Pinstripe Lightning",
+"match_name": true,
+"aliases": [
+"NIOBIUM",
+"RENEGADE JACKAL",
+"Desert Falcons",
+"Arid Viper"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Pious Spider",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "crime",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "PIZZO SPIDER",
+"match_name": true,
+"aliases": [
+"DD4BC",
+"Ambiorx"
+],
+"country": "US",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Plastic Spider",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "crime",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "PLATINUM",
+"match_name": true,
+"aliases": [
+"TwoForOne",
+"G0068",
+"ATK33"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Plump Spider",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "crime",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "PlushDaemon",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "POISON CARP",
+"match_name": true,
+"aliases": [
+"Evil Eye",
+"Red Dev 16",
+"Earth Empusa"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "PoisonSeed",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "POISONUS PANDA",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "POLONIUM",
+"match_name": true,
+"aliases": [
+"Plaid Rain",
+"UNC4453",
+"GREATRIFT",
+"INCENDIARY JACKAL"
+],
+"country": "LB",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Poseidon Group",
+"match_name": true,
+"aliases": [
+"G0033"
+],
+"country": "BR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "PowerPool",
+"match_name": true,
+"aliases": [
+"IAmTheKing"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "PREDATOR PANDA",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Predatory Sparrow",
+"match_name": true,
+"aliases": [
+"Gonjeshke Darande"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Pristine Spider",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "crime",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "ProCC",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "ProjectSauron",
+"match_name": true,
+"aliases": [
+"Sauron",
+"G0041"
+],
+"country": "US",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "ProKYC",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MITRE ATLAS"
+]
+},
+{
+"name": "Prolific Puma",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "PROMETHIUM",
+"match_name": true,
+"aliases": [
+"StrongPity",
+"G0056",
+"APT-C-41"
+],
+"country": "TR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Prophet Spider",
+"match_name": true,
+"aliases": [
+"GOLD MELODY",
+"UNC961"
+],
+"country": "",
+"kind": "crime",
+"sources": [
+"MISP galaxy",
+"CrowdStrike"
+]
+},
+{
+"name": "puNK-003",
+"match_name": true,
+"aliases": [],
+"country": "KP",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "PurpleHaze",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "PYROXENE",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"Dragos"
+]
+},
+{
+"name": "QUILTED TIGER",
+"match_name": true,
+"aliases": [
+"Chinastrats",
+"Dropping Elephant",
+"APT-C-09",
+"ZINC EMERSON",
+"ATK11",
+"G0040",
+"Orange Athos",
+"Thirsty Gemini"
+],
+"country": "IN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "R00tK1T",
+"match_name": true,
+"aliases": [],
+"country": "IL",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Radiant Spider",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "crime",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "RADIO PANDA",
+"match_name": true,
+"aliases": [
+"Shrouded Crossbow"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "RaHDit",
+"match_name": true,
+"aliases": [
+"Russian Angry Hackers Did It"
+],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "RANCOR",
+"match_name": true,
+"aliases": [
+"Rancor group",
+"G0075",
+"Rancor Taurus"
+],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "RansomHouse",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "RansomHub",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "RansomVC",
+"match_name": true,
+"aliases": [
+"Ransomed.vc"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Raspberry Typhoon",
+"match_name": true,
+"aliases": [
+"RADIUM"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "RASPITE",
+"match_name": true,
+"aliases": [
+"LeafMiner"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy",
+"Dragos"
+]
+},
+{
+"name": "RATPAK SPIDER",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "RAZOR TIGER",
+"match_name": true,
+"aliases": [
+"SideWinder",
+"Rattlesnake",
+"APT-C-17",
+"T-APT-04"
+],
+"country": "IN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Rebel Jackal",
+"match_name": true,
+"aliases": [
+"FallagaTeam"
+],
+"country": "TN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Recess Spider",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "crime",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "Reckless Rabbit",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Red Charon",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Red Dev 17",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Red Menshen",
+"match_name": true,
+"aliases": [
+"Red Dev 18",
+"Earth Bluecrow"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Red Nue",
+"match_name": true,
+"aliases": [
+"LuoYu"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Red-Lili",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "RedAlpha",
+"match_name": true,
+"aliases": [
+"DeepCliff",
+"Red Dev 3"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "RedDelta",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "RedEcho",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Redfly",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "RedGolf",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "RedJuliett",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "RedKitten",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "RedStinger",
+"match_name": true,
+"aliases": [
+"Bad Magic"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "REF2924",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "REF5961",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "REF7707",
+"match_name": true,
+"aliases": [
+"CL-STA-0049",
+"Jewelbug"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "REF8801",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Renaissance Spider",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "state",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "ResumeLooters",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Returned Libra",
+"match_name": true,
+"aliases": [
+"8220 Mining Group"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Revenant Spider",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "crime",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "RevengeHotels",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "RGB-TEAM",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "RIDDLE SPIDER",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "RipperSec",
+"match_name": true,
+"aliases": [],
+"country": "MY",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Roaming Mantis",
+"match_name": true,
+"aliases": [
+"Roaming Mantis Group"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Roaming Tiger",
+"match_name": true,
+"aliases": [
+"BRONZE WOODLAND",
+"Rotten Tomato"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Robot Spider",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "crime",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "Rocke",
+"match_name": true,
+"aliases": [
+"Aged Libra"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Rocket Kitten",
+"match_name": true,
+"aliases": [
+"TEMP.Beanie",
+"Operation Woolen Goldfish",
+"Thamar Reservoir",
+"Timberworm"
+],
+"country": "IR",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "RomCom",
+"match_name": true,
+"aliases": [
+"Storm-0978",
+"UAT-5647"
+],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Royal Spider",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "crime",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "RTM",
+"match_name": false,
+"aliases": [
+"G0048"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Ruby Sleet",
+"match_name": true,
+"aliases": [
+"CERIUM"
+],
+"country": "KP",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "RUBYCARP",
+"match_name": true,
+"aliases": [],
+"country": "RO",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "RuskiNet",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Ruthless Rabbit",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Saad Tycoon",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "SABRE PANDA",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "SaintBear",
+"match_name": true,
+"aliases": [
+"UNC2589",
+"TA471",
+"UAC-0056",
+"Nascent Ursa",
+"Nodaria",
+"FROZENVISTA",
+"Storm-0587",
+"DEV-0587",
+"Lorec53",
+"EMBER BEAR",
+"Lorec Bear",
+"Bleeding Bear",
+"Cadet Blizzard"
+],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "SALTY SPIDER",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "crime",
+"sources": [
+"MISP galaxy",
+"CrowdStrike"
+]
+},
+{
+"name": "SAMBASPIDER",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "SAMURAI PANDA",
+"match_name": true,
+"aliases": [
+"PLA Navy",
+"Wisp Team"
+],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "SandCat",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Sandman APT",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Sands Casino",
+"match_name": true,
+"aliases": [],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Sandworm",
+"match_name": true,
+"aliases": [
+"Quedagh",
+"VOODOO BEAR",
+"TEMP.Noble",
+"IRON VIKING",
+"G0034",
+"ELECTRUM",
+"TeleBots",
+"IRIDIUM",
+"Blue Echidna",
+"FROZENBARENTS",
+"UAC-0113",
+"Seashell Blizzard",
+"UAC-0082",
+"APT44",
+"SANDWORM RELIC",
+"UAC-0145"
+],
+"country": "RU",
+"kind": "state",
+"sources": [
+"MISP galaxy",
+"CrowdStrike",
+"Dragos"
+]
+},
+{
+"name": "Sath-ı Müdafaa",
+"match_name": true,
+"aliases": [],
+"country": "TR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "ScamClub",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Scarlet Mimic",
+"match_name": true,
+"aliases": [
+"G0029",
+"Golfing Taurus"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "SCARLETEEL",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Scarlettgroup",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Scarred Manticore",
+"match_name": true,
+"aliases": [],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Scattered Canary",
+"match_name": true,
+"aliases": [],
+"country": "NG",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Scattered Lapsus Hunters",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Scattered Spider",
+"match_name": true,
+"aliases": [
+"UNC3944",
+"Muddled Libra",
+"Oktapus",
+"Scattered Swine",
+"Scatter Swine",
+"Octo Tempest",
+"0ktapus",
+"Storm-0971",
+"DEV-0971",
+"Starfraud"
+],
+"country": "",
+"kind": "crime",
+"sources": [
+"MISP galaxy",
+"CrowdStrike"
+]
+},
+{
+"name": "Scion Spider",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "crime",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "ScreamedJungle",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Scripted Sparrow",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "SCULLY SPIDER",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Sea Turtle",
+"match_name": true,
+"aliases": [
+"COSMIC WOLF",
+"Marbled Dust",
+"SILICON",
+"Teal Kurma",
+"UNC1326"
+],
+"country": "TR",
+"kind": "state",
+"sources": [
+"MISP galaxy",
+"CrowdStrike"
+]
+},
+{
+"name": "Sentry Bear",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "state",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "Shadow Network",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "SHADOW-AETHER-015",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Shadow-Earth-053",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "SHADOW-VOID-042",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "SHADOW-WATER-063",
+"match_name": true,
+"aliases": [],
+"country": "BR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "ShadowByt3$",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "ShadowSyndicate",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "ShadyPanda",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "ShaggyPanther",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Shahid Hemmat",
+"match_name": true,
+"aliases": [],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Shamoon Group",
+"match_name": true,
+"aliases": [
+"Cutting Sword of Justice"
+],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "SHARK SPIDER",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "SharpPanda",
+"match_name": true,
+"aliases": [
+"Sharp Dragon"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "ShinyHunters",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "ShroudedSnooper",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "SideCopy",
+"match_name": true,
+"aliases": [],
+"country": "PK",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "SiegedSec",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Silence group",
+"match_name": true,
+"aliases": [
+"WHISPER SPIDER"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Silent Chollima",
+"match_name": true,
+"aliases": [
+"OperationTroy",
+"Guardian of Peace",
+"WHOis Team",
+"Andariel",
+"Subgroup: Andariel",
+"Onyx Sleet",
+"PLUTONIUM"
+],
+"country": "KP",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Silent Librarian",
+"match_name": true,
+"aliases": [
+"COBALT DICKENS",
+"Mabna Institute",
+"TA407",
+"TA4900",
+"Yellow Nabu",
+"Mabna Institute Group"
+],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "SilitNetwork",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "SILKFIN AGENCY",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "SilkParasite",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "SilkSpecter",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "SilverFish",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "SilverTerrier",
+"match_name": true,
+"aliases": [],
+"country": "NG",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Sinful Spider",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "crime",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "SINGING SPIDER",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "SingularityMD",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Sinobi",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "SkidSec",
+"match_name": true,
+"aliases": [
+"SkidSec Leaks"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Slim Spider",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "crime",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "SLIME29",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "SLIME88",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "SlopAds",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "SloppyLemming",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Sly Spider",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "crime",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "Smishing Triad",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "SMOKY SPIDER",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "SmugX",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Snake Wine",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "SneakyChef",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "SNOWGLOBE",
+"match_name": true,
+"aliases": [
+"Animal Farm",
+"ATK8"
+],
+"country": "FR",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "SnowSoul",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "SOLAR SPIDER",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "crime",
+"sources": [
+"MISP galaxy",
+"CrowdStrike"
+]
+},
+{
+"name": "Solntsepek",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "SongXY",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Sowbug",
+"match_name": true,
+"aliases": [
+"G0054"
+],
+"country": "",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Sp1d3r",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "SpaceBears",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "SparklingGoblin",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "SPICY PANDA",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "SPIKEDWINE",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Squab Spider",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "crime",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "STAC4749",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "STAC5143",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "STARDUST CHOLLIMA",
+"match_name": true,
+"aliases": [
+"Sapphire Sleet"
+],
+"country": "KP",
+"kind": "state",
+"sources": [
+"MISP galaxy",
+"CrowdStrike"
+]
+},
+{
+"name": "Stargazer Goblin",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Starry Addax",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Stealth Falcon",
+"match_name": true,
+"aliases": [
+"FruityArmor",
+"G0038"
+],
+"country": "AE",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Stealth Mango and Tangelo",
+"match_name": true,
+"aliases": [],
+"country": "PK",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Steel Tiger",
+"match_name": true,
+"aliases": [],
+"country": "IN",
+"kind": "state",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "STIBNITE",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"Dragos"
+]
+},
+{
+"name": "Storm Cloud",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-0062",
+"match_name": true,
+"aliases": [
+"Oro0lxy",
+"DarkShadow"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-0249",
+"match_name": true,
+"aliases": [
+"DEV-0249"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-0252",
+"match_name": true,
+"aliases": [
+"CHATTY SPIDER"
+],
+"country": "",
+"kind": "crime",
+"sources": [
+"MISP galaxy",
+"CrowdStrike"
+]
+},
+{
+"name": "Storm-0324",
+"match_name": true,
+"aliases": [
+"DEV-0324",
+"Sagrid",
+"TA543"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-0381",
+"match_name": true,
+"aliases": [
+"DEV-0381"
+],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-0473",
+"match_name": true,
+"aliases": [
+"UNC2849"
+],
+"country": "KZ",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-0494",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-0501",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-0506",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-0530",
+"match_name": true,
+"aliases": [
+"DEV-0530",
+"H0lyGh0st"
+],
+"country": "KP",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-0539",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-0558",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-0826",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-0829",
+"match_name": true,
+"aliases": [
+"DEV-0829",
+"Nwgen Team"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-0835",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-0867",
+"match_name": true,
+"aliases": [
+"DEV-0867"
+],
+"country": "EG",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-0940",
+"match_name": true,
+"aliases": [
+"CovertNetwork-1658",
+"ORB07"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-1044",
+"match_name": true,
+"aliases": [
+"DEV-1044"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-1084",
+"match_name": true,
+"aliases": [
+"DEV-1084"
+],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-1099",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-1101",
+"match_name": true,
+"aliases": [
+"DEV-1101"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-1113",
+"match_name": true,
+"aliases": [
+"APOTHECARY SPIDER"
+],
+"country": "",
+"kind": "crime",
+"sources": [
+"MISP galaxy",
+"CrowdStrike"
+]
+},
+{
+"name": "Storm-1133",
+"match_name": true,
+"aliases": [],
+"country": "PS",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-1152",
+"match_name": true,
+"aliases": [],
+"country": "VN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-1167",
+"match_name": true,
+"aliases": [
+"DEV-1167"
+],
+"country": "ID",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-1175",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-1283",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-1286",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-1295",
+"match_name": true,
+"aliases": [
+"DEV-1295"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-1516",
+"match_name": true,
+"aliases": [
+"CopyCop"
+],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-1567",
+"match_name": true,
+"aliases": [
+"PUNK SPIDER",
+"GOLD SAHARA"
+],
+"country": "",
+"kind": "crime",
+"sources": [
+"MISP galaxy",
+"CrowdStrike"
+]
+},
+{
+"name": "Storm-1575",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-1674",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-1679",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-1747",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-1849",
+"match_name": true,
+"aliases": [
+"UAT4356"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-1977",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-2077",
+"match_name": true,
+"aliases": [
+"TAG-100",
+"RedNovember"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-2139",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy",
+"MITRE ATLAS"
+]
+},
+{
+"name": "Storm-2372",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-2460",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-2561",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-2603",
+"match_name": true,
+"aliases": [
+"Longlegs"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-2657",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-2945",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-2949",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Storm-2992",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "StucxTeam",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Sunglow Blizzard",
+"match_name": true,
+"aliases": [
+"DEV-0665"
+],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Swan Vector",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "SWEED",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "SYLHET GANG-SG",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "SYLVANITE",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"Dragos"
+]
+},
+{
+"name": "TA2101",
+"match_name": true,
+"aliases": [
+"Maze Team",
+"TWISTED SPIDER",
+"GOLD VILLAGE",
+"Storm-0216",
+"DEV-0216",
+"UNC2198",
+"TUNNEL SPIDER"
+],
+"country": "RU",
+"kind": "crime",
+"sources": [
+"MISP galaxy",
+"CrowdStrike"
+]
+},
+{
+"name": "TA2536",
+"match_name": true,
+"aliases": [],
+"country": "NG",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TA2541",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TA2552",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TA2719",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TA2722",
+"match_name": true,
+"aliases": [
+"Balikbayan Foxes"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TA2723",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TA2725",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TA402",
+"match_name": true,
+"aliases": [],
+"country": "PS",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TA406",
+"match_name": true,
+"aliases": [],
+"country": "KP",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TA410",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TA419",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TA428",
+"match_name": true,
+"aliases": [
+"Colourful Panda",
+"BRONZE DUDLEY"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TA444",
+"match_name": true,
+"aliases": [],
+"country": "KP",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TA453",
+"match_name": true,
+"aliases": [],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TA455",
+"match_name": true,
+"aliases": [],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TA459",
+"match_name": true,
+"aliases": [
+"G0062"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TA482",
+"match_name": true,
+"aliases": [],
+"country": "TR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TA4903",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TA4922",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TA499",
+"match_name": true,
+"aliases": [
+"Vovan"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TA505",
+"match_name": true,
+"aliases": [
+"SectorJ04",
+"SectorJ04 Group",
+"GRACEFUL SPIDER",
+"GOLD TAHOE",
+"Dudear",
+"G0092",
+"ATK103",
+"Hive0065",
+"CHIMBORAZO",
+"Spandex Tempest"
+],
+"country": "RU",
+"kind": "crime",
+"sources": [
+"MISP galaxy",
+"CrowdStrike"
+]
+},
+{
+"name": "TA516",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TA530",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TA547",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TA554",
+"match_name": true,
+"aliases": [
+"TH-163"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TA555",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TA558",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TA570",
+"match_name": true,
+"aliases": [
+"DEV-0450"
+],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TA571",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TA575",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TA577",
+"match_name": true,
+"aliases": [
+"Hive0118"
+],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TA578",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TA579",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TA584",
+"match_name": true,
+"aliases": [
+"Storm-0900"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TA800",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TA829",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TA866",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TAG-112",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TAG-124",
+"match_name": true,
+"aliases": [
+"LandUpdate808"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TAG-140",
+"match_name": true,
+"aliases": [],
+"country": "PK",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TAG-28",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TAG-56",
+"match_name": true,
+"aliases": [],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Taidoor",
+"match_name": true,
+"aliases": [
+"G0015",
+"Earth Aughisky"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TALONITE",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"Dragos"
+]
+},
+{
+"name": "TaskMasters",
+"match_name": true,
+"aliases": [
+"BlueTraveller"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Team-Xecuter",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Team46",
+"match_name": true,
+"aliases": [
+"TaxOff"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TeamPCP",
+"match_name": true,
+"aliases": [
+"Altered Spider",
+"PCPcat",
+"ShellForce",
+"DeadCatx3",
+"CanisterWorm"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TeamSpy Crew",
+"match_name": true,
+"aliases": [
+"Team Bear",
+"Anger Bear",
+"IRON LYRIC"
+],
+"country": "RU",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TeamTNT",
+"match_name": true,
+"aliases": [
+"Adept Libra"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TeamXRat",
+"match_name": true,
+"aliases": [
+"CorporacaoXRat",
+"CorporationXRat"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Teleboyi",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TEMP.Hermit",
+"match_name": true,
+"aliases": [
+"HERMIT NEPTUNE"
+],
+"country": "KP",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TEMP.Veles",
+"match_name": true,
+"aliases": [
+"Xenotime",
+"G0088",
+"ATK91"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy",
+"Dragos"
+]
+},
+{
+"name": "TEMP_Heretic",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TEMPER PANDA",
+"match_name": true,
+"aliases": [
+"Admin338",
+"Team338",
+"MAGNESIUM",
+"G0018"
+],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TempTick",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Tempus Spider",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "crime",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "TERBIUM",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TEST PANDA",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TetrisPhantom",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "The Gentlemen",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "The Gorgon Group",
+"match_name": true,
+"aliases": [
+"Gorgon Group",
+"Subaat",
+"ATK92",
+"G0078",
+"Pasty Gemini"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "The Shadow Brokers",
+"match_name": true,
+"aliases": [
+"Shadow Brokers"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TheDarkOverlord",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TheHatman",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TheWizards",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Threat Actor 888",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Threatsec",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Thrip",
+"match_name": true,
+"aliases": [
+"G0076",
+"ATK78"
+],
+"country": "",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TianWu",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Tick",
+"match_name": false,
+"aliases": [
+"BRONZE BUTLER",
+"REDBALDKNIGHT",
+"STALKER PANDA",
+"G0060",
+"Stalker Taurus",
+"PLA Unit 61419",
+"Swirl Typhoon",
+"TEMP.Tick",
+"TICK CASTLE"
+],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TIDRONE",
+"match_name": true,
+"aliases": [
+"Earth Ammit",
+"VENOM"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TiltedTemple",
+"match_name": true,
+"aliases": [
+"DEV-0322",
+"Circle Typhoon"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TINY SPIDER",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Titan Panda",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "state",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "ToddyCat",
+"match_name": true,
+"aliases": [
+"Websiic"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Tonto Team",
+"match_name": true,
+"aliases": [
+"CactusPete",
+"KARMA PANDA",
+"BRONZE HUNTLEY",
+"COPPER",
+"Red Beifang",
+"G0131",
+"PLA Unit 65017",
+"Earth Akhlut",
+"TAG-74",
+"LONE CASTLE"
+],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Tortoiseshell",
+"match_name": true,
+"aliases": [
+"IMPERIAL KITTEN",
+"Yellow Liderc",
+"TA456",
+"DUSTYCAVE",
+"Crimson Sandstorm",
+"Cuboid Sandstorm",
+"Smoke Sandstorm",
+"CURIUM"
+],
+"country": "IR",
+"kind": "state",
+"sources": [
+"MISP galaxy",
+"CrowdStrike"
+]
+},
+{
+"name": "TOXCAR CYBER TEAM",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TOXIC PANDA",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TRACER KITTEN",
+"match_name": true,
+"aliases": [],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TraderTraitor",
+"match_name": true,
+"aliases": [
+"Jade Sleet",
+"UNC4899",
+"Pukchong"
+],
+"country": "KP",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TRAVELING SPIDER",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "crime",
+"sources": [
+"MISP galaxy",
+"CrowdStrike"
+]
+},
+{
+"name": "TridentLocker",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TRIPLESTRENGTH",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Tstark",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TunnelSnake",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TurkHackTeam",
+"match_name": true,
+"aliases": [],
+"country": "TR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Turla",
+"match_name": true,
+"aliases": [
+"VENOMOUS Bear",
+"Group 88",
+"Waterbug",
+"WRAITH",
+"Uroburos",
+"Pfinet",
+"TAG_0530",
+"KRYPTON",
+"Hippo Team",
+"Pacifier APT",
+"SIG23",
+"IRON HUNTER",
+"MAKERSMARK",
+"ATK13",
+"G0010",
+"ITG12",
+"Blue Python",
+"SUMMIT",
+"UNC4210",
+"Secret Blizzard",
+"UAC-0144",
+"UAC-0024",
+"UAC-0003",
+"TURLA RELIC"
+],
+"country": "RU",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "TwoSail Junk",
+"match_name": true,
+"aliases": [
+"Operation Poisoned News"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UAC-0006",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UAC-0020",
+"match_name": true,
+"aliases": [
+"SickSync",
+"TEMP.Vermin",
+"VERMIN RELIC"
+],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UAC-0050",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UAC-0063",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UAC-0094",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UAC-0099",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UAC-0102",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UAC-0118",
+"match_name": true,
+"aliases": [
+"FromRussiaWithLove"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UAC-0149",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UAC-0154",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UAC-0184",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UAC-0185",
+"match_name": true,
+"aliases": [
+"UNC4221"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UAC-0194",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UAC-0215",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UAC-0219",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UAC-0226",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UAC-0227",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UAC-0239",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UAC-0241",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UAC-0245",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UAT-10147",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UAT-10362",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UAT-10608",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UAT-11473",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UAT-11795",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UAT-5394",
+"match_name": true,
+"aliases": [],
+"country": "KP",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UAT-5918",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UAT-6275",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UAT-6382",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UAT-7237",
+"match_name": true,
+"aliases": [
+"CL-STA-1062"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UAT-7810",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UAT-8099",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UAT-8302",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UAT-8616",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UAT-8837",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UAT-9244",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UAT-9686",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UAT-9921",
+"match_name": true,
+"aliases": [
+"VoidLink Operator"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Ukrainian Cyber Alliance",
+"match_name": true,
+"aliases": [],
+"country": "UA",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Umbral Bison",
+"match_name": true,
+"aliases": [],
+"country": "BY",
+"kind": "state",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "UNC1069",
+"match_name": true,
+"aliases": [
+"MASAN",
+"CryptoCore",
+"MIDNIGHT NEPTUNE"
+],
+"country": "KP",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC1088",
+"match_name": true,
+"aliases": [
+"RAVINE CASTLE"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC1549",
+"match_name": true,
+"aliases": [
+"Nimbus Manticore"
+],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC1860",
+"match_name": true,
+"aliases": [],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC1878",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC215",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC2447",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC2452",
+"match_name": true,
+"aliases": [
+"DarkHalo",
+"StellarParticle",
+"NOBELIUM",
+"Solar Phoenix",
+"Midnight Blizzard"
+],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC2465",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC2529",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC2565",
+"match_name": true,
+"aliases": [
+"Hive0127"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC2630",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC2659",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC2717",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC2814",
+"match_name": true,
+"aliases": [
+"DARK CASTLE"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC2970",
+"match_name": true,
+"aliases": [],
+"country": "KP",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC3524",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC3569",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC3886",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC3890",
+"match_name": true,
+"aliases": [],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC3973",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC4191",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC4393",
+"match_name": true,
+"aliases": [
+"Storm-1811",
+"CURLY SPIDER",
+"STAC5777"
+],
+"country": "",
+"kind": "crime",
+"sources": [
+"MISP galaxy",
+"CrowdStrike"
+]
+},
+{
+"name": "UNC4487",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC4536",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC4540",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC4736",
+"match_name": true,
+"aliases": [],
+"country": "KP",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC4841",
+"match_name": true,
+"aliases": [
+"SLIME57"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC4990",
+"match_name": true,
+"aliases": [],
+"country": "IT",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC5174",
+"match_name": true,
+"aliases": [
+"Uteus"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC5266",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC5291",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC5325",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC5330",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC5337",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC5342",
+"match_name": true,
+"aliases": [],
+"country": "KP",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC5537",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC5673",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MITRE ATLAS"
+]
+},
+{
+"name": "UNC5820",
+"match_name": true,
+"aliases": [
+"CL-STA-0954"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC6032",
+"match_name": true,
+"aliases": [],
+"country": "VN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC6040",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC6148",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC6201",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC6293",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC6353",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC6384",
+"match_name": true,
+"aliases": [
+"Vertigo Panda"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC6395",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC6426",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC6485",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC6508",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC6619",
+"match_name": true,
+"aliases": [
+"TGR-STA-1030",
+"Shadow Campaigns"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC6671",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC6691",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC6692",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC6748",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC7017",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNC7228",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Unfading Sea Haze",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNG0002",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNG0901",
+"match_name": true,
+"aliases": [
+"Operation CargoTalon",
+"Unknown-Group-901"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNION PANDA",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNION SPIDER",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Unit 8200",
+"match_name": true,
+"aliases": [
+"Duqu Group"
+],
+"country": "IL",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNK_AcademicFlare",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNK_DropPitch",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNK_FistBump",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNK_RemoteRogue",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UNK_SparkyCarp",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Unnamed Actor",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UnsolicitedBooker",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Urpage",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "USDoD",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UserSec",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UTA0178",
+"match_name": true,
+"aliases": [
+"UNC5221",
+"Red Dev 61",
+"ARMORY CASTLE"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UTA0218",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UTA0352",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UTA0355",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UTA0388",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UTA0533",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UTA0576",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UTG-Q-008",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "UTG-Q-010",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "V0idix",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "VANADINITE",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"Dragos"
+]
+},
+{
+"name": "Vanilla Tempest",
+"match_name": true,
+"aliases": [
+"DEV-0832",
+"VICE SPIDER",
+"Vice Society"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "VantaCore",
+"match_name": true,
+"aliases": [],
+"country": "UA",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Vapor Panda",
+"match_name": true,
+"aliases": [
+"VexatiousTemper"
+],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy",
+"CrowdStrike"
+]
+},
+{
+"name": "Vault Panda",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "state",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "Velvet Tempest",
+"match_name": true,
+"aliases": [
+"DEV-0504",
+"ALPHA SPIDER"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "VENOM SPIDER",
+"match_name": true,
+"aliases": [
+"badbullzvenom",
+"badbullz"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Veto Spider",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "crime",
+"sources": [
+"CrowdStrike"
+]
+},
+{
+"name": "VICE SPIDER",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "crime",
+"sources": [
+"MISP galaxy",
+"CrowdStrike"
+]
+},
+{
+"name": "ViceLeaker",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "VICEROY TIGER",
+"match_name": true,
+"aliases": [
+"OPERATION HANGOVER",
+"Donot Team",
+"APT-C-35",
+"SectorE02",
+"Orange Kala"
+],
+"country": "IN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Vicious Panda",
+"match_name": true,
+"aliases": [
+"SixLittleMonkeys"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "ViciousTrap",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Viking Jackal",
+"match_name": true,
+"aliases": [
+"Vikingdom"
+],
+"country": "AE",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "VIKING SPIDER",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Void Arachne",
+"match_name": true,
+"aliases": [
+"Silver Fox"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Void Balaur",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Void Banshee",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Void Blizzard",
+"match_name": true,
+"aliases": [
+"LAUNDRY BEAR",
+"UAC-0190",
+"TA488"
+],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Void Manticore",
+"match_name": true,
+"aliases": [],
+"country": "IR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Void Rabisu",
+"match_name": true,
+"aliases": [
+"Tropical Scorpius"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Volatile Cedar",
+"match_name": true,
+"aliases": [
+"Lebanese Cedar",
+"DeftTorero"
+],
+"country": "LB",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Volt Typhoon",
+"match_name": true,
+"aliases": [
+"BRONZE SILHOUETTE",
+"VANGUARD PANDA",
+"UNC3236",
+"Insidious Taurus",
+"VOLTZITE",
+"Dev-0391",
+"Storm-0391"
+],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy",
+"CrowdStrike",
+"Dragos"
+]
+},
+{
+"name": "VulzSecTeam",
+"match_name": true,
+"aliases": [
+"VulzSec"
+],
+"country": "ID",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "WageMole",
+"match_name": true,
+"aliases": [
+"Famous Chollima",
+"UNC5267",
+"Nickel Tapestry",
+"Storm-1877",
+"Void Dokkaebi",
+"WaterPlum",
+"PurpleBravo"
+],
+"country": "KP",
+"kind": "state",
+"sources": [
+"MISP galaxy",
+"CrowdStrike"
+]
+},
+{
+"name": "WARP PANDA",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy",
+"CrowdStrike"
+]
+},
+{
+"name": "Wassonite",
+"match_name": true,
+"aliases": [],
+"country": "KP",
+"kind": "",
+"sources": [
+"MISP galaxy",
+"Dragos"
+]
+},
+{
+"name": "Watchdog",
+"match_name": false,
+"aliases": [
+"Thief Libra"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Water Bakunawa",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Water Barghest",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Water Curupira",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Water Gamayun",
+"match_name": true,
+"aliases": [],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Water Kurita",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Water Labbu",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Water Makara",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Water Orthrus",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Water Saci",
+"match_name": true,
+"aliases": [],
+"country": "BR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Water Sigbin",
+"match_name": true,
+"aliases": [
+"8220 Gang"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Webworm",
+"match_name": true,
+"aliases": [
+"Space Pirates"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "WeedSec",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "WeRedEvils",
+"match_name": true,
+"aliases": [],
+"country": "IL",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "WET PANDA",
+"match_name": true,
+"aliases": [
+"Red Chimera"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "White Bear",
+"match_name": true,
+"aliases": [
+"Skipper Turla"
+],
+"country": "RU",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Whitearmor",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "WhiteCobra",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Whitefly",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "WildNeutron",
+"match_name": true,
+"aliases": [
+"Morpho",
+"Sphinx Moth"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "WildPressure",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "WindShift",
+"match_name": true,
+"aliases": [
+"Windy Phoenix"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Winter Vivern",
+"match_name": true,
+"aliases": [
+"UAC-0114",
+"TA473",
+"TAG-70"
+],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "WIP19",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "WIRTE",
+"match_name": true,
+"aliases": [
+"Ashen Lepus"
+],
+"country": "PS",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Wisteria Tsunami",
+"match_name": true,
+"aliases": [
+"DEV-0605",
+"CyberRoot",
+"MintedSoil"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Witchetty",
+"match_name": true,
+"aliases": [
+"LookingFrog"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "WIZARD SPIDER",
+"match_name": true,
+"aliases": [
+"TEMP.MixMaster",
+"GOLD BLACKBURN",
+"FIN12",
+"Periwinkle Tempest",
+"DEV-0193",
+"Storm-0193",
+"Trickbot LLC",
+"UNC2053",
+"Pistachio Tempest",
+"DEV-0237",
+"Storm-0230"
+],
+"country": "RU",
+"kind": "state",
+"sources": [
+"MISP galaxy",
+"CrowdStrike"
+]
+},
+{
+"name": "WOLF SPIDER",
+"match_name": true,
+"aliases": [
+"FIN4",
+"G0085"
+],
+"country": "RO",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Worok",
+"match_name": true,
+"aliases": [],
+"country": "CN",
+"kind": "state",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "XakNet",
+"match_name": true,
+"aliases": [
+"UAC-0100",
+"UAC-0106"
+],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Xcatze",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "XDSpy",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Xiaoqiying",
+"match_name": true,
+"aliases": [
+"Genesis Day",
+"Teng Snake"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "XinXin",
+"match_name": true,
+"aliases": [
+"changqixinyun",
+"Black Technology"
+],
+"country": "CN",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Xuanye Group",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Yanbian Gang",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "YoroTrooper",
+"match_name": true,
+"aliases": [
+"Salted Earth",
+"Sturgeon Fisher",
+"ShadowSilk",
+"Silent Lynx",
+"Cavalry Werewolf",
+"SturgeonPhisher",
+"Comrade Saiga"
+],
+"country": "KZ",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Z-Pentest Alliance",
+"match_name": true,
+"aliases": [
+"Z-Pentest"
+],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "Zarya",
+"match_name": true,
+"aliases": [
+"UAC-0109"
+],
+"country": "RU",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "ZaWoo",
+"match_name": true,
+"aliases": [
+"ZaWoo Team"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "ZeffSec",
+"match_name": true,
+"aliases": [
+"Zeff Security"
+],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "ZeroBytes",
+"match_name": true,
+"aliases": [],
+"country": "FR",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "ZeroSevenGroup",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "ZOMBIE SPIDER",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+},
+{
+"name": "ZooPark",
+"match_name": true,
+"aliases": [],
+"country": "",
+"kind": "",
+"sources": [
+"MISP galaxy"
+]
+}
+]
+}
