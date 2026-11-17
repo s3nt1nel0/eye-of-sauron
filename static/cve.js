@@ -132,7 +132,7 @@
         s.last_error ? h("p", { class: "error small", text: s.last_error }) : null,
         h("div", { class: "muted small", text: s.nvd_api_key
           ? "NVD API key configured — fast sync."
-          : "No NVD API key: syncing is limited to 5 requests per 30 s (the first back-fill takes a few minutes). A free key (nvd.nist.gov/developers/request-an-api-key) set as FEEDWARDEN_NVD_API_KEY makes it ~10× faster." })),
+          : "No NVD API key: syncing is limited to 5 requests per 30 s (the first back-fill takes a few minutes). A free key (nvd.nist.gov/developers/request-an-api-key) set as EOS_NVD_API_KEY makes it ~10× faster." })),
       h("div", { class: "panel-section" }, h("h4", { text: "Sync" }),
         h("div", { class: "grid-form" },
           h("label", { for: "cve-enabled", text: "Track CVEs" }), enabled,

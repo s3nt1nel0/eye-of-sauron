@@ -64,9 +64,9 @@ def audit(app) -> tuple[list[tuple[str, str, str]], list[str]]:
 
 
 def main() -> int:
-    os.environ.setdefault("FEEDWARDEN_DATA_DIR", tempfile.mkdtemp(prefix="route-audit-"))
-    os.environ.setdefault("FEEDWARDEN_ADMIN_PASSWORD", "route-audit-only-password")
-    os.environ.setdefault("FEEDWARDEN_DISABLE_SCHEDULER", "true")
+    os.environ.setdefault("EOS_DATA_DIR", tempfile.mkdtemp(prefix="route-audit-"))
+    os.environ.setdefault("EOS_ADMIN_PASSWORD", "route-audit-only-password")
+    os.environ.setdefault("EOS_DISABLE_SCHEDULER", "true")
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from app.main import create_app
 

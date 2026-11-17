@@ -8,8 +8,8 @@
   const { api, h, fill, toast, guarded, safeUrl, safeColor, relTime } = FW;
   const $ = (sel) => document.querySelector(sel);
 
-  const KIND_LABEL = { youtube: "YouTube", hfpapers: "Hugging Face Daily Papers", x: "X (Twitter)", telegram: "Telegram" };
-  const KIND_ICON = { youtube: "▶", hfpapers: "📄", x: "𝕏", telegram: "✈" };
+  const KIND_LABEL = { youtube: "YouTube", hfpapers: "Hugging Face Daily Papers", x: "X (Twitter)", telegram: "Telegram", email: "Email newsletter" };
+  const KIND_ICON = { youtube: "▶", hfpapers: "📄", x: "𝕏", telegram: "✈", email: "✉" };
   const SOURCE_RE = /^(?:https?:\/\/)?(?:www\.|m\.|mobile\.)?(?:youtube\.com\/|youtu\.be\/|t\.me\/|telegram\.me\/|x\.com\/|twitter\.com\/|huggingface\.co\/papers|hf\.co\/papers)/i;
 
   /** Kind for an input, or null for websites/RSS. `hint` comes from the Add-feed type picker. */
@@ -500,6 +500,16 @@
       const via = h("select", { disabled: !src.channel }, [["web", "Public web preview"], ["account", "My Telegram account"]].map(([v, l]) => h("option", { value: v, text: l, selected: src.via === v })));
       rows.push(h("label", { text: "Chat" }), h("span", { text: src.channel ? `@${src.channel}` : `private chat ${src.chat_id}` }), h("label", { text: "Read through" }), via);
       value = () => (src.channel ? { kind: "telegram", channel: src.channel, via: via.value } : { ...src });
+    } else if (src.kind === "email") {
+      const senders = h("input", { type: "text", maxlength: 1500, value: (src.senders || []).join(", "), spellcheck: "false" });
+      const folderIn = h("input", { type: "text", maxlength: 100, value: src.folder || "INBOX", spellcheck: "false" });
+      const subject = h("input", { type: "text", maxlength: 100, value: src.subject_contains || "", placeholder: "(any subject)" });
+      rows.push(h("label", { text: "Senders" }), senders,
+        h("div", { class: "hint", text: "Addresses (alerts@example.com) or whole domains (example.com), separated by commas — up to 20." }),
+        h("label", { text: "Mailbox folder" }), folderIn,
+        h("label", { text: "Subject contains" }), subject);
+      value = () => ({ kind: "email", senders: senders.value.split(/[\s,;]+/).map((s) => s.trim().toLowerCase()).filter(Boolean).slice(0, 20),
+        folder: folderIn.value.trim() || "INBOX", subject_contains: subject.value.trim() || undefined });
     } else if (src.kind === "youtube") {
       const link = src.channel_id ? `https://www.youtube.com/channel/${src.channel_id}` : `https://www.youtube.com/playlist?list=${src.playlist_id}`;
       rows.push(h("label", { text: src.channel_id ? "Channel" : "Playlist" }), h("a", { href: link, target: "_blank", rel: "noopener noreferrer", text: src.channel_id || src.playlist_id }),
@@ -597,9 +607,78 @@
     }
     telegram.append(h("p", { class: "muted small", text: "The session is equivalent to a logged-in device: it is stored encrypted, never shown again, and you can also end it from Telegram → Settings → Devices. Your phone number and login code are not stored." }));
 
+    // --- Email newsletters (IMAP)
+    const ic = st.imap.config;
+    const imapSet = st.imap.secrets_set.includes("password");
+    const imapHost = h("input", { type: "text", maxlength: 253, placeholder: "imap.gmail.com", value: ic.host || "", spellcheck: "false" });
+    const imapPort = h("input", { type: "number", min: 1, max: 65535, value: ic.port || 993 });
+    const imapUser = h("input", { type: "text", maxlength: 254, placeholder: "you@example.com", value: ic.username || "", autocomplete: "off", spellcheck: "false" });
+    const imapPass = secretInput(imapSet ? "(saved — leave empty to keep)" : "App password");
+    const mail = h("div", { class: "panel-section card" },
+      h("h4", null, "✉ Email newsletters ", setBadge(imapSet)),
+      h("p", { class: "muted small", text: "Follow publishers that send updates by email (CISA's email updates, vendor threat-intel mailers, newsletters). Point this at a mailbox — ideally one you use only for newsletters — then add a source with Add feed → Type → Email newsletter. Mail is read over TLS only and read-only: nothing is marked read, moved or deleted." }),
+      h("form", { class: "grid-form", onsubmit: async (e) => {
+        e.preventDefault();
+        const body = { host: imapHost.value.trim(), port: Number(imapPort.value) || 993, username: imapUser.value.trim() };
+        if (imapPass.value) body.password = imapPass.value;
+        if (await guarded(() => api("PUT", "/integrations/imap", body), "Mailbox connected")) rerender();
+      } },
+        h("label", { text: "Mail server (IMAPS)" }), h("div", { class: "row-form" }, imapHost, imapPort),
+        h("label", { text: "User name" }), imapUser,
+        h("label", { text: "Password" }), imapPass,
+        h("div", { class: "hint", text: "Gmail, Outlook.com and iCloud need an app password (not your normal one). A mail server on your own network must be listed in EOS_PRIVATE_ALLOWLIST." }),
+        h("div", { class: "row-form" }, h("button", { type: "submit", class: "btn small primary", text: imapSet ? "Save & test" : "Connect" }),
+          imapSet ? h("button", { type: "button", class: "btn small danger", text: "Remove", onclick: async () => { if (await guarded(() => api("PUT", "/integrations/imap", { clear: true }), "Removed")) rerender(); } }) : null)),
+      ic.folders && ic.folders.length ? h("p", { class: "muted small", text: `Folders: ${ic.folders.slice(0, 30).join(", ")}${ic.folders.length > 30 ? "…" : ""}` }) : null);
+
+    // --- Read later
+    const rc = st.readlater.config;
+    const rs = st.readlater.secrets_set;
+    const wbUrl = h("input", { type: "url", maxlength: 300, placeholder: "https://wallabag.example.com", value: rc.wallabag_url || "" });
+    const wbClient = h("input", { type: "text", maxlength: 200, placeholder: "Client ID", value: rc.wallabag_client_id || "", spellcheck: "false" });
+    const wbSecret = secretInput(rs.includes("wallabag_client_secret") ? "Client secret (saved)" : "Client secret");
+    const wbUser = h("input", { type: "text", maxlength: 200, placeholder: rs.includes("wallabag_username") ? "User name (saved)" : "User name", autocomplete: "off" });
+    const wbPass = secretInput(rs.includes("wallabag_password") ? "Password (saved)" : "Password");
+    const lwUrl = h("input", { type: "url", maxlength: 300, placeholder: "https://linkwarden.example.com", value: rc.linkwarden_url || "" });
+    const lwToken = secretInput(rs.includes("linkwarden_token") ? "Access token (saved)" : "Access token");
+    const obVault = h("input", { type: "text", maxlength: 100, placeholder: "Vault name", value: rc.obsidian_vault || "" });
+    const obFolder = h("input", { type: "text", maxlength: 200, placeholder: "Folder in the vault (optional)", value: rc.obsidian_folder || "" });
+    const saveRl = async (body, label) => {
+      if (await guarded(() => api("PUT", "/integrations/readlater", body), label)) { if (FW.loadReadLater) FW.loadReadLater(); rerender(); }
+    };
+    const clearBtn = (which) => h("button", { type: "button", class: "btn small danger", text: "Remove", onclick: () => saveRl({ clear: which }, "Removed") });
+    const readlater = h("div", { class: "panel-section card" },
+      h("h4", { text: "🔖 Read later" }),
+      h("p", { class: "muted small", text: "Adds a 🔖 Save… menu to the reader. Markdown download always works; Wallabag, Linkwarden and Obsidian appear once set up here. Self-hosted addresses on your network are allowed." }),
+      h("form", { class: "grid-form", onsubmit: (e) => {
+        e.preventDefault();
+        const body = { wallabag_url: wbUrl.value.trim(), wallabag_client_id: wbClient.value.trim() };
+        if (wbSecret.value) body.wallabag_client_secret = wbSecret.value;
+        if (wbUser.value.trim()) body.wallabag_username = wbUser.value.trim();
+        if (wbPass.value) body.wallabag_password = wbPass.value;
+        saveRl(body, "Wallabag saved");
+      } },
+        h("label", { text: "Wallabag" }), h("div", { class: "row-form" }, wbUrl, wbClient),
+        h("span"), h("div", { class: "row-form" }, wbSecret, wbUser, wbPass),
+        h("div", { class: "hint", text: "Wallabag → API clients management → Create a new client: copy its Client ID and Client secret, and use your Wallabag user name and password." }),
+        h("span"), h("div", { class: "row-form" }, h("button", { type: "submit", class: "btn small primary", text: "Save Wallabag" }), rc.wallabag_url ? clearBtn("wallabag") : null)),
+      h("form", { class: "grid-form", onsubmit: (e) => {
+        e.preventDefault();
+        const body = { linkwarden_url: lwUrl.value.trim() };
+        if (lwToken.value) body.linkwarden_token = lwToken.value.trim();
+        saveRl(body, "Linkwarden saved");
+      } },
+        h("label", { text: "Linkwarden" }), h("div", { class: "row-form" }, lwUrl, lwToken),
+        h("div", { class: "hint", text: "Linkwarden → Settings → Access Tokens → New access token." }),
+        h("span"), h("div", { class: "row-form" }, h("button", { type: "submit", class: "btn small primary", text: "Save Linkwarden" }), rc.linkwarden_url ? clearBtn("linkwarden") : null)),
+      h("form", { class: "grid-form", onsubmit: (e) => { e.preventDefault(); saveRl({ obsidian_vault: obVault.value.trim(), obsidian_folder: obFolder.value.trim() }, "Obsidian saved"); } },
+        h("label", { text: "Obsidian" }), h("div", { class: "row-form" }, obVault, obFolder),
+        h("div", { class: "hint", text: "Creates a note in the vault through Obsidian's obsidian:// link on this device (Obsidian must be installed here). Nothing is sent to a server." }),
+        h("span"), h("div", { class: "row-form" }, h("button", { type: "submit", class: "btn small primary", text: "Save Obsidian" }), rc.obsidian_vault ? clearBtn("obsidian") : null)));
+
     fill(panel,
       h("p", { class: "muted", text: "Credentials for third-party sources. Secrets are encrypted at rest and never displayed again after saving." }),
-      youtube, x, telegram);
+      youtube, x, telegram, mail, readlater);
   }
 
   function telegramLogin(done) {

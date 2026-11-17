@@ -24,7 +24,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_vali
 from app import ai, delivery
 from app.db import get_db, now, placeholders
 
-log = logging.getLogger("feedwarden.digests")
+log = logging.getLogger("eos.digests")
 
 MAX_RUNS_KEPT = 60
 

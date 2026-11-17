@@ -1,7 +1,7 @@
 """Admin CLI.  Usage (inside the container):
 
     python -m app.cli set-password [username]   # prompts securely, no echo; revokes sessions
-    python -m app.cli gen-secret-key            # print a new key for FEEDWARDEN_SECRET_KEY
+    python -m app.cli gen-secret-key            # print a new key for EOS_SECRET_KEY
     python -m app.cli rotate-secrets            # re-encrypt stored credentials with the first key
     python -m app.cli revoke-all                # incident response: kill all sessions + API tokens
 """
@@ -58,7 +58,7 @@ def rotate_secrets() -> int:
         print(f"Rotation aborted, nothing changed: {exc}", file=sys.stderr)
         return 1
     print(f"Re-encrypted {changed} stored credential(s) with the primary key. "
-          "You can now remove old keys from FEEDWARDEN_SECRET_KEY.")
+          "You can now remove old keys from EOS_SECRET_KEY.")
     return 0
 
 

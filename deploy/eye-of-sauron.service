@@ -7,12 +7,12 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=feedwarden
-Group=feedwarden
-WorkingDirectory=/opt/feedwarden
-EnvironmentFile=-/etc/feedwarden/feedwarden.env
-Environment=FEEDWARDEN_DATA_DIR=/var/lib/feedwarden
-ExecStart=/opt/feedwarden/.venv/bin/uvicorn app.main:create_app --factory --host 0.0.0.0 --port 8080 --no-server-header
+User=eos
+Group=eos
+WorkingDirectory=/opt/eye-of-sauron
+EnvironmentFile=-/etc/eye-of-sauron/eye-of-sauron.env
+Environment=EOS_DATA_DIR=/var/lib/eye-of-sauron
+ExecStart=/opt/eye-of-sauron/.venv/bin/uvicorn app.main:create_app --factory --host 0.0.0.0 --port 8080 --no-server-header
 Restart=on-failure
 RestartSec=5
 
@@ -31,9 +31,9 @@ LockPersonality=true
 MemoryDenyWriteExecute=true
 RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
 CapabilityBoundingSet=
-StateDirectory=feedwarden
+StateDirectory=eye-of-sauron
 StateDirectoryMode=0700
-ReadWritePaths=/var/lib/feedwarden
+ReadWritePaths=/var/lib/eye-of-sauron
 
 [Install]
 WantedBy=multi-user.target

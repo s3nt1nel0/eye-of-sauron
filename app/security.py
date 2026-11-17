@@ -19,22 +19,23 @@ from fastapi import Depends, HTTPException, Request, status
 from app.config import get_settings
 from app.db import get_db, now
 
-log = logging.getLogger("feedwarden.security")
+log = logging.getLogger("eos.security")
 
 _hasher = PasswordHasher()  # argon2id with library-recommended parameters
 _DUMMY_HASH = _hasher.hash(secrets.token_urlsafe(24))
 
-SESSION_COOKIE_SECURE = "__Host-fw_session"  # __Host- prefix: Secure, Path=/, no Domain
-SESSION_COOKIE_PLAIN = "fw_session"
-API_TOKEN_PREFIX = "fw_"
+SESSION_COOKIE_SECURE = "__Host-eos_session"  # __Host- prefix: Secure, Path=/, no Domain
+SESSION_COOKIE_PLAIN = "eos_session"
+API_TOKEN_PREFIX = "eos_"
+LEGACY_TOKEN_PREFIXES = ("fw_",)  # tokens created before the EOS rename keep working
 SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
 MIN_PASSWORD_LENGTH = 12
 _COMMON_PASSWORDS = {
     "password1234", "password12345", "password123456", "123456789012", "qwertyuiopas", "1q2w3e4r5t6y",
     "letmein12345", "welcome12345", "administrator", "changeme1234", "iloveyou1234", "passw0rd1234",
-    "qwerty123456", "abc123456789", "admin1234567", "trustno1trustno1", "feedwarden123", "eyeofsauron1",
+    "qwerty123456", "abc123456789", "admin1234567", "trustno1trustno1", "sauron123456", "eyeofsauron1",
 }
-audit_log = logging.getLogger("feedwarden.audit")
+audit_log = logging.getLogger("eos.audit")
 
 
 def password_problem(password: str, username: str = "") -> str | None:
@@ -192,7 +193,7 @@ account_throttle = LoginThrottle(max_failures=30)
 def ensure_admin_user() -> None:
     """Create the initial admin account on first start.
 
-    Uses FEEDWARDEN_ADMIN_PASSWORD(_FILE) when set, otherwise generates a strong
+    Uses EOS_ADMIN_PASSWORD(_FILE) when set, otherwise generates a strong
     random password and writes it to a 0600 file in the data directory (it is
     never written to logs).
     """
@@ -203,7 +204,7 @@ def ensure_admin_user() -> None:
         password = cfg.admin_password
         problem = password_problem(password, cfg.admin_user) if password else None
         if problem:
-            raise RuntimeError(f"FEEDWARDEN_ADMIN_PASSWORD rejected: {problem}")
+            raise RuntimeError(f"EOS_ADMIN_PASSWORD rejected: {problem}")
         generated = password is None
         if generated:
             password = secrets.token_urlsafe(18)
@@ -244,10 +245,10 @@ def _unauthorized(detail: str = "Not authenticated") -> HTTPException:
 
 
 def token_principal(value: str) -> Principal:
-    """Validate an API token value (``fw_...``) and return its principal. Raises 401."""
+    """Validate an API token value (``eos_...``, or an older ``fw_...``) and return its principal. Raises 401."""
     current = now()
     value = value.strip()
-    if not value.startswith(API_TOKEN_PREFIX) or len(value) > 200:
+    if not value.startswith((API_TOKEN_PREFIX, *LEGACY_TOKEN_PREFIXES)) or len(value) > 200:
         raise _unauthorized("Invalid authorization header")
     with get_db() as db:
         row = db.execute(

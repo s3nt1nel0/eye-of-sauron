@@ -57,7 +57,7 @@ There are four interfaces, switched from the top bar:
   - `keywords` may be empty when the rule is limited to a feed or folder, or has a CVE condition; it then matches everything in scope.
   - `cve_severity` (`CRITICAL|HIGH|MEDIUM|LOW`) and `cve_owasp` (`2025:A01`…`2021:A10`) match articles that name a CVE (`CVE-YYYY-NNNN`, at most 50 per article) whose NVD severity, or whose CWE's OWASP mapping, fits. `cve_category` matches a CVE in a CVE-tracking category (slug such as `rce`, `privilege-escalation`, `edge-firewall-vpn`; Settings → CVE tracking) or `kev` / `kev-ransomware` (CISA KEV). They use the local CVE tables, so sync CVEs first (CVE tab).
 - **Feed management:**
-  - **Keep articles from…** (Settings → Feeds, or the ticked feeds): `POST /feeds/keep` with `scope` (`all` Reader feeds, a `folder` with `folder_id`, or `feeds` with `feed_ids`), `days` (0 = keep everything) and `dry_run` (count only; returns `removed`, `oldest`, `feeds`). It deletes older articles (tombstoned so a refresh doesn't re-add them) except starred/hand-filed ones and sets those feeds' `retention_days`, so retention keeps them trimmed. YouTube feeds are skipped (Videos → Keep…).
+  - **Keep feeds…** (Settings → Feeds, or the ticked feeds): `POST /feeds/keep` with `scope` (`all`, a `folder` with `folder_id`, or `feeds` with `feed_ids`), `kinds` (`articles`, `podcasts`, `videos`, `accounts`; omitted = all), `days` (0 = keep everything, which also lifts the item cap) and `dry_run` (count only; returns `removed`, `oldest`, `feeds`). It deletes older items (tombstoned so a refresh doesn't re-add them) except starred, hand-filed and video-group ones and sets those feeds' `retention_days`, so retention keeps them trimmed. The same dialog can start a history back-fill (`POST /history/backfill-all` with the chosen `feed_ids`).
   - Add a feed with **+ Add feed**. Change the interval per feed or in bulk in Settings → Feeds.
   - A ⚠ on a feed means it is failing; hover to see the error. Failing feeds back off automatically.
 - **Dashboards:** start from a template (Threat landscape, Ransomware, APT, AI threats). Click any bar or point to see the matching articles. Counts are **article mentions, not confirmed incidents**.
@@ -83,7 +83,7 @@ There are four interfaces, switched from the top bar:
 - **Fetch filter:** retention also decides which old items a fetch accepts. A feed set to 90 days ignores 2-year-old items even when the feed contains them.
 - **Always kept:** starred and manually filed articles, whatever the retention.
 
-**Getting older articles.** A feed only lists its latest 10–50 items, so a reader only has the history it collected while subscribed. To reach further back, use **Fetch older articles**: per feed in the editor (*History & storage*), or for every feed at once in *Settings → Feeds → Fetch older articles for all feeds*.
+**Getting older articles.** A feed only lists its latest 10–50 items, so a reader only has the history it collected while subscribed. To reach further back, use **Fetch older articles**: per feed in the editor (*History & storage*), or for many feeds at once in *Settings → Feeds → 🗓️ Keep feeds…* with *Also fetch older items back to this date* ticked.
 
 **Where it looks** (*Where to look*):
 - **Automatic** (default) tries the site first, then the Internet Archive.
@@ -167,7 +167,7 @@ The interface is responsive: on a phone the sidebar becomes a ☰ menu and artic
 * **Away from home (pick one; never expose plain HTTP to the internet):**
   1. **Tailscale or WireGuard (recommended):** install it on the server (or the Proxmox host) and on your phone, then browse to the server's tailnet address. Nothing is exposed publicly.
   2. **Cloudflare Tunnel + Cloudflare Access:** a public HTTPS hostname, protected by an SSO/one-time-PIN login *before* traffic reaches Eye of Sauron.
-  3. **Your own reverse proxy:** Caddy, Traefik or Nginx Proxy Manager with HTTPS, plus Authelia or Authentik for MFA (see README → Reverse proxy & TLS). Set `FEEDWARDEN_ALLOWED_HOSTS` and `FORWARDED_ALLOW_IPS`.
+  3. **Your own reverse proxy:** Caddy, Traefik or Nginx Proxy Manager with HTTPS, plus Authelia or Authentik for MFA (see README → Reverse proxy & TLS). Set `EOS_ALLOWED_HOSTS` and `FORWARDED_ALLOW_IPS`.
 * **Automations on the phone:** apps such as iOS Shortcuts, Tasker or HTTP Shortcuts can call the REST API with a token from **Settings → API tokens**. Use a `read` token for viewing; never put an admin session cookie into an app.
 * **Native RSS reader apps:** Eye of Sauron speaks the Google Reader API, like FreshRSS.
   1. In the web app: **Settings → Mobile apps → Create app password**, named after the device (e.g. "iPhone – Reeder"). Copy the password; it's shown once.
@@ -216,7 +216,7 @@ The interface is responsive: on a phone the sidebar becomes a ☰ menu and artic
    * Google Threat Intelligence (`https://cloudblog.withgoogle.com/topics/threat-intelligence/rss/`);
    * Unit 42, CrowdStrike (`/en-us/blog/feed`), Tenable, MITRE ATT&CK, ASD/ACSC.
 2. Set those feeds to **Keep forever**.
-3. Run **Fetch older articles** (per feed, or *Settings → Feeds → Fetch older articles for all feeds* for the whole OT folder). It uses the site's own paging where it exists (Unit 42, the Microsoft Security Blog) and the Internet Archive otherwise.
+3. Run **Fetch older articles** (per feed, or *Settings → Feeds → 🗓️ Keep feeds…* → *In folder: OT* with *Also fetch older items* ticked). It uses the site's own paging where it exists (Unit 42, the Microsoft Security Blog) and the Internet Archive otherwise.
 
 **Sources that block automated readers** (CISA, SecurityWeek, Industrial Cyber and Forescout answered HTTP 403 at the time of writing) are left alone. Eye of Sauron does not disguise itself to get around such blocks.
 
@@ -272,7 +272,7 @@ The interface is responsive: on a phone the sidebar becomes a ☰ menu and artic
 - **KEV:** refreshed every 6 h.
 - **CWE catalog:** refreshed weekly.
 - **Controls:** Settings → **CVE tracking** shows progress, counts and errors, with *Sync now* and *Full refresh*.
-- **Without an NVD API key:** NVD allows 5 requests per 30 s, and the first 30-day back-fill takes about 5 minutes. A free key in `FEEDWARDEN_NVD_API_KEY` makes it roughly 10× faster.
+- **Without an NVD API key:** NVD allows 5 requests per 30 s, and the first 30-day back-fill takes about 5 minutes. A free key in `EOS_NVD_API_KEY` makes it roughly 10× faster.
 
 **MITRE ATT&CK** (Settings → Watchlists & entities → MITRE ATT&CK; `GET /attack/status`, `POST /attack/sync` (admin), `GET /attack/groups?q=`, `GET /attack/groups/{G-ID}`):
 * **Source:** MITRE's official STIX 2.1 data (`github.com/mitre-attack/attack-stix-data`), Enterprise, ICS and Mobile.
@@ -502,7 +502,7 @@ On any rule, choose **Instant alert to** and a channel. New matching articles (n
 
 
 ```bash
-H="Authorization: Bearer fw_xxx"; B=https://feeds.example.com/api/v1
+H="Authorization: Bearer eos_xxx"; B=https://feeds.example.com/api/v1
 # Unread articles in a collection, newest first
 curl -s -H "$H" "$B/articles?unread=true&tag_id=1&limit=20"
 # Everything that mentions a threat actor (any of its names), last 30 days
@@ -523,28 +523,28 @@ All environment variables are in [`.env.example`](../.env.example). The security
 
 | Variable | Recommendation |
 |---|---|
-| `FEEDWARDEN_SECRET_KEY_FILE` | Point at a Docker secret holding a Fernet key (`python -m app.cli gen-secret-key`). Without it the key lives in `/data/secret.key`, next to the database. |
-| `FEEDWARDEN_ALLOWED_HOSTS` | Set it to your hostname(s) when using a reverse proxy. |
+| `EOS_SECRET_KEY_FILE` | Point at a Docker secret holding a Fernet key (`python -m app.cli gen-secret-key`). Without it the key lives in `/data/secret.key`, next to the database. |
+| `EOS_ALLOWED_HOSTS` | Set it to your hostname(s) when using a reverse proxy. |
 | `FORWARDED_ALLOW_IPS` | The proxy's IP, so throttling and logs see real client IPs. |
-| `FEEDWARDEN_ALLOW_PRIVATE_FEEDS/WEBHOOKS` | Keep `false` unless you need LAN targets (they relax the SSRF guard). |
-| `FEEDWARDEN_PRIVATE_ALLOWLIST` | Prefer this for one local service: comma-separated exact `host:port` pairs (e.g. `127.0.0.1:1200` for RSSHub) that may resolve to local/private addresses. Everything else stays blocked. |
-| `FEEDWARDEN_COOKIE_SECURE` | `auto` is fine behind HTTPS. Force `true` if TLS terminates at a proxy that does not send `X-Forwarded-Proto`. |
+| `EOS_ALLOW_PRIVATE_FEEDS/WEBHOOKS` | Keep `false` unless you need LAN targets (they relax the SSRF guard). |
+| `EOS_PRIVATE_ALLOWLIST` | Prefer this for one local service: comma-separated exact `host:port` pairs (e.g. `127.0.0.1:1200` for RSSHub) that may resolve to local/private addresses. Everything else stays blocked. |
+| `EOS_COOKIE_SECURE` | `auto` is fine behind HTTPS. Force `true` if TLS terminates at a proxy that does not send `X-Forwarded-Proto`. |
 
 ### 5.2 Backups & restore
 **What to back up**
-- The `/data` volume: `feedwarden.db` (plus `-wal`/`-shm` while running) and `secret.key` if you did not move it out.
+- The `/data` volume: `eos.db` (plus `-wal`/`-shm` while running) and `secret.key` if you did not move it out.
 - **Store the encryption key separately from database backups.** A backup with its key next to it is not protected.
 
 **Online backup (consistent while running)**
 ```bash
-docker compose exec eye-of-sauron python -c "import sqlite3; s=sqlite3.connect('/data/feedwarden.db'); d=sqlite3.connect('/data/backup.db'); s.backup(d); d.close()"
+docker compose exec eye-of-sauron python -c "import sqlite3; s=sqlite3.connect('/data/eos.db'); d=sqlite3.connect('/data/backup.db'); s.backup(d); d.close()"
 docker compose cp eye-of-sauron:/data/backup.db ./eye-of-sauron-$(date +%F).db && docker compose exec eye-of-sauron rm /data/backup.db
 ```
 On Proxmox, `vzdump` snapshots of the CT/VM also work.
 
 **Restore**
 1. Stop the container.
-2. Copy the `.db` into the volume as `feedwarden.db`.
+2. Copy the `.db` into the volume as `eos.db`.
 3. Make sure the same secret key is configured. Without it, stored credentials must be re-entered; everything else still works.
 4. Start the container.
 
@@ -561,7 +561,7 @@ On Proxmox, `vzdump` snapshots of the CT/VM also work.
 ### 5.4 Encryption key management
 - **First move off the volume:**
   1. Run `docker compose exec eye-of-sauron cat /data/secret.key` and save the value as `./secrets/secret_key.txt` (chmod 600).
-  2. Enable the `feedwarden_secret_key` secret in `docker-compose.yml` and set `FEEDWARDEN_SECRET_KEY_FILE=/run/secrets/feedwarden_secret_key`.
+  2. Enable the `eos_secret_key` secret in `docker-compose.yml` and set `EOS_SECRET_KEY_FILE=/run/secrets/eos_secret_key`.
   3. Restart, then delete `/data/secret.key`.
 - **Rotation** (yearly, or after suspected exposure):
   1. `docker compose run --rm eye-of-sauron python -m app.cli gen-secret-key` creates a new key.
@@ -623,18 +623,18 @@ Suspect a leaked token or a stolen backup?
 
 | Symptom | Likely cause / fix |
 |---|---|
-| "Destination resolves to a private … address" | The SSRF guard blocked a LAN or loopback target. Expected for internal IPs; add the exact `host:port` to `FEEDWARDEN_PRIVATE_ALLOWLIST` (preferred), or set `FEEDWARDEN_ALLOW_PRIVATE_FEEDS/WEBHOOKS=true`, if intended. |
+| "Destination resolves to a private … address" | The SSRF guard blocked a LAN or loopback target. Expected for internal IPs; add the exact `host:port` to `EOS_PRIVATE_ALLOWLIST` (preferred), or set `EOS_ALLOW_PRIVATE_FEEDS/WEBHOOKS=true`, if intended. |
 | Feed error "Rejected: XML entity declarations…" / "unsupported character encoding" | The feed uses DTD entities, UTF-7 or EBCDIC, which are refused for safety. Ask the publisher, or use another feed URL. |
 | Feed error "Unsupported Content-Encoding" | The server ignored our `Accept-Encoding: gzip, deflate` and sent brotli/zstd. Rare; report it to the publisher. |
 | Social **Test** fails with HTTP 401/403 | Token expired, or the app lacks write permission. X: regenerate the access token *after* enabling Read+Write. |
 | Instagram "needs a media URL" | Instagram cannot post text-only. Provide a public `https://` image or MP4. |
 | Instagram "media processing timed out" | Large or slow video. Retry later, or use a smaller MP4. |
-| Post stuck as approved | The channel is disabled, the spacing interval has not passed, or the scheduler is off (`FEEDWARDEN_DISABLE_SCHEDULER`). |
+| Post stuck as approved | The channel is disabled, the spacing interval has not passed, or the scheduler is off (`EOS_DISABLE_SCHEDULER`). |
 | "Stored credential cannot be decrypted" | The configured key differs from the one used to encrypt (restore or key change). Configure the old key, or re-enter the credentials. |
 | A scraped feed shows "matched no items" | The site changed its layout. Open ⚙ → Scraping rules, fix the selectors, ▶ Test rules. |
 | "Too many requests - slow down" (429) | A rate limit on an expensive action (refresh, analytics, imports…). Wait the seconds given in Retry-After. |
 | Banner "still using the generated first-run password" | Change the password in Settings → Account. The generated password file is then deleted automatically. |
-| CVE sync error "NVD API HTTP 403/503" | NVD rate limit or outage. It retries automatically next cycle; add a free `FEEDWARDEN_NVD_API_KEY`. |
+| CVE sync error "NVD API HTTP 403/503" | NVD rate limit or outage. It retries automatically next cycle; add a free `EOS_NVD_API_KEY`. |
 | CVE dashboards show 0 for OWASP | The CWE catalog has not loaded yet. Use *Full refresh* in Settings → CVE tracking. |
 | "Fetch older articles": *does not offer older pages* | You chose *The site's own older pages only*, and the site ignores paging. Use *Automatic* or *Internet Archive only*. |
 | "Fetch older articles": *no saved copies of this feed* | The Internet Archive never captured this feed address, or not in that period. Small or new blogs often aren't archived. The feed's own window is all there is. |
@@ -700,3 +700,11 @@ list bump `ttp_subs.REV`: the sub-technique entities are re-indexed once at the 
   Add your own aliases in your own lists - they join the same actor.
 - **Related media:** scored in `app/related.py` (`BOOST`, `MIN_SCORE`, `MAX_SHARE`); switch it off with *Related videos and
   podcasts in the reader*.
+
+## Upgrading from 1.0.x
+
+**Upgrading from 1.0.x:** nothing to do. `FEEDWARDEN_*` environment variables are still read when the matching
+`EOS_*` one is not set (rename them when convenient), `feedwarden.db` is renamed to `eos.db` on the first start, and
+existing `fw_` API tokens keep working. Everyone signs in once more (the session cookie is now `eos_session`). Webhook
+receivers must check `X-EOS-Signature` / `X-EOS-Timestamp` instead of the `X-Feedwarden-*` headers. The systemd unit
+is now `deploy/eye-of-sauron.service` (user `eos`, paths `/opt/eye-of-sauron`, `/var/lib/eye-of-sauron`).

@@ -119,13 +119,13 @@ def test_rule_keywords_are_literal_and_word_bounded():
 
 
 def test_private_allowlist_is_exact_host_and_port(monkeypatch):
-    """FEEDWARDEN_PRIVATE_ALLOWLIST opens one local service (e.g. RSSHub on 127.0.0.1:1200) and nothing else."""
+    """EOS_PRIVATE_ALLOWLIST opens one local service (e.g. RSSHub on 127.0.0.1:1200) and nothing else."""
     import pytest
 
     from app import netguard
     from app.config import ConfigError, _allowlist, reset_settings
 
-    monkeypatch.setenv("FEEDWARDEN_PRIVATE_ALLOWLIST", "127.0.0.1:1200")
+    monkeypatch.setenv("EOS_PRIVATE_ALLOWLIST", "127.0.0.1:1200")
     reset_settings()
     try:
         assert netguard.private_ok("127.0.0.1", 1200, False)
@@ -137,7 +137,7 @@ def test_private_allowlist_is_exact_host_and_port(monkeypatch):
         with pytest.raises(netguard.UnsafeURLError):  # even allow-listed, unspecified addresses stay blocked
             netguard.resolve_host("0.0.0.0", 1200, True)
     finally:
-        monkeypatch.delenv("FEEDWARDEN_PRIVATE_ALLOWLIST")
+        monkeypatch.delenv("EOS_PRIVATE_ALLOWLIST")
         reset_settings()
     for bad in ("127.0.0.1", "*:1200", "host:99999", "a b:1"):
         with pytest.raises(ConfigError):

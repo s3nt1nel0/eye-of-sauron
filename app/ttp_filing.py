@@ -30,7 +30,7 @@ import threading
 from app.cve_sync import get_state, set_state
 from app.db import get_db, now, placeholders
 
-log = logging.getLogger("feedwarden.ttp")
+log = logging.getLogger("eos.ttp")
 
 REV = "1"
 ATTACK_SLUG, ATLAS_SLUG = "mitre-attack-techniques", "mitre-atlas-techniques"

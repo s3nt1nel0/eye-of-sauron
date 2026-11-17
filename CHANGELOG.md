@@ -5,7 +5,59 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.1.0] — 2026-11-18
+
+### Added (ideas borrowed from FreshRSS extensions)
+- **✉ Email newsletters as feeds** (`app/mailfeeds.py`, source kind `email`): connect a mailbox (Settings → Integrations →
+  Email newsletters; IMAPS only, TLS 1.2+, address checked by the SSRF guard and pinned, read-only EXAMINE + BODY.PEEK),
+  then Add feed → Type → Email newsletter with the senders (addresses or domains) and optional subject words. Each matching
+  message becomes an article (sanitised, tracking pixels removed, "view in browser" link kept). Useful for publishers that
+  only send updates by email, such as CISA.
+- **🌐 Translate titles** per feed (feed settings → Translate titles; `app/translate.py`): new titles go to your AI provider
+  in batches of 25 (into its language setting); the original title is kept (`articles.title_original`) and shown under the
+  translation. Turning it off restores the originals.
+- **Highlight words** (Settings → Appearance & reading; setting `highlight_terms`, up to 50): marked in the article list
+  and the reader (built as text nodes, never HTML).
+- **Adaptive refresh** (setting `adaptive_refresh`, on): feeds on the default interval are checked less often when they
+  post rarely (median gap ÷ 4, between the default and 12 hours; never more often than the default). Shown in the feed's
+  settings (`feeds.adaptive_minutes`).
+- **Image proxy** (setting `image_proxy`, on): reader images load through `GET /api/v1/img?u=&s=` — only addresses the
+  server signed (HMAC), fetched through the SSRF guard, raster images only (recognised by their bytes; never SVG), served
+  with `nosniff` and a sandbox CSP. Publishers see the server, not your device.
+- **🔖 Read later** in the reader: Wallabag (OAuth password grant), Linkwarden (access token), Obsidian (`obsidian://new`
+  on this device) and Markdown download. Settings → Integrations → Read later; `GET /readlater`,
+  `POST /articles/{id}/save`, `PUT /integrations/readlater`.
+- **Reading time and site icons** in the article list (settings `show_reading_time`, `show_site_icons`). Icons are fetched
+  once per site in the background (`app/media.py`, table `feed_icons`; page `<link rel="icon">` or `/favicon.ico`, raster
+  only, ≤ 200 KB, retried after a month) and served from our own origin (`GET /feeds/{id}/icon`).
+
+### Changed
+- **🗓️ Keep feeds…** (Settings → Feeds, and Settings → Appearance & reading) replaces both "Keep articles from…" and the
+  separate "Fetch older articles for all feeds" section. One dialog sets how far back feeds keep items: choose article
+  feeds, podcasts, YouTube channels, accounts or all together (preset to the tab you are on), optionally a folder or the
+  ticked feeds, and a time frame; it shows how many items would go before removing anything, and can also fetch older
+  items back to that date in the background (with progress and Stop). `POST /feeds/keep` takes `kinds`
+  (`articles`, `podcasts`, `videos`, `accounts`; omitted = all) and "Everything" also lifts the item cap.
+- **Retired the old working name "feedwarden".** Environment variables now use the `EOS_` prefix (`EOS_DATA_DIR`,
+  `EOS_SECRET_KEY`, `EOS_ALLOWED_HOSTS`, …); the `FEEDWARDEN_*` names are still read as a fallback. The database file
+  is `eos.db` (an existing `feedwarden.db` and its `-wal` / `-shm` files are renamed automatically). Webhook headers
+  are `X-EOS-Signature` / `X-EOS-Timestamp` / `X-EOS-Event`. New API tokens start with `eos_` (existing `fw_` tokens
+  keep working). The session cookie is `eos_session`, loggers are `eos.*`, the container user is `eos` and the
+  systemd unit is `deploy/eye-of-sauron.service`.
+
 ### Fixed
+- **Retention only reached article feeds**: keeping a longer (or shorter) period left podcasts, YouTube channels and
+  account feeds untouched. It now applies to every feed you choose.
+- **OPML export / import lost what each feed is**: podcasts and social accounts came back as article feeds (only YouTube
+  was recognised). Exports now carry `eos:*` attributes (kind, source / scraping settings, social platform, retention,
+  refresh, full-text and translation settings), imports restore them (every value validated), and re-importing such a
+  file moves feeds an older import put in the wrong tab. OPML files from other readers are recognised by address
+  (Reddit, Mastodon, Bluesky, RSSHub routes for Instagram / Threads / TikTok / Facebook / LinkedIn, Telegram, X,
+  YouTube), and an article feed whose items are mostly audio episodes moves to Podcasts after its first fetch
+  (`app/feedkinds.py`). The import message lists how many feeds of each kind were added.
+- **Tablets** (for example a Galaxy Tab in Brave): Settings and other dialogs fit the visible screen (browser bars
+  included) and scroll inside; on narrow screens Settings fills the screen; on touch screens the sidebar ⚙ / ↗ buttons
+  sit after the item count instead of covering it.
 - The bundled threat-actor catalogue (`app/data/threat_actors.json`) was missing from git checkouts because the
   `data/` ignore rule also matched `app/data/`; the rule is now anchored to the repository root (`/data/`). Fresh
   clones and CI get all 1,100+ actors again.

@@ -49,7 +49,7 @@ from app.security import (
     verify_password,
 )
 
-log = logging.getLogger("feedwarden.greader")
+log = logging.getLogger("eos.greader")
 
 ITEM_PREFIX = "tag:google.com,2005:reader/item/"
 STATE = "user/-/state/com.google/"

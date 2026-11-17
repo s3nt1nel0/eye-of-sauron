@@ -45,15 +45,17 @@ def feed_details(feed_id: int, _: Principal = Depends(require_read)) -> dict:
     days, cap = effective_retention(feed, prefs)
     out = {k: feed[k] for k in ("id", "title", "custom_title", "url", "site_url", "folder_id", "refresh_minutes",
                                 "retention_days", "max_articles", "enabled", "last_fetched", "next_fetch",
-                                "error_count", "last_error", "created_at", "kind")}
+                                "error_count", "last_error", "created_at", "kind", "adaptive_minutes")}
     out["full_text"] = feed["full_text"] or "auto"
+    out["translate_titles"] = bool(feed["translate_titles"])
     out["social_platform"] = feed["social_platform"]
     out["scrape"] = json.loads(feed["scrape"]) if feed["scrape"] else None
     out["source"] = json.loads(feed["source"]) if feed["source"] else None
     out.update(
         enabled=bool(feed["enabled"]), custom_title=bool(feed["custom_title"]),
         folder_name=folder["name"] if folder else None,
-        effective={"refresh_minutes": feed["refresh_minutes"] or prefs["default_refresh_minutes"],
+        effective={"refresh_minutes": feed["refresh_minutes"] or (feed["adaptive_minutes"] if prefs["adaptive_refresh"] and feed["adaptive_minutes"] else prefs["default_refresh_minutes"]),
+                   "adaptive": not feed["refresh_minutes"] and bool(prefs["adaptive_refresh"]),
                    "retention_days": days, "max_articles": cap},
         stats=dict(stats), rules=rules,
         backfill=history.backfill_job.status if history.backfill_job.status.get("feed_id") == feed_id else None,
@@ -105,7 +107,7 @@ class BulkBackfillIn(BackfillIn):
     folder_id: int | None = Field(default=None, ge=1, le=2**31)               # None = all feeds
     only_missing: bool = True                # skip feeds whose history already reaches back that far
     keep_forever: bool = True
-    feed_ids: list[Annotated[int, Field(ge=1)]] | None = Field(default=None, max_length=500)  # only these feeds
+    feed_ids: list[Annotated[int, Field(ge=1)]] | None = Field(default=None, max_length=5000)  # only these feeds
 
 
 @router.post("/history/backfill-all", dependencies=[Depends(rate_limit("backfill_all", 2))])

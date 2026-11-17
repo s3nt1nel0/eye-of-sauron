@@ -28,7 +28,7 @@ def _fail(exc: Exception, status: int = 422) -> HTTPException:
 # ============================================================================ resolve
 class ResolveIn(StrictModel):
     input: Annotated[str, StringConstraints(min_length=1, max_length=500)]
-    kind: Literal["youtube", "hfpapers", "x", "telegram"] | None = None
+    kind: Literal["youtube", "hfpapers", "x", "telegram", "email"] | None = None
     via: Literal["web", "account", "bridge", "api"] | None = None
 
 
@@ -67,6 +67,17 @@ def resolve(body: ResolveIn, _: Principal = Depends(require_write)) -> dict:
                 if found_count >= 15:
                     notes.append("YouTube's feed lists only the 15 most recent videos; with an API key the whole "
                                  "channel or playlist is loaded.")
+        elif kind == "email":
+            # input: the senders (addresses or domains), comma / space separated; optional "subject: words"
+            text, _, subject = body.input.partition("subject:")
+            senders = [s.strip().lower() for s in text.replace(";", ",").replace(" ", ",").split(",") if s.strip()]
+            cfg = sources.EmailSource(senders=senders, subject_contains=subject.strip() or None)
+            got = sources.fetch_email(cfg, None)
+            title = got.title
+            preview = _preview(got.entries)
+            if not got.entries:
+                notes.append("No matching messages in the last 30 days yet - new ones appear as they arrive.")
+            notes.append("Messages are read-only: nothing in your mailbox is marked read, moved or deleted.")
         elif kind == "hfpapers":
             cfg = sources.HFPapersSource()
             got = sources.fetch_hfpapers(cfg)
@@ -187,6 +198,92 @@ def put_x(body: XIn, principal: Principal = Depends(require_admin)) -> dict:
         out = integrations.status(db)["x"]
     audit("integration_updated", principal, name="x", bridge=body.bridge_type, token_set=bool(body.bearer_token),
           token_cleared=body.clear_bearer)
+    return out
+
+
+# ============================================================================ email newsletters (IMAP)
+class ImapIn(StrictModel):
+    host: Annotated[str, StringConstraints(pattern=r"^(?:[A-Za-z0-9-]{1,63}[.])+[A-Za-z]{2,24}$", max_length=253)] | None = None
+    port: int = Field(default=993, ge=1, le=65535)
+    username: Annotated[str, StringConstraints(min_length=1, max_length=254, pattern=r"^[^\s<>]+$")] | None = None
+    password: Annotated[str, StringConstraints(min_length=1, max_length=512)] | None = None
+    clear: bool = False
+
+
+@router.put("/integrations/imap", dependencies=[Depends(rate_limit("integrations", 20))])
+def put_imap(body: ImapIn, principal: Principal = Depends(require_admin)) -> dict:
+    """Mailbox for newsletters. Saving logs in once (TLS) to check the settings and lists the folders."""
+    from app import mailfeeds
+
+    folders: list[str] = []
+    with get_db() as db:
+        if body.clear:
+            integrations.save(db, "imap", remove_secrets=("password",), remove_config=("host", "port", "username"))
+        else:
+            config, secrets = integrations.load(db, "imap")
+            new_config = {"host": body.host or config.get("host"), "port": body.port, "username": body.username or config.get("username")}
+            password = body.password or secrets.get("password")
+            if not new_config["host"] or not new_config["username"] or not password:
+                raise HTTPException(status_code=422, detail="Give the mail server, user name and password")
+            try:
+                folders = mailfeeds.test_login(new_config, password)
+            except mailfeeds.MailError as exc:
+                raise _fail(exc) from None
+            integrations.save(db, "imap", config={**new_config, "folders": folders},
+                              secrets={"password": body.password} if body.password else None)
+        out = integrations.status(db)["imap"]
+    audit("integration_updated", principal, name="imap", cleared=body.clear)
+    return out
+
+
+# ============================================================================ read later (Wallabag / Linkwarden / Obsidian)
+class ReadLaterIn(StrictModel):
+    wallabag_url: Annotated[str, StringConstraints(max_length=300)] | None = None
+    wallabag_client_id: Annotated[str, StringConstraints(max_length=200, pattern=r"^[A-Za-z0-9_.-]+$")] | None = None
+    wallabag_client_secret: Annotated[str, StringConstraints(max_length=300)] | None = None
+    wallabag_username: Annotated[str, StringConstraints(max_length=200)] | None = None
+    wallabag_password: Annotated[str, StringConstraints(max_length=512)] | None = None
+    linkwarden_url: Annotated[str, StringConstraints(max_length=300)] | None = None
+    linkwarden_token: Annotated[str, StringConstraints(max_length=1000, pattern=r"^[A-Za-z0-9._~+/=-]+$")] | None = None
+    obsidian_vault: Annotated[str, StringConstraints(max_length=100, pattern=r"^[^<>:\"|?*\x00-\x1f]+$")] | None = None
+    obsidian_folder: Annotated[str, StringConstraints(max_length=200, pattern=r"^[^<>:\"|?*\x00-\x1f]*$")] | None = None
+    clear: Literal["wallabag", "linkwarden", "obsidian"] | None = None
+
+
+@router.put("/integrations/readlater", dependencies=[Depends(rate_limit("integrations", 20))])
+def put_readlater(body: ReadLaterIn, principal: Principal = Depends(require_admin)) -> dict:
+    from app import readlater
+
+    config: dict = {}
+    secrets: dict = {}
+    remove_c: tuple[str, ...] = ()
+    remove_s: tuple[str, ...] = ()
+    if body.clear == "wallabag":
+        remove_c, remove_s = ("wallabag_url", "wallabag_client_id"), ("wallabag_client_secret", "wallabag_username", "wallabag_password")
+    elif body.clear == "linkwarden":
+        remove_c, remove_s = ("linkwarden_url",), ("linkwarden_token",)
+    elif body.clear == "obsidian":
+        remove_c = ("obsidian_vault", "obsidian_folder")
+    try:
+        for key in ("wallabag_url", "linkwarden_url"):
+            value = getattr(body, key)
+            if value:
+                config[key] = readlater.service_url(value)
+    except ValueError as exc:
+        raise _fail(exc) from None
+    if body.wallabag_client_id:
+        config["wallabag_client_id"] = body.wallabag_client_id
+    if body.obsidian_vault is not None:
+        config["obsidian_vault"] = body.obsidian_vault.strip() or None
+    if body.obsidian_folder is not None:
+        config["obsidian_folder"] = body.obsidian_folder.strip().strip("/") or None
+    for key in ("wallabag_client_secret", "wallabag_username", "wallabag_password", "linkwarden_token"):
+        if getattr(body, key):
+            secrets[key] = getattr(body, key)
+    with get_db() as db:
+        integrations.save(db, "readlater", config=config, secrets=secrets, remove_config=remove_c, remove_secrets=remove_s)
+        out = integrations.status(db)["readlater"]
+    audit("integration_updated", principal, name="readlater", cleared=body.clear)
     return out
 
 

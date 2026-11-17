@@ -26,7 +26,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_vali
 from app import ai, delivery
 from app.db import get_db, now, placeholders
 
-log = logging.getLogger("feedwarden.alerts")
+log = logging.getLogger("eos.alerts")
 
 COMBINE_OVER = 3          # more matches than this in one batch -> one combined message
 MAX_PER_MESSAGE = 25

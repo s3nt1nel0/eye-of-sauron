@@ -33,7 +33,13 @@ you run yourself. It reads public sources only, keeps everything in a single SQL
 - Clean three-pane reader with full-text fetching for summary-only feeds and **automatic ad and promotion removal**.
 - **Story grouping**: the same story from five sources shows once, with the other sources one click away.
 - Folders, collections, keyword rules, starring, search, keyboard shortcuts, dark / light themes, mobile layout.
+- **Email newsletters as feeds** (IMAPS, read-only) for publishers that only send updates by email.
+- Reader comforts: 🌐 AI title translation per feed, highlight words, reading time and site icons, an **image proxy**
+  (publishers don't see your IP), 🔖 read later (Wallabag, Linkwarden, Obsidian, Markdown) and adaptive refresh.
+- **🗓️ Keep feeds**: one place to decide how far back article feeds, podcasts, YouTube channels and accounts keep items.
 - Works with native RSS apps (Reeder, NetNewsWire, Read You, FocusReader, …) through a Google Reader-compatible API.
+- OPML import / export that keeps article feeds, podcasts, YouTube channels and accounts in their own tabs.
+- Works on phones and tablets.
 
 **Threat intelligence**
 - **📑 Reports & guidance**: advisories, guidance and threat reports from government agencies and CERTs (CISA, ASD's

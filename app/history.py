@@ -39,7 +39,7 @@ from app.fetcher import _guid, _timestamp, effective_retention, parse_bytes, sto
 from app.rules import apply_rules
 from app.sanitize import to_text
 
-log = logging.getLogger("feedwarden.history")
+log = logging.getLogger("eos.history")
 
 MAX_BACKFILL_PAGES = 1000  # YouTube: 50 videos a page = 50,000 (playlists hold at most 5,000)
 METHODS = ("auto", "paged", "wayback")

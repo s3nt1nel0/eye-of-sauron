@@ -10,11 +10,11 @@ python -m venv .venv
 pip install --require-hashes --no-deps -r requirements.lock
 pip install -r requirements-dev.txt        # pytest, bandit, pip-audit, detect-secrets
 
-export FEEDWARDEN_DATA_DIR=./data-dev        # the first start writes data-dev/initial_admin_password.txt
+export EOS_DATA_DIR=./data-dev        # the first start writes data-dev/initial_admin_password.txt
 uvicorn app.main:create_app --factory --reload --port 8080
 ```
 
-Set `FEEDWARDEN_DISABLE_SCHEDULER=true` to work on the UI without fetching anything.
+Set `EOS_DISABLE_SCHEDULER=true` to work on the UI without fetching anything.
 
 ## Project layout
 

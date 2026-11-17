@@ -89,7 +89,13 @@
 .fe-rules li { margin-bottom: 4px; }
 .fe-foot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .fe-opts { display: flex; flex-direction: column; gap: 4px; }
-@media (hover: none) { .side-row .feed-gear { opacity: .7; } }
+/* Touch screens (tablets, phones) have no hover: the gear sits after the count instead of over it. */
+@media (hover: none), (pointer: coarse) {
+  .side-row { display: flex; align-items: center; gap: 2px; }
+  .side-row > .side-item { flex: 1; min-width: 0; }
+  .side-row .feed-gear { position: static; transform: none; flex: none; opacity: .75; margin-right: 4px; padding: 4px 8px; }
+  .side-row:hover .count { visibility: visible; }
+}
 
 /* ---- security banner (first-run password still in use) */
 .security-banner { position: fixed; z-index: 50; left: 50%; transform: translateX(-50%); top: 56px; display: flex; gap: 10px;

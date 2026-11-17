@@ -20,7 +20,7 @@ from app import stories
 from app.rules import apply_rules
 from app.sanitize import sanitize_html, to_text
 
-log = logging.getLogger("feedwarden.fetcher")
+log = logging.getLogger("eos.fetcher")
 
 MAX_ENTRIES_PER_FETCH = 500
 MAX_BACKOFF_SECONDS = 24 * 3600
@@ -108,6 +108,40 @@ def _schedule_next(refresh_minutes: int, error_count: int) -> int:
     if error_count:
         base = min(base * (2 ** min(error_count, 6)), MAX_BACKOFF_SECONDS)
     return now() + base
+
+
+ADAPTIVE_MAX_MINUTES = 12 * 60   # a quiet feed is still checked at least twice a day
+ADAPTIVE_WINDOW = 60 * 86400     # posting rhythm learnt from the last 60 days
+
+
+def adaptive_minutes(db, feed_id: int, default: int) -> int:
+    """Refresh interval from how often the feed posts (FreshRSS "AutoTTL" idea): a feed that posts every few days
+    does not need checking every hour. Never shorter than the default interval (no extra load on any site), never
+    longer than 12 hours."""
+    times = [r[0] for r in db.execute(
+        "SELECT sort_ts FROM articles WHERE feed_id = ? AND sort_ts > ? ORDER BY sort_ts DESC LIMIT 40",
+        (feed_id, now() - ADAPTIVE_WINDOW))]
+    if len(times) < 2:
+        return max(default, ADAPTIVE_MAX_MINUTES) if times or db.execute(
+            "SELECT 1 FROM articles WHERE feed_id = ? LIMIT 1", (feed_id,)).fetchone() else default
+    gaps = sorted(a - b for a, b in zip(times, times[1:]) if a > b)
+    if not gaps:
+        return default
+    median_gap_min = gaps[len(gaps) // 2] / 60
+    return int(min(max(default, median_gap_min / 4), max(default, ADAPTIVE_MAX_MINUTES)))
+
+
+def refresh_for(db, feed, prefs: dict) -> int:
+    """The feed's interval: its own setting, else the default - adapted to its posting rhythm when enabled."""
+    if feed["refresh_minutes"]:
+        return int(feed["refresh_minutes"])
+    default = int(prefs["default_refresh_minutes"])
+    if not prefs.get("adaptive_refresh"):
+        return default
+    minutes = adaptive_minutes(db, feed["id"], default)
+    if feed["adaptive_minutes"] != minutes:
+        db.execute("UPDATE feeds SET adaptive_minutes = ? WHERE id = ?", (minutes, feed["id"]))
+    return minutes
 
 
 def _record_error(feed_id: int, refresh: int, error: str, retry_after: int | None = None) -> dict:
@@ -227,7 +261,7 @@ def fetch_feed(feed_id: int) -> dict:
         if feed is None:
             return {"ok": False, "error": "Feed not found", "new": 0}
         prefs = app_settings.get_all(db)
-    refresh = feed["refresh_minutes"] or prefs["default_refresh_minutes"]
+        refresh = refresh_for(db, feed, prefs)
     if (feed["kind"] or "rss") in sources.KINDS:
         return _fetch_source(feed, prefs, refresh)
 
@@ -307,6 +341,13 @@ def fetch_feed(feed_id: int) -> dict:
             podcast_youtube.sync(feed["id"])
         except Exception:  # optional extra (quota, YouTube down): never fails the fetch
             log.warning("YouTube links for show %d: not this time", feed["id"], exc_info=True)
+    if (feed["kind"] or "rss") == "rss" and not feed["social_platform"] and result.get("new"):
+        from app import feedkinds
+
+        with get_db() as db:  # an article feed whose items are mostly audio files is a podcast show (e.g. from OPML)
+            if feedkinds.check_feed(db, feed["id"]) == "podcast":
+                ids = [r[0] for r in db.execute("SELECT id FROM articles WHERE feed_id = ?", (feed["id"],))]
+                topics.fill_episode_topics(db, ids)
     if feed["kind"] == "podcast" and result.get("new"):
         with get_db() as db:  # new episodes no keyword matched: their show's topic, else General
             new_ids = [r[0] for r in db.execute("SELECT id FROM articles WHERE feed_id = ? ORDER BY id DESC LIMIT ?", (feed["id"], int(result["new"])))]
@@ -380,6 +421,9 @@ def _store(feed, prefs: dict, refresh: int, entries, meta_title: str | None, sit
         from app import fulltext
 
         fulltext.queue_new(db, feed, new_ids)  # summary-only items: fetch the article page in the background
+        from app import translate
+
+        translate.queue_new(db, feed, new_ids)  # titles in another language -> the AI provider, in the background
 
     if published:
         reports.notify(published)

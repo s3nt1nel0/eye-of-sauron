@@ -313,7 +313,7 @@ def test_keep_articles_time_frame(authed, feed):
         assert authed.post("/api/v1/feeds/keep", json=bad).status_code == 422, bad
 
 
-def test_keep_articles_never_touches_podcasts_videos_or_accounts(authed):
+def test_keep_feeds_applies_to_the_chosen_kinds(authed):
     from app.db import get_db, now
 
     old = now() - 2000 * 86400
@@ -326,14 +326,23 @@ def test_keep_articles_never_touches_podcasts_videos_or_accounts(authed):
             db.execute("INSERT INTO articles (feed_id, guid, title, text_content, published, fetched_at, sort_ts) VALUES (?, 'old', 'Old item', '', ?, ?, ?)",
                        (fid, old, now(), old))
     body = {"scope": "feeds", "feed_ids": list(ids.values()), "days": 365}
-    dry = authed.post("/api/v1/feeds/keep", json={**body, "dry_run": True}).json()
-    assert (dry["feeds"], dry["removed"], dry["skipped"]) == (1, 1, 3)        # only the article feed counts
+    # one kind: only the article feed changes
+    dry = authed.post("/api/v1/feeds/keep", json={**body, "kinds": ["articles"], "dry_run": True}).json()
+    assert (dry["feeds"], dry["removed"], dry["skipped"]) == (1, 1, 3)
+    # several kinds, or all together (kinds omitted): every chosen feed changes - podcasts, YouTube and accounts too
+    two = authed.post("/api/v1/feeds/keep", json={**body, "kinds": ["podcasts", "videos"], "dry_run": True}).json()
+    assert (two["feeds"], two["removed"]) == (2, 2)
     done = authed.post("/api/v1/feeds/keep", json=body).json()
-    assert (done["removed"], done["skipped"]) == (1, 3)
+    assert (done["feeds"], done["removed"], done["skipped"]) == (4, 4, 0)
     with get_db() as db:
-        left = {r[0] for r in db.execute("SELECT feed_id FROM articles WHERE guid = 'old'")}
+        assert db.execute("SELECT COUNT(*) FROM articles WHERE guid = 'old'").fetchone()[0] == 0
         kept = {r[0]: r[1] for r in db.execute("SELECT id, retention_days FROM feeds")}
-    assert left == {ids[("podcast", None)], ids[("youtube", None)], ids[("rss", "mastodon")]}
-    assert kept[ids[("rss", None)]] == 365 and kept[ids[("podcast", None)]] != 365   # their own settings are not changed either
-    only = authed.post("/api/v1/feeds/keep", json={"scope": "feeds", "feed_ids": [ids[("podcast", None)]], "days": 30}).json()
-    assert only == {"feeds": 0, "removed": 0, "oldest": None, "days": 30, "dry_run": False, "skipped": 1}
+    assert set(kept.values()) == {365}
+    # scope=all with a kind: a long retention reaches podcasts, YouTube and accounts as well
+    forever = authed.post("/api/v1/feeds/keep", json={"scope": "all", "days": 0, "kinds": ["podcasts", "videos", "accounts"]}).json()
+    assert forever["feeds"] == 3
+    with get_db() as db:
+        rows = {r[0]: (r[1], r[2]) for r in db.execute("SELECT id, retention_days, max_articles FROM feeds")}
+    assert rows[ids[("rss", None)]][0] == 365
+    assert all(rows[ids[k]] == (0, 0) for k in (("podcast", None), ("youtube", None), ("rss", "mastodon")))
+    assert authed.post("/api/v1/feeds/keep", json={**body, "kinds": ["bogus"]}).status_code == 422

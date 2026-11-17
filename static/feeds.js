@@ -93,6 +93,10 @@
     FW.fillFolderSelect(folder, f.folder_id);
     const refresh = FW.refreshPicker(f.refresh_minutes, true);
     const enabled = h("input", { type: "checkbox", checked: f.enabled });
+    const translate = h("input", { type: "checkbox", checked: Boolean(f.translate_titles) });
+    const adaptiveNote = f.refresh_minutes ? null : f.effective.adaptive
+      ? `Default interval, adapted to how often this feed posts — currently ${FW.fmtMinutes(f.effective.refresh_minutes).toLowerCase()} (Settings → Appearance & reading → Check quiet feeds less often).`
+      : null;
     const isArticles = ["rss", "html", null, undefined].includes(f.kind) && !f.social_platform;
     const fullText = isArticles ? h("select", { "aria-label": "Full article text" },
       [["auto", "Automatic — when the feed sends only a summary"], ["always", "Always fetch the article page"], ["never", "Never (show what the feed sends)"]]
@@ -115,6 +119,7 @@
       if (Number.isNaN(interval)) { err.textContent = "Custom refresh interval must be 5–10080 minutes."; return; }
       if (Number.isNaN(days) || Number.isNaN(max)) { err.textContent = "Custom retention values must be whole numbers."; return; }
       const body = { title: title.value.trim(), enabled: enabled.checked };
+      if (translate.checked !== Boolean(f.translate_titles)) body.translate_titles = translate.checked;
       if (fullText) body.full_text = fullText.value;
       if (!sourceEditor && url.value.trim() !== f.url) body.url = url.value.trim();
       if (sourceEditor && sourceEditor.value()) body.source = sourceEditor.value();
@@ -176,7 +181,10 @@
           h("label", { text: sourceEditor ? "Address" : "Feed URL" }), url,
           h("label", { text: "Folder" }), folder,
           h("label", { text: "Refresh every" }), refresh.el,
+          adaptiveNote ? h("div", { class: "hint", text: adaptiveNote }) : null,
           h("label", { text: "Enabled" }), enabled,
+          h("label", { text: "Translate titles" }), translate,
+          h("div", { class: "hint", text: "For feeds in another language (CERT-FR, JPCERT…): titles are translated by your AI provider (Settings → AI, into its language setting). The original title stays visible under the translation. Turning this off puts the original titles back." }),
           fullText ? h("label", { text: "Full article text" }) : null, fullText,
           fullText ? h("div", { class: "hint", text: "Many sites put only a sentence or two in their feed. The full text is then read from the article page (if the site allows feed readers; some refuse, and those keep the summary)." }) : null)),
       sourceEditor ? sourceEditor.el : null,
@@ -454,5 +462,5 @@
       h("p", { class: "muted small", text: "App passwords only work for the reader API: an app can read articles, change read/starred state and manage subscriptions/folders, but cannot reach settings, tokens, webhooks, social accounts or the REST API." }));
   }
 
-  FW.feeds = { openFeedEditor, backfillAllCard, openScrapeWizard, rulesEditor, mobilePanel };
+  FW.feeds = { openFeedEditor, backfillAllCard, backfillControls, openScrapeWizard, rulesEditor, mobilePanel };
 })();

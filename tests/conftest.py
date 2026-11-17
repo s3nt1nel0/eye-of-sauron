@@ -12,9 +12,9 @@ TEST_PASSWORD = "correct-horse-battery-staple"
 
 @pytest.fixture()
 def client(tmp_path, monkeypatch):
-    monkeypatch.setenv("FEEDWARDEN_DATA_DIR", str(tmp_path))
-    monkeypatch.setenv("FEEDWARDEN_ADMIN_PASSWORD", TEST_PASSWORD)
-    monkeypatch.setenv("FEEDWARDEN_DISABLE_SCHEDULER", "true")
+    monkeypatch.setenv("EOS_DATA_DIR", str(tmp_path))
+    monkeypatch.setenv("EOS_ADMIN_PASSWORD", TEST_PASSWORD)
+    monkeypatch.setenv("EOS_DISABLE_SCHEDULER", "true")
     from app.config import reset_settings
     from app.security import account_throttle, login_throttle, reset_rate_limits
 

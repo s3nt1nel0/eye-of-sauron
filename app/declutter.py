@@ -32,7 +32,7 @@ from app.cve_sync import get_state, set_state
 from app.db import get_db, now, placeholders
 from app.sanitize import to_text
 
-log = logging.getLogger("feedwarden.declutter")
+log = logging.getLogger("eos.declutter")
 
 REV = "1"
 MAX_BLOCK = 400            # only blocks with less text than this are ever removed

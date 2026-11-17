@@ -30,7 +30,7 @@ from app.db import get_db
 from app.sanitize import to_text
 from app.sources import Fetched, SourceError, TelegramSource, _title_from, entry, get_state
 
-log = logging.getLogger("feedwarden.telegram")
+log = logging.getLogger("eos.telegram")
 
 LOGIN_TTL = 600
 FETCH_LIMIT = 50

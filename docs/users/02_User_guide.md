@@ -63,6 +63,10 @@ You'll always see a **preview** before subscribing.
 
 **Folders:** to keep things tidy, drag a feed onto a folder in the left sidebar.
 
+**Moving to another Eye of Sauron (or a second copy):** use **Settings → Feeds → Export OPML** and **Import OPML**. The file remembers what each feed is, so article feeds, podcasts, YouTube channels and accounts land in their own tabs with their settings. Imported a file from an older version and podcasts or accounts ended up in Articles? Export again from the first app and import that file: the feeds move to the right tabs. Files from other feed readers work too; podcasts are recognised after their first update.
+
+**On a tablet:** Settings and other windows fit the screen and scroll inside; the ⚙ next to a feed sits after its count.
+
 **Changing many feeds at once:** open **Settings → Feeds** and tick the feeds you want (Shift+click ticks a range; the box at the top ticks every feed shown). A bar appears where you can move them to a folder, change how often they update, switch them on or off, fetch them now, check them, or delete them. The filter box and the *Failing* / *Disabled* menu help you find the right feeds first.
 
 **Fixing broken feeds:** a feed with ⚠ has stopped working. In **Settings → Feeds**, click **🩺 Check** next to it, or **🩺 Troubleshoot failing feeds** to check them all. For each one you see what went wrong in plain words:
@@ -78,7 +82,7 @@ You'll always see a **preview** before subscribing.
 ## 3. Reading
 
 - **Sidebar views:** *Unread*, *Read*, *Starred* and *Today*, plus your folders and feeds.
-- **Too many old articles?** In **Settings → Feeds**, press **🗓 Keep articles from…**, choose all feeds, a folder or the feeds you ticked, and how much to keep (for example *Last year*, or *Custom…* 18 months). It tells you how many articles will be removed before you confirm, and keeps those feeds trimmed from then on. Starred articles and ones you filed by hand always stay.
+- **How much your feeds keep:** in **Settings → Feeds**, press **🗓️ Keep feeds…**. Choose which feeds — *Article feeds*, *Podcasts*, *YouTube channels*, *Accounts* or *All feeds together* (it starts on the tab you are looking at) — optionally one folder, and how far back to keep (for example *Last year*, *Everything*, or *Custom…* 18 months). Before anything is removed it tells you how many items will go, and the feeds stay trimmed to that from then on. Tick **Also fetch older items back to this date** to fill in history at the same time (it runs in the background; you can stop it). Starred items, items you filed by hand and videos in your video groups always stay.
 - **Dates** are shown day first: dd/mm/yyyy (for example 13/11/2026), with times in 24-hour format.
 - **Read articles move to Read:** once you have read an article it leaves your feeds, folders and collections (it stays on screen until you open the next one) and waits in **Read** at the top of the sidebar. Changed your mind? Mark it unread in **Read** and it goes back to its feeds and collections. To keep read articles in place instead, untick **Hide read articles** in **Settings → Appearance & reading**.
 - **Opening an article:** click an article in the middle list to read it on the right.
@@ -301,8 +305,8 @@ The line under the menus says what you're looking at, for example: *"Qilin — 8
   **Podcasts**, account posts in **Accounts**; their folders are not shown in the Articles sidebar. To get from an article to
   related videos or episodes use the **▶ Videos** / **🎙 Podcasts** buttons in the reader, or a threat actor's / technique's page.
 - **Feeds by kind:** Settings → Feeds has tabs for 📰 Article feeds, 🎙 Podcasts, ▶ YouTube and 💬 Accounts, so the list (and
-  "select all") covers one kind at a time. **🗓️ Keep articles from…** only ever removes articles: podcast episodes, videos and
-  account posts are never touched by it, even if their feeds are ticked.
+  "select all") covers one kind at a time. **🗓️ Keep feeds…** works on the kind you are looking at (or *All feeds together*):
+  how far back article feeds, podcasts, YouTube channels and accounts keep items, with a count before anything is removed.
 - **No ads inside articles:** sponsor lines, "follow us on…" and newsletter boxes, "Buy now" / "Try it free" links and
   "The post … appeared first on …" footers that publishers put into their feeds are removed, so the reader shows the article only.
   It learns per source: a promo line that keeps appearing under a site's articles is recognised after about three articles. This
@@ -430,7 +434,7 @@ Go to **Settings → Feeds** and click **🩺 Check** next to the feed. It expla
 By default 90 days, but **starred** articles are kept forever. You can change this per feed or globally in **Settings → Appearance & reading**.
 
 **Can I get older articles?**
-Yes. A feed only shows its newest items, so the app looks the history up for you. Use **⚙ → Fetch older articles** on one feed, or **Settings → Feeds → Fetch older articles for all feeds**. Pick how far back (for example *Last year*) and leave *Where to look* on *Automatic*.
+Yes. A feed only shows its newest items, so the app looks the history up for you. Use **⚙ → Fetch older articles** on one feed, or **Settings → Feeds → 🗓️ Keep feeds…** with **Also fetch older items back to this date** ticked for many feeds at once. Pick how far back (for example *Last year*) and leave *Where to look* on *Automatic*.
 - It first tries the website's own older pages.
 - If the site has none, it reads old copies of the feed saved by the Internet Archive (web.archive.org), which has most public feeds going back years.
 - Keep **Keep them** ticked, or the app's clean-up may delete what it just fetched.

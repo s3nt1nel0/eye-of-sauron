@@ -902,6 +902,7 @@ def test_linkedin_post_gets_links_and_public_preview_image(authed):
     with mock.patch("app.social_posts.netguard.request", return_value=resp(page, url=link, ctype="text/html; charset=utf-8")):
         r = authed.post("/api/v1/accounts/posts", json={"url": link, "text": "AtomICS 🔗 https://lnkd.in/eaxAmYF8\nNmap: https://insecure.org."})
     assert r.status_code == 201, r.text
+    authed.patch("/api/v1/settings", json={"image_proxy": False})  # this test checks the stored address
     body = authed.get(f"/api/v1/articles/{r.json()['id']}").json()
     html = body["content_html"]
     assert '<a href="https://lnkd.in/eaxAmYF8"' in html and '<a href="https://insecure.org"' in html

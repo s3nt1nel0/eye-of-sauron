@@ -24,7 +24,7 @@ from dataclasses import dataclass
 from app.db import get_db, placeholders
 from app.rules import compile_keywords
 
-log = logging.getLogger("feedwarden.cve")
+log = logging.getLogger("eos.cve")
 
 SLUG_RE = re.compile(r"^[a-z0-9-]{1,40}$")
 PRODUCT_PATTERN_RE = re.compile(r"^(?:[a-z0-9]{1,64}(?::[a-z0-9]{1,64}\*?)?|\*:[a-z0-9]{1,64}\*?|[a-z0-9]{1,64}\*)$")

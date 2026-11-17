@@ -33,7 +33,7 @@ from app import netguard, secretbox
 from app.config import get_settings
 from app.db import get_db, now
 
-log = logging.getLogger("feedwarden.delivery")
+log = logging.getLogger("eos.delivery")
 
 KINDS = ("email", "telegram", "ntfy", "discord", "slack", "webhook")
 EMAIL_RE = r"^[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9.-]{1,190}\.[A-Za-z]{2,24}$"

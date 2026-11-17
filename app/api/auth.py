@@ -34,7 +34,7 @@ from app.security import (
     verify_password,
 )
 
-log = logging.getLogger("feedwarden.auth")
+log = logging.getLogger("eos.auth")
 router = APIRouter(tags=["auth"])
 
 Username = Annotated[str, StringConstraints(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_.@-]+$")]
@@ -134,7 +134,7 @@ def logout(response: Response, principal: Principal = Depends(get_principal)) ->
     return {"ok": True}
 
 
-PROJECT_URL = None  # set to the public repository URL once published (overridable with FEEDWARDEN_SOURCE_URL)
+PROJECT_URL = None  # set to the public repository URL once published (overridable with EOS_SOURCE_URL)
 
 
 @router.get("/about")

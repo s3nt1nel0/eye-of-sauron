@@ -56,6 +56,22 @@ def _id_list(limit: int) -> Callable[[Any], list[int]]:
     return check
 
 
+_TERM = re.compile(r"^[^\x00-\x1f<>]{2,60}$")
+
+
+def _terms(limit: int) -> Callable[[Any], list[str]]:
+    def check(value: Any) -> list[str]:
+        if not isinstance(value, list) or len(value) > limit or any(not isinstance(v, str) or not _TERM.match(v.strip()) for v in value):
+            raise ValueError(f"must be a list of at most {limit} words or phrases (2-60 characters each)")
+        out: list[str] = []
+        for v in value:  # keep the order, drop duplicates (case-insensitive)
+            if v.strip().lower() not in {o.lower() for o in out}:
+                out.append(v.strip())
+        return out
+
+    return check
+
+
 def _color(value: Any) -> str:
     if not isinstance(value, str) or not _HEX_COLOR.match(value):
         raise ValueError("must be a #rrggbb colour")
@@ -98,6 +114,12 @@ SCHEMA: dict[str, tuple[Any, Callable[[Any], Any]]] = {
     "report_alert_kinds": ("all", _choice("all", "government", "vendor")),
     "related_media": (True, _boolean),                           # ▶ / 🎙 related videos and podcasts in the reader
     "matrix_days": (30, _int_choice(0, 7, 30, 90, 365)),             # period of the technique matrix (0 = all time)
+    # ideas from FreshRSS extensions
+    "highlight_terms": ([], _terms(50)),                         # words highlighted in the article list and reader
+    "adaptive_refresh": (True, _boolean),                        # quiet feeds are checked less often (default interval only)
+    "image_proxy": (True, _boolean),                             # reader images load through this server
+    "show_reading_time": (True, _boolean),
+    "show_site_icons": (True, _boolean),
 }
 
 

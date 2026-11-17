@@ -628,6 +628,14 @@ CREATE TABLE IF NOT EXISTS settings (
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL
 );
+
+-- each feed's site icon (favicon), fetched once and served from our own origin
+CREATE TABLE IF NOT EXISTS feed_icons (
+    feed_id    INTEGER PRIMARY KEY REFERENCES feeds(id) ON DELETE CASCADE,
+    mime       TEXT,
+    data       BLOB,                 -- NULL = looked, found nothing usable (retried after a month)
+    fetched_at INTEGER NOT NULL
+);
 """
 
 _db_path: Path | None = None
@@ -640,9 +648,25 @@ def _configure(conn: sqlite3.Connection) -> None:
     conn.execute("PRAGMA synchronous = NORMAL")
 
 
+LEGACY_DB_NAME = "feedwarden.db"  # the file name before the EOS rename
+
+
+def _adopt_legacy_file(path: Path) -> None:
+    """eos.db missing but the old feedwarden.db is there: rename it (and its WAL / shared-memory files)."""
+    old = path.with_name(LEGACY_DB_NAME)
+    if path.name == LEGACY_DB_NAME or path.exists() or not old.exists():
+        return
+    for suffix in ("-wal", "-shm"):  # WAL first: the main file without its WAL would lose the newest writes
+        side = old.with_name(old.name + suffix)
+        if side.exists():
+            side.rename(path.with_name(path.name + suffix))
+    old.rename(path)
+
+
 def init_db(path: Path) -> None:
     global _db_path
     path.parent.mkdir(parents=True, exist_ok=True)
+    _adopt_legacy_file(path)
     _db_path = path
     conn = sqlite3.connect(path, timeout=15)
     try:
@@ -672,12 +696,18 @@ def _migrate(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE feeds ADD COLUMN social_platform TEXT")
     if "full_text" not in feed_columns:  # v9: full article text for summary-only feeds
         conn.execute("ALTER TABLE feeds ADD COLUMN full_text TEXT")
+    if "translate_titles" not in feed_columns:  # titles translated by the AI provider
+        conn.execute("ALTER TABLE feeds ADD COLUMN translate_titles INTEGER NOT NULL DEFAULT 0")
+    if "adaptive_minutes" not in feed_columns:  # refresh interval learnt from how often the feed posts
+        conn.execute("ALTER TABLE feeds ADD COLUMN adaptive_minutes INTEGER")
     topic_link_columns = {row[1] for row in conn.execute("PRAGMA table_info(article_topics)")}
     if topic_link_columns and "source" not in topic_link_columns:  # v10: channel / General fallback topics
         conn.execute("ALTER TABLE article_topics ADD COLUMN source TEXT NOT NULL DEFAULT 'keyword'")
     article_columns = {row[1] for row in conn.execute("PRAGMA table_info(articles)")}
     if "fulltext" not in article_columns:
         conn.execute("ALTER TABLE articles ADD COLUMN fulltext INTEGER")
+    if "title_original" not in article_columns:  # the title before translation
+        conn.execute("ALTER TABLE articles ADD COLUMN title_original TEXT")
     if "story_id" not in article_columns:  # v11: articles about the same story share the first one's id
         conn.execute("ALTER TABLE articles ADD COLUMN story_id INTEGER")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_articles_story ON articles(story_id) WHERE story_id IS NOT NULL")

@@ -193,7 +193,7 @@ in place, mapped to NIST SSDF (SP 800-218) practices and OWASP guidance.
   * Per-principal token buckets (one per session or API token) on expensive endpoints: analytics, articles listing, feed refreshes, OPML imports, history back-fills, rule back-fills, webhook/channel tests, compose/publish, CVE sync, scraping.
   * Responses are `429` with `Retry-After`.
   * Login has its own per-IP and per-account throttles.
-* **Audit log:** the `feedwarden.audit` logger records security-relevant actions with the actor (`user:N` / `token:N`): logins and failures, logout, password change, API token create/revoke, webhook and delivery-channel changes, settings changes, CVE category changes, imports, feed deletion, rate-limit hits.
+* **Audit log:** the `eos.audit` logger records security-relevant actions with the actor (`user:N` / `token:N`): logins and failures, logout, password change, API token create/revoke, webhook and delivery-channel changes, settings changes, CVE category changes, imports, feed deletion, rate-limit hits.
   * Secret values are never logged, and every field is length-capped.
 
 ### Credentials at rest (OWASP Cryptographic Storage, ASVS V6)
@@ -201,7 +201,7 @@ in place, mapped to NIST SSDF (SP 800-218) practices and OWASP guidance.
   * Values are prefixed `fw1:`.
   * Tampering is detected.
   * Legacy plaintext values are encrypted automatically on start-up.
-* **Key** (`FEEDWARDEN_SECRET_KEY` / `_FILE`): comma-separated keys, where the first encrypts and all decrypt.
+* **Key** (`EOS_SECRET_KEY` / `_FILE`): comma-separated keys, where the first encrypts and all decrypt.
   * Rotate with `python -m app.cli rotate-secrets`.
   * Without a configured key one is generated in `/data/secret.key` (0600). That protects against DB-only leaks but **not** whole-volume theft, so supply the key as a Docker secret.
 
@@ -235,13 +235,13 @@ in place, mapped to NIST SSDF (SP 800-218) practices and OWASP guidance.
    * Only `gzip`/`deflate` are accepted, decoded incrementally with a hard output bound, so a 300 KB bomb cannot inflate past the cap. Raw bytes are capped too.
    * Proxy env vars are ignored, and connections are never pooled across hosts.
 
-Private targets can be enabled explicitly (`FEEDWARDEN_ALLOW_PRIVATE_FEEDS`,
-`FEEDWARDEN_ALLOW_PRIVATE_WEBHOOKS`) for homelab use; a warning is logged at start-up.
+Private targets can be enabled explicitly (`EOS_ALLOW_PRIVATE_FEEDS`,
+`EOS_ALLOW_PRIVATE_WEBHOOKS`) for homelab use; a warning is logged at start-up.
 Unspecified/multicast/reserved stay blocked even then. The one exception is the IPv6
 loopback `::1`, which Python classes as reserved: in private mode it is treated like
 `127.0.0.1`, so `localhost` targets work.
 
-**Narrow alternative:** `FEEDWARDEN_PRIVATE_ALLOWLIST` lists exact `host:port` pairs (no wildcards, validated at start-up) that may resolve to local/private addresses, e.g. a self-hosted RSSHub on `127.0.0.1:1200`. Every other destination keeps the default policy; redirects are re-checked per hop against the redirect's own host and port; unspecified, multicast and reserved addresses stay blocked. Prefer it over the global switches. (The admin-configured X bridge was already allowed to be local.)
+**Narrow alternative:** `EOS_PRIVATE_ALLOWLIST` lists exact `host:port` pairs (no wildcards, validated at start-up) that may resolve to local/private addresses, e.g. a self-hosted RSSHub on `127.0.0.1:1200`. Every other destination keeps the default policy; redirects are re-checked per hop against the redirect's own host and port; unspecified, multicast and reserved addresses stay blocked. Prefer it over the global switches. (The admin-configured X bridge was already allowed to be local.)
 
 ### Authentication & sessions (OWASP Authentication, Session Management, CSRF cheat sheets)
 * Passwords: argon2id (argon2-cffi defaults), automatic re-hash on login.
@@ -380,3 +380,31 @@ This is a self-hosted personal project; open an issue or contact the maintainer 
   All SQL uses bound parameters; the full-text lookups quote their terms and only use letters and digits taken from the title.
 - Cost: related counts are computed when an article is opened (about 1-3 ms on 120k items); at most 6 headline names and 400
   full-text hits each.
+
+### Email newsletters, image proxy, site icons and read later
+
+- **Email newsletters (`app/mailfeeds.py`).** IMAPS only (implicit TLS, TLS 1.2+, certificate and host name verified);
+  no plain IMAP and no STARTTLS. The mail server's address is resolved and checked by `netguard` (private, loopback and
+  link-local addresses refused unless the exact host:port is in `EOS_PRIVATE_ALLOWLIST`) and the socket is pinned to
+  the checked address while TLS verifies the real name. The folder is opened read-only (EXAMINE) and messages are read
+  with `BODY.PEEK[]`, so nothing in the mailbox changes. Senders, folder and subject words are validated against strict
+  patterns before they reach an IMAP command (no quotes, spaces or control characters). Message HTML goes through the
+  same allow-list sanitiser as feed HTML; tracking pixels are dropped; at most 60 messages of at most 3 MB per fetch.
+  The password is stored encrypted (`integrations`, name `imap`) and never returned. Settings are admin-only.
+- **Image proxy (`GET /api/v1/img`).** Not an open relay: only addresses the server signed (HMAC-SHA256 with a random
+  per-process key) are fetched, through `netguard` (SSRF guard, pinned DNS, 8 MB cap, 15 s timeout, at most 3
+  redirects, each re-checked). Only raster images recognised by their bytes are passed on (PNG, JPEG, GIF, WebP, AVIF,
+  BMP, ICO; never SVG or HTML), with the detected type, `nosniff`, `Content-Security-Policy: default-src 'none';
+  sandbox` and private caching. Needs a session or a read token, and is rate limited.
+- **Site icons (`app/media.py`, table `feed_icons`).** Fetched in the background through `netguard` from the feed's
+  site (`<link rel="icon">`, then `/favicon.ico`), checked like proxy images (raster only, at most 200 KB) and served
+  from our own origin with the same headers.
+- **Read later (`app/readlater.py`).** Wallabag and Linkwarden addresses are admin-set and may be on the LAN (the same
+  exception as the X bridge and the local AI server); requests go through `netguard` with no redirects followed.
+  Client secrets, passwords and tokens are stored encrypted (`integrations`, name `readlater`) and never returned.
+  Obsidian notes are created on the reader's device through an `obsidian://` link; nothing is sent to a server.
+- **Highlight words** are validated (2-60 characters, no markup or control characters, at most 50) and applied in the
+  browser by splitting text nodes - never through HTML.
+- **Title translation** sends titles to the configured AI provider as numbered data lines with instructions to
+  translate only; the answer is parsed strictly (only "<n>|<text>" lines for numbers that were sent), cleaned to plain
+  text and length-capped. The daily AI request limit applies.

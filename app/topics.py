@@ -17,7 +17,7 @@ from collections import Counter
 
 from app.db import get_db, placeholders
 
-log = logging.getLogger("feedwarden.topics")
+log = logging.getLogger("eos.topics")
 
 MAX_TOPICS = 100
 TEXT_SCAN = 4000

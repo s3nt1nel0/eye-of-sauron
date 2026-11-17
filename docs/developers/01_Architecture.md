@@ -42,7 +42,7 @@ This document explains how Eye of Sauron is put together, so you can find your w
  Native RSS apps ───┤ Google Reader API /api/greader.php (reader-scope tokens only)                      │
                     │ Middleware: security headers/CSP, body-size limit, trusted hosts                   │
                     └───────────────┬──────────────────────────────────────────────────────────────────┘
-                                    │ SQLite (data/feedwarden.db)
+                                    │ SQLite (data/eos.db)
  Background threads ────────────────┤
    scheduler (app/scheduler.py) ── every tick: due feeds → fetcher (thread pool)
                                                cve_sync.maybe_start() · attack/atlas sync · observatory
@@ -68,7 +68,11 @@ This document explains how Eye of Sauron is put together, so you can find your w
 | Module | Responsibility |
 |---|---|
 | `main.py` | App factory: middleware, routers, startup tasks (migrations, key setup, seeding) |
-| `config.py` | Environment configuration (`FEEDWARDEN_*`), read once |
+| `mailfeeds.py` | Email newsletters over IMAPS (read-only, pinned, SSRF-checked) |
+| `translate.py` | Title translation through the AI provider (background worker) |
+| `media.py` | Image proxy (signed URLs, byte-sniffed raster images) and site icons |
+| `readlater.py` | Wallabag / Linkwarden |
+| `config.py` | Environment configuration (`EOS_*`), read once |
 | `db.py` | Schema (`SCHEMA`, `SCHEMA_VERSION`), additive `_migrate`, `get_db()` context manager |
 | `security.py` | Password hashing (argon2id), sessions, API tokens and scopes, CSRF, throttling, rate limits, audit log |
 | `secretbox.py` | Fernet/MultiFernet encryption for stored credentials (`fw1:` prefix), key rotation |
@@ -311,3 +315,16 @@ History imports use the same storage path but **never** fire events: no webhooks
   `intel.entity_page`), `listing()`. `app/related.py` - `_units` (what an article names, weighted), `_title_names` (coined
   headline names via FTS), `related()`, `counts()`, `media_filter()`. Front end: `FW.intel.actors / related`,
   `FW.library.listRelated`, `FW.podcasts.listRelated`. Tests: `tests/test_threat_actors.py`.
+
+## 11. Extras borrowed from FreshRSS extensions
+
+| Feature | Where | Notes |
+|---|---|---|
+| Email newsletters | `app/mailfeeds.py`, source kind `email` in `app/sources.py`, `PUT /integrations/imap` | Each matching message -> one entry through `fetcher._store`; `sync_state` key `email_seen:<feed id>` makes later fetches look back 4 days instead of 30. |
+| Title translation | `app/translate.py`, `feeds.translate_titles`, `articles.title_original` | Background worker, 25 titles per AI request; `undo()` restores originals. |
+| Highlight words | setting `highlight_terms`; `marked()` / `highlightTree()` in `static/app.js` | Client-side, text nodes only. |
+| Adaptive refresh | `fetcher.adaptive_minutes()` / `refresh_for()`, `feeds.adaptive_minutes`, setting `adaptive_refresh` | Only for feeds without their own interval; median posting gap / 4, clamped to [default, 12 h]. |
+| Image proxy | `app/media.py` (`sign`, `rewrite_images`, `fetch_image`, `sniff`), `GET /img`, setting `image_proxy` | `get_article` rewrites `<img src>` after sanitising. |
+| Site icons | `app/media.py` (`refresh_icons`, `IconWorker`), table `feed_icons`, `GET /feeds/{id}/icon` | Started from the scheduler loop every 6 hours. |
+| Reading time | `read_minutes` in `/articles` and `/articles/{id}` | `ceil(len(text_content) / 1200)`. |
+| Read later | `app/readlater.py`, `app/api/extras.py` (`/readlater`, `/articles/{id}/save`), `PUT /integrations/readlater` | Obsidian / Markdown are built in the browser. |

@@ -35,7 +35,7 @@ def test_athn_01_no_credentials_in_url_or_form(client):
 
 def test_athn_02_default_credentials_refused(client):
     """WSTG-ATHN-02: common default passwords never work (the first-run password is random or set by the admin)."""
-    for pw in ("admin", "password", "feedwarden", "changeme", "123456"):
+    for pw in ("admin", "password", "eyeofsauron", "changeme", "123456"):
         assert _login(client, pw).status_code == 401
 
 
@@ -66,11 +66,11 @@ def test_sess_01_session_tokens_are_random_and_rotated(client):
     ids = set()
     for _ in range(3):
         cookie = _login(client).headers["set-cookie"]
-        value = re.search(r"fw_session=([^;]+)", cookie).group(1)
+        value = re.search(r"eos_session=([^;]+)", cookie).group(1)
         assert len(value) >= 40
         ids.add(value)
     assert len(ids) == 3
-    db = sqlite3.connect(_data_dir() / "feedwarden.db")
+    db = sqlite3.connect(_data_dir() / "eos.db")
     stored = {r[0] for r in db.execute("SELECT token_hash FROM sessions")}
     db.close()
     assert not (ids & stored)
@@ -84,7 +84,7 @@ def _data_dir():
 def test_sess_04_session_id_not_exposed(client):
     """WSTG-SESS-04: the session id is only in the HttpOnly cookie, never in a response body."""
     r = _login(client)
-    value = re.search(r"fw_session=([^;]+)", r.headers["set-cookie"]).group(1)
+    value = re.search(r"eos_session=([^;]+)", r.headers["set-cookie"]).group(1)
     assert value not in r.text
     assert value not in client.get("/api/v1/auth/me").text
 
@@ -93,7 +93,7 @@ def test_sess_07_idle_and_absolute_timeouts(client):
     """WSTG-SESS-07: sessions die after the idle timeout and after the absolute lifetime."""
     assert _login(client).status_code == 200
     assert client.get("/api/v1/auth/me").status_code == 200
-    db = sqlite3.connect(_data_dir() / "feedwarden.db")
+    db = sqlite3.connect(_data_dir() / "eos.db")
     db.execute("UPDATE sessions SET last_seen = last_seen - 30 * 86400")
     db.commit()
     assert client.get("/api/v1/auth/me").status_code == 401   # idle

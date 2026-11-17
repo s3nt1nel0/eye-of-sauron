@@ -14,7 +14,7 @@ from app.attack_sync import attack_sync
 from app.cve_sync import cve_sync
 from app.fetcher import fetch_feed, run_retention
 
-log = logging.getLogger("feedwarden.scheduler")
+log = logging.getLogger("eos.scheduler")
 
 TICK_SECONDS = 30
 RETENTION_INTERVAL = 3600
@@ -62,6 +62,9 @@ class Scheduler:
 
                 atlas_sync.maybe_start()              # MITRE ATLAS (AI techniques), same schedule as ATT&CK
                 digests.run_due()
+                from app.media import icons
+
+                icons.maybe_start()                    # site icons for the article list (background, cached)
                 if time.monotonic() - last_retention > RETENTION_INTERVAL:
                     run_retention()
                     last_retention = time.monotonic()

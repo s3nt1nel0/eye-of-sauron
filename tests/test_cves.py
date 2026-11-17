@@ -285,7 +285,7 @@ def test_nvd_client_pagination_rate_limit_and_key_header(monkeypatch, loaded):
             return netguard.SafeResponse(503, httpx.Headers(), b"", url)  # retried
         return netguard.SafeResponse(200, httpx.Headers(), json.dumps(pages[len(calls) - 2]).encode(), url)
 
-    monkeypatch.setenv("FEEDWARDEN_NVD_API_KEY", "12345678-1234-1234-1234-123456789abc")
+    monkeypatch.setenv("EOS_NVD_API_KEY", "12345678-1234-1234-1234-123456789abc")
     from app.config import reset_settings
 
     reset_settings()

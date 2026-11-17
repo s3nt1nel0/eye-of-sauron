@@ -42,7 +42,7 @@ from app import integrations, netguard
 from app.config import get_settings
 from app.db import get_db, now
 
-log = logging.getLogger("feedwarden.ai")
+log = logging.getLogger("eos.ai")
 
 PROVIDERS = ("anthropic", "openai", "gemini", "openai_compatible")
 DEFAULT_MODELS = {"anthropic": "claude-opus-5-5"}

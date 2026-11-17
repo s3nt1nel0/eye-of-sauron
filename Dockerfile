@@ -18,12 +18,12 @@ LABEL org.opencontainers.image.title="Eye of Sauron" \
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH="/opt/venv/bin:$PATH" \
-    FEEDWARDEN_DATA_DIR=/data
+    EOS_DATA_DIR=/data
 
 # Unprivileged runtime user; application code is owned by root and read-only to it.
-RUN groupadd --system --gid 10001 feedwarden \
- && useradd --system --uid 10001 --gid feedwarden --home-dir /nonexistent --shell /usr/sbin/nologin feedwarden \
- && mkdir -p /data && chown feedwarden:feedwarden /data && chmod 0700 /data
+RUN groupadd --system --gid 10001 eos \
+ && useradd --system --uid 10001 --gid eos --home-dir /nonexistent --shell /usr/sbin/nologin eos \
+ && mkdir -p /data && chown eos:eos /data && chmod 0700 /data
 
 COPY --from=build /opt/venv /opt/venv
 WORKDIR /app

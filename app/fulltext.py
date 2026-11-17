@@ -29,7 +29,7 @@ from app.config import get_settings
 from app.db import get_db
 from app.sanitize import sanitize_html, to_text
 
-log = logging.getLogger("feedwarden.fulltext")
+log = logging.getLogger("eos.fulltext")
 
 SHORT_TEXT = 700            # items with less plain text than this are summaries
 MIN_GAIN = 400              # extracted text must be at least this long, and clearly longer than the summary
@@ -234,7 +234,8 @@ def fill_article(article_id: int, force: bool = False) -> dict:
             html = declutter.clean_page(db, row["feed_id"], url, html)
     old = len(row["text_content"] or "")
     text = to_text(html) if html else ""
-    if not html or len(text) < max(MIN_GAIN, int(old * 1.3)):
+    # a forced re-read may come out SHORTER: the old text could be a whole page wrapper (menus, featured posts)
+    if not html or len(text) < (MIN_GAIN if force else max(MIN_GAIN, int(old * 1.3))):
         _mark(article_id, -1)
         return {"ok": False, "reason": "no longer text found on the page"}
     with get_db() as db:
