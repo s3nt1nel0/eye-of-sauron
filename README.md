@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="static/favicon.svg" width="72" alt="Eye of Sauron logo">
+  <img src="docs/assets/logo.svg" width="140" alt="Eye of Sauron logo">
 </p>
 
-<h1 align="center">Eye of Sauron</h1>
+<h1 align="center">👁️ Eye of Sauron</h1>
 
 <p align="center">
   A self-hosted threat-intelligence reader for security people.<br>
