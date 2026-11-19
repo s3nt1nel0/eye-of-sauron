@@ -2,7 +2,7 @@
 # Base image pinned by digest (supply-chain integrity, reproducible builds).
 # Refresh monthly for OS security patches:  docker pull python:3.12-slim && docker image inspect
 #   python:3.12-slim --format '{{index .RepoDigests 0}}'   -> paste the new digest in BOTH stages.
-FROM python:3.12-slim@sha256:5e2bdb1b0d542d5039cffb8181c65930093949194a65c365dfb1b0fe13a4fa5b AS build
+FROM python:3.15-slim@sha256:65a65fc7b30b06cb6df4930fd4650697cb23f4c2698ab81fc87e4b031bc36928 AS build
 ENV PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1
 WORKDIR /build
 # requirements.lock = every (transitive) dependency pinned with sha256 hashes; pip refuses anything else.
@@ -11,7 +11,7 @@ COPY requirements.lock .
 RUN python -m venv /opt/venv \
  && /opt/venv/bin/pip install --no-cache-dir --require-hashes --no-deps -r requirements.lock
 
-FROM python:3.12-slim@sha256:5e2bdb1b0d542d5039cffb8181c65930093949194a65c365dfb1b0fe13a4fa5b
+FROM python:3.15-slim@sha256:65a65fc7b30b06cb6df4930fd4650697cb23f4c2698ab81fc87e4b031bc36928
 LABEL org.opencontainers.image.title="Eye of Sauron" \
       org.opencontainers.image.description="Lightweight, security-focused RSS aggregator" \
       org.opencontainers.image.licenses="AGPL-3.0-or-later"
