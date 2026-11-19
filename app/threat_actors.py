@@ -28,7 +28,7 @@ from app import entities
 from app.cve_sync import get_state, set_state
 from app.db import get_db, now, placeholders
 
-log = logging.getLogger("feedwarden.actors")
+log = logging.getLogger("eos.actors")
 
 CATALOG = Path(__file__).resolve().parent / "data" / "threat_actors.json"
 SLUG = "threat-actor-catalog"

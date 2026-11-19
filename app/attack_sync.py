@@ -34,7 +34,7 @@ from app.config import get_settings
 from app.cve_sync import get_state, set_state
 from app.db import get_db, now
 
-log = logging.getLogger("feedwarden.attack")
+log = logging.getLogger("eos.attack")
 
 REPO = "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/"
 INDEX_URL = REPO + "index.json"

@@ -26,7 +26,7 @@ from urllib.parse import urlsplit
 from app import app_settings
 from app.db import get_db, now, placeholders
 
-log = logging.getLogger("feedwarden.reports")
+log = logging.getLogger("eos.reports")
 
 REV = "1"
 # (host, path prefix, publisher, kind, research feed?)  - matched against the FEED's url / site url

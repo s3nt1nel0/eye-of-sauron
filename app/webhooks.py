@@ -1,8 +1,8 @@
 """Outbound webhooks for automation (n8n, Node-RED, Home Assistant, Slack relays ...).
 
 Payloads are signed with HMAC-SHA256 when a secret is configured:
-    X-Feedwarden-Timestamp: <unix seconds>
-    X-Feedwarden-Signature: sha256=<hex(hmac(secret, f"{timestamp}.{body}"))>
+    X-EOS-Timestamp: <unix seconds>
+    X-EOS-Signature: sha256=<hex(hmac(secret, f"{timestamp}.{body}"))>
 Receivers should verify the signature and reject stale timestamps (replay).
 """
 
@@ -19,7 +19,7 @@ from app.config import get_settings
 from app.db import get_db, now
 from app.rules import WebhookEvent
 
-log = logging.getLogger("feedwarden.webhooks")
+log = logging.getLogger("eos.webhooks")
 
 _pool = ThreadPoolExecutor(max_workers=4, thread_name_prefix="webhook")
 MAX_EVENTS_PER_BATCH = 200
@@ -73,14 +73,14 @@ def send(webhook_id: int, payload: dict) -> tuple[bool, str]:
     headers = {
         "Content-Type": "application/json",
         "User-Agent": cfg.user_agent,
-        "X-Feedwarden-Timestamp": ts,
+        "X-EOS-Timestamp": ts,
     }
     if hook["secret"]:
         try:
             secret = secretbox.decrypt(hook["secret"])
         except secretbox.SecretError as exc:
             return False, str(exc)
-        headers["X-Feedwarden-Signature"] = sign(secret, ts, body)
+        headers["X-EOS-Signature"] = sign(secret, ts, body)
 
     status: int | None = None
     error: str | None = None

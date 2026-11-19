@@ -124,7 +124,7 @@ def test_webhook_secret_encrypted_at_rest_and_signature_valid(authed, tmp_path):
     secret = "s3cr3t-signing-key-123456"
     hook = authed.post("/api/v1/webhooks", json={"name": "n8n", "url": "https://example.com/hook", "secret": secret}).json()
     assert "secret" not in hook and hook["has_secret"] is True
-    db = sqlite3.connect(tmp_path / "feedwarden.db")
+    db = sqlite3.connect(tmp_path / "eos.db")
     stored = db.execute("SELECT secret FROM webhooks WHERE id = ?", (hook["id"],)).fetchone()[0]
     db.close()
     assert stored.startswith("fw1:") and secret not in stored
@@ -137,8 +137,8 @@ def test_webhook_secret_encrypted_at_rest_and_signature_valid(authed, tmp_path):
     with mock.patch("app.webhooks.netguard.request", side_effect=fake):
         assert authed.post(f"/api/v1/webhooks/{hook['id']}/test").json()["ok"] is True
     h = captured["headers"]
-    expected = hmac.new(secret.encode(), h["X-Feedwarden-Timestamp"].encode() + b"." + captured["content"], hashlib.sha256)
-    assert h["X-Feedwarden-Signature"] == "sha256=" + expected.hexdigest()
+    expected = hmac.new(secret.encode(), h["X-EOS-Timestamp"].encode() + b"." + captured["content"], hashlib.sha256)
+    assert h["X-EOS-Signature"] == "sha256=" + expected.hexdigest()
 
 
 def test_legacy_plaintext_secrets_are_migrated(client, tmp_path):
@@ -160,14 +160,14 @@ def test_key_rotation(client, monkeypatch):
     old_value = secretbox.encrypt("rotate-me")
     old_key = (get_settings().data_dir / "secret.key").read_text().strip()
     new_key = Fernet.generate_key().decode()
-    monkeypatch.setenv("FEEDWARDEN_SECRET_KEY", f"{new_key},{old_key}")
+    monkeypatch.setenv("EOS_SECRET_KEY", f"{new_key},{old_key}")
     reset_settings()
     secretbox.reset()
     with get_db() as db:
         db.execute("INSERT INTO webhooks (name, url, secret) VALUES ('r', 'https://example.com', ?)", (old_value,))
         secretbox.migrate_and_rotate(db, rotate_all=True)
         rotated = db.execute("SELECT secret FROM webhooks WHERE name = 'r'").fetchone()[0]
-    monkeypatch.setenv("FEEDWARDEN_SECRET_KEY", new_key)  # old key retired
+    monkeypatch.setenv("EOS_SECRET_KEY", new_key)  # old key retired
     reset_settings()
     secretbox.reset()
     assert secretbox.decrypt(rotated) == "rotate-me"
@@ -178,7 +178,7 @@ def test_key_rotation(client, monkeypatch):
 def test_invalid_secret_key_config_fails_fast(monkeypatch):
     from app.config import ConfigError, load_settings
 
-    monkeypatch.setenv("FEEDWARDEN_SECRET_KEY", "not-a-fernet-key")
+    monkeypatch.setenv("EOS_SECRET_KEY", "not-a-fernet-key")
     with pytest.raises(ConfigError):
         load_settings()
 

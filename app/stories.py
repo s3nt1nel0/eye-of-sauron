@@ -25,7 +25,7 @@ from app import app_settings
 from app.cve_sync import get_state, set_state
 from app.db import get_db, now, placeholders
 
-log = logging.getLogger("feedwarden.stories")
+log = logging.getLogger("eos.stories")
 
 REV = 1
 WINDOW = 4 * 86400

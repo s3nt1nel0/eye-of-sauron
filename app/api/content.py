@@ -165,11 +165,13 @@ class FeedPatch(StrictModel):
     clear_scrape: bool = False  # turn a scraped feed back into a normal RSS/Atom feed
     source: sources.SourceConfig | None = None  # same kind only (e.g. switch X bridge/API, HF min upvotes)
     full_text: Literal["auto", "always", "never"] | None = None  # fetch the full article page for summary-only items
+    translate_titles: bool | None = None  # translate titles with the AI provider (turning it off restores the originals)
 
 
 FEED_COLUMNS = (
     "id, folder_id, title, url, site_url, refresh_minutes, enabled, last_fetched, next_fetch, "
-    "error_count, last_error, created_at, kind, social_platform, COALESCE(full_text, 'auto') AS full_text"
+    "error_count, last_error, created_at, kind, social_platform, COALESCE(full_text, 'auto') AS full_text, "
+    "translate_titles, adaptive_minutes"
 )
 
 
@@ -293,6 +295,8 @@ def update_feed(feed_id: int, body: FeedPatch, _: Principal = Depends(require_wr
                 )
             if body.full_text is not None:
                 db.execute("UPDATE feeds SET full_text = ? WHERE id = ?", (None if body.full_text == "auto" else body.full_text, feed_id))
+            if body.translate_titles is not None:
+                db.execute("UPDATE feeds SET translate_titles = ? WHERE id = ?", (int(body.translate_titles), feed_id))
             if body.clear_scrape:
                 db.execute("UPDATE feeds SET kind = 'rss', scrape = NULL, next_fetch = NULL WHERE id = ?", (feed_id,))
             elif body.scrape is not None:
@@ -304,6 +308,13 @@ def update_feed(feed_id: int, body: FeedPatch, _: Principal = Depends(require_wr
             row = dict(db.execute(f"SELECT {FEED_COLUMNS} FROM feeds WHERE id = ?", (feed_id,)).fetchone())
     except sqlite3.IntegrityError:
         raise conflict("Another feed already uses that URL") from None
+    if body.translate_titles is not None:
+        from app import translate
+
+        if body.translate_titles:  # the latest 100 titles now, new ones as they arrive
+            translate.worker.add(translate.recent_ids(feed_id))
+        else:
+            translate.undo(feed_id)
     scheduler.wake()
     return row
 
@@ -417,6 +428,13 @@ def bulk_feeds(body: BulkFeedsIn, principal: Principal = Depends(require_write))
 
 # Reader feeds (not YouTube, not social accounts) - fixed SQL fragment
 READER_FEED = "COALESCE(kind, 'rss') NOT IN ('youtube', 'podcast') AND social_platform IS NULL"
+# What each kind of feed is (the Settings -> Feeds tabs) - fixed SQL fragments, chosen from a Literal
+FEED_TYPE_SQL = {
+    "articles": READER_FEED,
+    "podcasts": "kind = 'podcast'",
+    "videos": "kind = 'youtube'",
+    "accounts": "social_platform IS NOT NULL",
+}
 KEEP_SAFE = ("is_starred = 0 AND id NOT IN (SELECT article_id FROM article_tags WHERE source = 'manual') "
              "AND id NOT IN (SELECT article_id FROM video_group_items)")
 
@@ -425,33 +443,35 @@ class KeepArticlesIn(StrictModel):
     scope: Literal["all", "folder", "feeds"]
     folder_id: int | None = None                                                       # scope=folder
     feed_ids: list[Annotated[int, Field(ge=1)]] | None = Field(None, min_length=1, max_length=5000)  # scope=feeds
-    days: int = Field(ge=0, le=36500)   # keep articles from the last N days; 0 = keep everything (no limit)
+    days: int = Field(ge=0, le=36500)   # keep items from the last N days; 0 = keep everything (no limit)
     dry_run: bool = False               # only count what would be removed
+    # which kinds of feed (the Settings -> Feeds tabs); None = every kind: articles, podcasts, YouTube and accounts
+    kinds: list[Literal["articles", "podcasts", "videos", "accounts"]] | None = Field(None, min_length=1, max_length=4)
 
 
 @router.post("/feeds/keep", tags=["feeds"], dependencies=[Depends(rate_limit("feeds_keep", 60))])
 def keep_articles(body: KeepArticlesIn, principal: Principal = Depends(require_write)) -> dict:
-    """Scale Reader feeds back to a time frame: articles older than it are removed now and as they age (the feeds'
-    retention is set to it). Starred and hand-filed articles are always kept. Only article feeds are touched: podcast
-    shows, YouTube channels (they have their own Keep... in the Videos tab) and accounts among the chosen feeds are
-    skipped and reported as `skipped`. days = 0 keeps everything from now on (removed articles are not brought back)."""
+    """Keep feeds to a time frame: items older than it are removed now and as they age (the feeds' retention is set to
+    it). Applies to the chosen feeds of the chosen kinds - article feeds, podcasts, YouTube channels and accounts, or
+    all of them (``kinds`` omitted). Starred, hand-filed and video-group items are always kept. days = 0 keeps
+    everything from now on (removed items are not brought back)."""
     skipped = 0
+    kinds = body.kinds or list(FEED_TYPE_SQL)
+    kind_sql = "(" + " OR ".join(f"({FEED_TYPE_SQL[k]})" for k in kinds) + ")"  # fixed fragments only
     with get_db() as db:
         if body.scope == "feeds":
             if not body.feed_ids:
                 raise HTTPException(status_code=422, detail="feed_ids is required for scope=feeds")
             wanted = sorted(set(body.feed_ids))
-            # article feeds only: a ticked podcast show, YouTube channel or account keeps its items (they are not articles,
-            # and a podcast feed is the show's whole archive)
             ids = [r[0] for r in db.execute(  # nosec B608 - fixed fragment + placeholders
-                f"SELECT id FROM feeds WHERE {READER_FEED} AND id IN ({placeholders(len(wanted))})", wanted)]
+                f"SELECT id FROM feeds WHERE {kind_sql} AND id IN ({placeholders(len(wanted))})", wanted)]
             skipped = len(wanted) - len(ids)
         elif body.scope == "folder":
             if body.folder_id is None or db.execute("SELECT 1 FROM folders WHERE id = ?", (body.folder_id,)).fetchone() is None:
                 raise HTTPException(status_code=422, detail="Folder does not exist")
-            ids = [r[0] for r in db.execute(f"SELECT id FROM feeds WHERE {READER_FEED} AND folder_id = ?", (body.folder_id,))]  # nosec B608
+            ids = [r[0] for r in db.execute(f"SELECT id FROM feeds WHERE {kind_sql} AND folder_id = ?", (body.folder_id,))]  # nosec B608
         else:
-            ids = [r[0] for r in db.execute(f"SELECT id FROM feeds WHERE {READER_FEED}")]  # nosec B608
+            ids = [r[0] for r in db.execute(f"SELECT id FROM feeds WHERE {kind_sql}")]  # nosec B608
         if not ids:
             return {"feeds": 0, "removed": 0, "oldest": None, "days": body.days, "dry_run": body.dry_run, "skipped": skipped}
         removed, oldest, cutoff = 0, None, now() - body.days * 86400
@@ -467,8 +487,9 @@ def keep_articles(body: KeepArticlesIn, principal: Principal = Depends(require_w
                                f"SELECT feed_id, guid, ? FROM articles WHERE {cond}", [now(), *chunk, cutoff])
                     n = db.execute(f"DELETE FROM articles WHERE {cond}", [*chunk, cutoff]).rowcount  # nosec B608
                 removed += n
-            if not body.dry_run:
-                db.execute(f"UPDATE feeds SET retention_days = ? WHERE id IN ({marks})", [body.days, *chunk])  # nosec B608
+            if not body.dry_run:  # 0 = keep everything: the item cap is lifted too, so nothing is trimmed by count
+                db.execute(f"UPDATE feeds SET retention_days = ?, max_articles = CASE WHEN ? = 0 THEN 0 ELSE max_articles END "  # nosec B608
+                           f"WHERE id IN ({marks})", [body.days, body.days, *chunk])
     if not body.dry_run:
         audit("articles_scaled_back", principal, feeds=len(ids), days=body.days, removed=removed)
     return {"feeds": len(ids), "removed": removed, "oldest": oldest, "days": body.days, "dry_run": body.dry_run, "skipped": skipped}
@@ -639,7 +660,9 @@ def list_articles(
         ).fetchone()[0]
         rows = db.execute(
             "SELECT a.id, a.feed_id, f.title AS feed_title, a.title, a.url, a.author, a.published, "
-            "a.fetched_at, a.sort_ts, a.is_read, a.is_starred, a.story_id, substr(a.text_content, 1, 280) AS snippet "
+            "a.fetched_at, a.sort_ts, a.is_read, a.is_starred, a.story_id, substr(a.text_content, 1, 280) AS snippet, "
+            "(length(a.text_content) + 1199) / 1200 AS read_minutes, "  # ~200 words a minute
+            "(SELECT i.fetched_at FROM feed_icons i WHERE i.feed_id = a.feed_id AND i.data IS NOT NULL) AS icon_v "
             f"FROM articles a JOIN feeds f ON f.id = a.feed_id {clause} "
             f"ORDER BY a.sort_ts {direction}, a.id {direction} LIMIT ? OFFSET ?",
             [*params, limit, offset],
@@ -713,7 +736,8 @@ def get_article(article_id: int, _: Principal = Depends(require_read)) -> dict:
     with get_db() as db:
         row = db.execute(
             "SELECT a.id, a.feed_id, f.title AS feed_title, f.site_url AS feed_site_url, a.title, a.url, "
-            "a.author, a.content_html, a.published, a.fetched_at, a.sort_ts, a.is_read, a.is_starred, a.fulltext, "
+            "a.author, a.content_html, a.published, a.fetched_at, a.sort_ts, a.is_read, a.is_starred, a.fulltext, a.title_original, "
+            "(length(a.text_content) + 1199) / 1200 AS read_minutes, "
             "length(a.text_content) AS text_length, COALESCE(f.full_text, 'auto') AS full_text_mode, "
             "(COALESCE(f.kind, 'rss') IN ('rss', 'html') AND f.social_platform IS NULL) AS full_text_possible "
             "FROM articles a JOIN feeds f ON f.id = a.feed_id WHERE a.id = ?",
@@ -731,6 +755,10 @@ def get_article(article_id: int, _: Principal = Depends(require_read)) -> dict:
         article["related"] = related.counts(db, article_id) if prefs["related_media"] else {"videos": 0, "podcasts": 0}
     # Re-sanitise on output (defence in depth, and honours the images setting).
     article["content_html"] = sanitize_html(article["content_html"], allow_images=load_images)
+    if load_images and prefs["image_proxy"]:  # images through this server: publishers don't see the reader's IP
+        from app import media
+
+        article["content_html"] = media.rewrite_images(article["content_html"])
     return article
 
 

@@ -239,6 +239,8 @@ a.chip.ttp-link { text-decoration: none; --chip: #64748b; border-radius: 5px; }
   border: 1px solid var(--border); border-radius: 12px; padding: 0; background: var(--panel); color: var(--text);
   box-shadow: var(--shadow); width: min(480px, calc(100vw - 32px));
 }
+/* tall dialogs scroll inside the visible screen (mobile browser bars included) */
+.dialog { max-height: calc(100dvh - 24px); overflow: auto; }
 .dialog::backdrop { background: rgba(10, 14, 20, .5); }
 .form { display: flex; flex-direction: column; gap: 12px; padding: 20px; }
 .form h3 { margin: 0 0 4px; }
@@ -247,7 +249,7 @@ a.chip.ttp-link { text-decoration: none; --chip: #64748b; border-radius: 5px; }
 .form label.add-opt, .form label:has(> input[type="checkbox"]:first-child), .form label:has(> input[type="radio"]:first-child) { flex-direction: row; align-items: center; gap: 8px; font-weight: 400; }
 .form label.add-opt > input, .form label:has(> input[type="checkbox"]:first-child) > input { flex: none; width: auto; margin: 0; }
 .form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
-.settings-dialog { width: min(1040px, calc(100vw - 32px)); height: min(760px, calc(100vh - 32px)); }
+.settings-dialog { width: min(1040px, calc(100vw - 32px)); height: min(760px, calc(100vh - 32px)); height: min(760px, calc(100dvh - 32px)); max-height: calc(100dvh - 16px); }
 .settings { display: grid; grid-template-columns: 200px 1fr; height: 100%; }
 .settings-nav { border-right: 1px solid var(--border); padding: 14px 8px; background: var(--panel-2); overflow-y: auto; }
 .settings-nav button {
@@ -316,6 +318,7 @@ kbd { border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 
   .app.show-reader .reader, .app.layout-list.show-reader .reader { display: block; }
   .back-btn { display: inline-grid; }
   .reader-inner { padding: 14px 16px 60px; }
+  .settings-dialog { width: calc(100vw - 16px); height: calc(100vh - 16px); height: calc(100dvh - 16px); }
   .settings { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
   .settings-nav { display: flex; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--border); padding: 6px; }
   .settings-nav button { width: auto; white-space: nowrap; }
@@ -377,3 +380,11 @@ kbd { border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 
 .add-plus[hidden] { display: none; }
 .custom-said { margin-left: 6px; white-space: nowrap; }
 .custom-said[hidden] { display: none; }
+
+/* site icons, reading time, highlight words, translated titles, read-later menu */
+.article-item .meta .site-icon { width: 14px; height: 14px; border-radius: 3px; flex: none; object-fit: contain; align-self: center; margin-right: -3px; }
+.article-item .meta .read-time { color: var(--muted); font-size: .9em; margin-left: auto; white-space: nowrap; }
+.article-item .meta .read-time + .time { margin-left: 0; }
+mark.hl { background: color-mix(in srgb, #facc15 45%, transparent); color: inherit; border-radius: 3px; padding: 0 2px; }
+.orig-title { color: var(--muted); font-size: .92em; margin: -6px 0 10px; }
+.reader-toolbar select.readlater { max-width: 11rem; }

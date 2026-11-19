@@ -13,7 +13,7 @@ from typing import Any
 from app import secretbox
 from app.db import now
 
-NAMES = ("youtube", "x", "telegram", "ai")
+NAMES = ("youtube", "x", "telegram", "ai", "imap", "readlater")
 
 
 def _check(name: str) -> None:

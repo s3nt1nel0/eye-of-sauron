@@ -4,7 +4,7 @@
 #   1. Copy this folder somewhere OUTSIDE the Eye of Sauron repository (the .env file holds a credential).
 #   2. cp .env.example .env   and fill in what you need (X needs TWITTER_AUTH_TOKEN).
 #   3. docker compose up -d
-#   4. Eye of Sauron: set FEEDWARDEN_PRIVATE_ALLOWLIST=127.0.0.1:1200 (or rsshub:1200 when both run in one compose
+#   4. Eye of Sauron: set EOS_PRIVATE_ALLOWLIST=127.0.0.1:1200 (or rsshub:1200 when both run in one compose
 #      network), restart, then Settings -> Integrations -> X -> Bridge: RSSHub, address http://127.0.0.1:1200
 #
 # Pin the image to a digest for reproducible deployments: docker pull ghcr.io/diygod/rsshub && docker inspect --format

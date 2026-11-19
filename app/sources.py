@@ -30,10 +30,10 @@ from app.config import get_settings
 from app.db import get_db, now
 from app.sanitize import to_text
 
-log = logging.getLogger("feedwarden.sources")
+log = logging.getLogger("eos.sources")
 
-KINDS = ("youtube", "hfpapers", "x", "telegram")
-DEFAULT_REFRESH = {"youtube": 60, "hfpapers": 180, "x": 360, "telegram": 30}
+KINDS = ("youtube", "hfpapers", "x", "telegram", "email")
+DEFAULT_REFRESH = {"youtube": 60, "hfpapers": 180, "x": 360, "telegram": 30, "email": 30}
 
 CHANNEL_ID = r"^UC[A-Za-z0-9_-]{22}$"
 PLAYLIST_ID = r"^[A-Za-z0-9_-]{12,64}$"
@@ -97,7 +97,15 @@ class TelegramSource(_Strict):
             raise ValueError("Public web preview needs a channel username")
 
 
-SourceConfig = Annotated[Union[YouTubeSource, HFPapersSource, XSource, TelegramSource], Field(discriminator="kind")]
+class EmailSource(_Strict):
+    """Newsletters from a mailbox (Settings -> Integrations -> Email newsletters): messages from these senders."""
+    kind: Literal["email"] = "email"
+    senders: Annotated[list[Annotated[str, StringConstraints(pattern=r"^(?:[A-Za-z0-9._%+-]{1,64}@)?(?:[A-Za-z0-9-]{1,63}[.])+[A-Za-z]{2,24}$", to_lower=True)]], Field(min_length=1, max_length=20)]
+    folder: Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9 ._/&+-]{1,100}$")] = "INBOX"
+    subject_contains: Annotated[str, StringConstraints(min_length=2, max_length=100, pattern=r"^[^<>]+$")] | None = None
+
+
+SourceConfig = Annotated[Union[YouTubeSource, HFPapersSource, XSource, TelegramSource, EmailSource], Field(discriminator="kind")]
 
 
 class _Wrapper(_Strict):
@@ -120,6 +128,9 @@ def canonical_url(cfg) -> str:
         return "https://huggingface.co/papers"
     if isinstance(cfg, XSource):
         return f"https://x.com/{cfg.username.lower()}"
+    if isinstance(cfg, EmailSource):  # never fetched over HTTP: .invalid is a reserved name that cannot resolve
+        query = urlencode({"from": ",".join(sorted(cfg.senders)), **({"subject": cfg.subject_contains} if cfg.subject_contains else {})})
+        return f"https://newsletters.invalid/{quote(cfg.folder, safe='')}?{query}"
     if isinstance(cfg, TelegramSource):
         if cfg.channel:
             return f"https://t.me/s/{cfg.channel.lower()}"
@@ -928,7 +939,21 @@ def fetch(feed) -> Fetched:
         return fetch_x_api(cfg, feed["id"]) if cfg.via == "api" else fetch_x_bridge(cfg)
     if isinstance(cfg, TelegramSource):
         return fetch_telegram(cfg, feed["id"])
+    if isinstance(cfg, EmailSource):
+        return fetch_email(cfg, feed["id"])
     raise SourceError("Unknown source")
+
+
+def fetch_email(cfg: EmailSource, feed_id: int | None) -> Fetched:
+    from app import mailfeeds
+
+    key = f"email_seen:{feed_id}" if feed_id else None
+    try:
+        entries, folder = mailfeeds.fetch(cfg, first=not (key and get_state(key)))
+    except mailfeeds.MailError as exc:
+        raise SourceError(str(exc)) from None
+    names = ", ".join(cfg.senders[:3]) + ("…" if len(cfg.senders) > 3 else "")
+    return Fetched(entries=entries, title=f"✉ {names}", state={key: str(int(time.time()))} if key else {})
 
 
 # ============================================================================ input detection

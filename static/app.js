@@ -413,7 +413,7 @@
   // ----------------------------------------------------------------- drag & drop (sidebar)
   // Only drags that carry our private type are accepted; text/links dragged in from
   // other pages are ignored, and the feed id is checked against the known feed list.
-  const DRAG_TYPE = "application/x-feedwarden-feed";
+  const DRAG_TYPE = "application/x-eos-feed";
 
   function makeDropTarget(el, folderId) {
     const accepts = (e) => Array.from(e.dataTransfer.types || []).includes(DRAG_TYPE);
@@ -799,6 +799,13 @@
             } })) : null));
   }
 
+  function siteIcon(feedId, version) {
+    const img = h("img", { class: "site-icon", alt: "", width: 16, height: 16, loading: "lazy", decoding: "async",
+      src: `/api/v1/feeds/${Number(feedId)}/icon?v=${Number(version) || 0}` });
+    img.addEventListener("error", () => img.remove());
+    return img;
+  }
+
   function renderList() {
     renderTtpStrip();
     const list = $("#articleList");
@@ -840,9 +847,13 @@
         type: "checkbox", class: "pick", checked: ticked, tabindex: "-1", "aria-label": `Select “${a.title}”`,
         onclick: (e) => { e.stopPropagation(); toggleChecked(a.id, e.shiftKey); },
       }) : null,
-      h("div", { class: "meta" }, h("span", { class: "feed", text: a.feed_title }), h("span", { class: "time", title: fullDate(a.sort_ts), text: relTime(a.sort_ts) })),
-      h("div", { class: "title", text: a.title }),
-      state.settings.show_snippets && a.snippet ? h("div", { class: "snippet", text: a.snippet }) : null,
+      h("div", { class: "meta" },
+        state.settings.show_site_icons !== false && a.icon_v ? siteIcon(a.feed_id, a.icon_v) : null,
+        h("span", { class: "feed", text: a.feed_title }),
+        state.settings.show_reading_time !== false && a.read_minutes ? h("span", { class: "read-time", title: "Reading time", text: `${a.read_minutes} min` }) : null,
+        h("span", { class: "time", title: fullDate(a.sort_ts), text: relTime(a.sort_ts) })),
+      h("div", { class: "title" }, marked(a.title)),
+      state.settings.show_snippets && a.snippet ? h("div", { class: "snippet" }, marked(a.snippet)) : null,
       storyFold(a),
       tagFold("articles", (a.tags || []).length + looseTtps(a).length, (single) => [
         a.tags && a.tags.length ? h("div", { class: "chips" }, a.tags.map((t) => chip(t, null, a.ttps, a.id, a.ttp_tactics))) : null,
@@ -1084,14 +1095,17 @@
           onclick: () => window.FW.intel.related(a, "podcasts") }) : null,
         a.full_text_possible && a.url && a.fulltext !== 1 ? h("button", { type: "button", class: "btn", title: "Fetch the full article from the site (for feeds that only send a summary)",
           text: "📄 Full article", onclick: () => maybeLoadFullText(a, true) }) : null,
+        readLaterMenu(a),
         h("span", { class: "spacer" }),
         url ? h("a", { class: "btn", href: url, target: "_blank", rel: "noopener noreferrer", text: "Open original ↗" }) : null),
       h("article", { class: "reader-inner" },
-        h("h1", null, url ? h("a", { href: url, target: "_blank", rel: "noopener noreferrer", text: a.title }) : a.title),
+        h("h1", null, url ? h("a", { href: url, target: "_blank", rel: "noopener noreferrer" }, marked(a.title)) : marked(a.title)),
+        a.title_original && a.title_original !== a.title ? h("div", { class: "orig-title", title: "Original title (translated by your AI provider)", text: `🌐 ${a.title_original}` }) : null,
         h("div", { class: "byline" },
           h("span", { text: a.feed_title }),
           a.author ? h("span", { text: `by ${a.author}` }) : null,
-          h("span", { text: fullDate(a.published || a.fetched_at) })),
+          h("span", { text: fullDate(a.published || a.fetched_at) }),
+          state.settings.show_reading_time !== false && a.read_minutes ? h("span", { text: `${a.read_minutes} min read` }) : null),
         a.tags && a.tags.length ? h("div", { class: "chips" }, a.tags.map((t) => chip(t, () => removeTag(a.id, t.id), a.ttps, a.id, a.ttp_tactics))) : null,
         looseTtps(a).length ? h("div", { class: "ttp-row" }, h("span", { class: "ttp-label", text: "Other techniques named" }),
           looseTtps(a).map((t) => [ttpChip(t), h("a", { class: "chip ttp-link", href: safeUrl(t.url), target: "_blank", rel: "noopener noreferrer",
@@ -1106,6 +1120,54 @@
         buildContent(a.content_html)));
     if (window.FW.ai) window.FW.ai.loadCached(a.id);
     maybeLoadFullText(a);
+  }
+
+  // ----------------------------------------------------------------------- read later (Wallabag / Linkwarden / Obsidian / Markdown)
+  let readLater = null;
+  async function loadReadLater() {
+    try { readLater = await api("GET", "/readlater"); } catch (_) { readLater = { wallabag: false, linkwarden: false, obsidian: null }; }
+    if (state.current) renderReader();
+  }
+  function articleMarkdown(a) {
+    const text = ($("#reader .content") || {}).textContent || "";
+    const tags = (a.tags || []).map((t) => `#${t.name.replace(/\s+/g, "-")}`).join(" ");
+    return [`# ${a.title}`, "", `- Source: ${a.feed_title}`, a.url ? `- Link: ${a.url}` : null,
+      `- Published: ${fullDate(a.published || a.fetched_at)}`, tags ? `- Tags: ${tags}` : null, "", text.trim().slice(0, 6000)]
+      .filter((l) => l !== null).join("\n");
+  }
+  function fileName(title) {
+    return (title || "article").replace(/[\\/:*?"<>|#^[\]]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 100) || "article";
+  }
+  function clickHidden(href, download) {
+    const link = h("a", { href, download: download || null, hidden: true });
+    document.body.append(link);
+    link.click();
+    link.remove();
+  }
+  function readLaterMenu(a) {
+    const sel = h("select", { class: "readlater", "aria-label": "Save for later", title: "Save this article for later" },
+      h("option", { value: "", text: "🔖 Save…" }));
+    const rl = readLater || {};
+    const url = safeUrl(a.url);
+    if (rl.wallabag && url) sel.append(h("option", { value: "wallabag", text: "Wallabag" }));
+    if (rl.linkwarden && url) sel.append(h("option", { value: "linkwarden", text: "Linkwarden" }));
+    if (rl.obsidian) sel.append(h("option", { value: "obsidian", text: `Obsidian (${rl.obsidian.vault})` }));
+    sel.append(h("option", { value: "markdown", text: "Download as Markdown" }));
+    sel.addEventListener("change", async () => {
+      const choice = sel.value;
+      sel.value = "";
+      if (choice === "wallabag" || choice === "linkwarden") {
+        await guarded(() => api("POST", `/articles/${a.id}/save`, { service: choice }), `Saved to ${choice === "wallabag" ? "Wallabag" : "Linkwarden"}`);
+      } else if (choice === "obsidian" && rl.obsidian) {
+        const path = [rl.obsidian.folder, fileName(a.title)].filter(Boolean).join("/");
+        clickHidden(`obsidian://new?vault=${encodeURIComponent(rl.obsidian.vault)}&file=${encodeURIComponent(path)}&content=${encodeURIComponent(articleMarkdown(a))}`);
+      } else if (choice === "markdown") {
+        const href = URL.createObjectURL(new Blob([articleMarkdown(a)], { type: "text/markdown" }));
+        clickHidden(href, `${fileName(a.title)}.md`);
+        setTimeout(() => URL.revokeObjectURL(href), 5000);
+      }
+    });
+    return sel;
   }
 
   /** Feeds that only publish a summary: fetch the article page once and show the full text (if the site allows). */
@@ -1147,11 +1209,14 @@
       a.setAttribute("rel", "noopener noreferrer nofollow");
     }
     for (const img of doc.querySelectorAll("img")) {
-      if (!safeUrl(img.getAttribute("src"))) { img.remove(); continue; }
+      const src = img.getAttribute("src") || "";
+      // http(s) from the publisher, or our own signed image proxy (Settings → Load images through this server)
+      if (!safeUrl(src) && !/^\/api\/v1\/img\?u=[^"'<>\s]+&s=[0-9a-f]{32}$/.test(src)) { img.remove(); continue; }
       img.setAttribute("loading", "lazy");
       img.setAttribute("referrerpolicy", "no-referrer");
     }
     div.append(...doc.body.childNodes);
+    highlightTree(div);
     if (!div.childNodes.length) div.append(h("p", { class: "muted", text: "No content in feed — open the original article." }));
     return div;
   }
@@ -1265,7 +1330,7 @@
       state.settings = res;
       applySettings();
       if (key === "hide_read" || key === "story_grouping" || key === "story_match") loadArticles();
-      if (key === "entity_chips" || key === "related_media") refreshCurrent();
+      if (key === "entity_chips" || key === "related_media" || key === "image_proxy" || key === "load_images") refreshCurrent();
       renderList();
       renderSidebar();
     }
@@ -1297,6 +1362,56 @@
       if (Number.isInteger(n)) saveSetting(key, n);
     });
     return inp;
+  }
+
+  function highlightControl() {
+    const box = h("textarea", { id: "set-highlight_terms", rows: 4, maxlength: 3200, spellcheck: "false", placeholder: "Acme Corp\nFortiGate\nour-domain.com" });
+    box.value = (state.settings.highlight_terms || []).join("\n");
+    box.addEventListener("change", async () => {
+      const terms = box.value.split("\n").map((s) => s.trim()).filter((s) => s.length >= 2).slice(0, 50);
+      await saveSetting("highlight_terms", terms);
+      if (state.current) renderReader();
+    });
+    return box;
+  }
+
+  /** The user's highlight words as one regex (escaped; longest first), cached until the list changes. */
+  let hlCache = { key: null, re: null };
+  function highlightRegex() {
+    const terms = (state.settings.highlight_terms || []).filter((s) => typeof s === "string" && s.length >= 2);
+    const key = terms.join("\u0000");
+    if (hlCache.key !== key) {
+      const esc = terms.map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).sort((a, b) => b.length - a.length);
+      hlCache = { key, re: esc.length ? new RegExp(`(${esc.join("|")})`, "gi") : null };
+    }
+    return hlCache.re;
+  }
+  /** Text with highlight words wrapped in <mark> elements (built as nodes - never HTML). */
+  function marked(text) {
+    const re = highlightRegex();
+    if (!re || !text) return text;
+    const s = String(text);
+    const out = [];
+    let last = 0;
+    for (const m of s.matchAll(re)) {
+      if (m.index > last) out.push(s.slice(last, m.index));
+      out.push(h("mark", { class: "hl", text: m[0] }));
+      last = m.index + m[0].length;
+    }
+    if (!out.length) return s;
+    if (last < s.length) out.push(s.slice(last));
+    return out;
+  }
+  function highlightTree(root) {
+    const re = highlightRegex();
+    if (!re) return;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    const nodes = [];
+    while (walker.nextNode()) { re.lastIndex = 0; if (re.test(walker.currentNode.nodeValue)) nodes.push(walker.currentNode); }
+    for (const node of nodes) {
+      const parts = marked(node.nodeValue);
+      if (Array.isArray(parts)) node.replaceWith(...parts.map((x) => (x instanceof Node ? x : document.createTextNode(x))));
+    }
   }
 
   function defaultIntervalControl() {
@@ -1352,7 +1467,11 @@
           settingRow("Mark read when opened", checkControl("mark_read_on_open")),
           settingRow("Hide watched videos", checkControl("hide_watched"), "Watched videos leave Videos (By topic and Grid) and wait in the ✓ Watched tab; mark one unwatched to bring it back."),
           settingRow("Hide read articles", checkControl("hide_read"), "Read articles leave your feeds, folders and collections and are kept in the Read view (Starred and search still show them)."),
-          settingRow("Load remote images", checkControl("load_images"), "Images are fetched by your browser directly from the publisher (they can see your IP). Disable for maximum privacy."))),
+          settingRow("Load remote images", checkControl("load_images"), "Show the pictures in articles. Turn off for text only."),
+          settingRow("Load images through this server", checkControl("image_proxy"), "Article pictures are fetched by Eye of Sauron and passed on, so publishers and their trackers see the server, not your device or IP address."),
+          settingRow("Show reading time", checkControl("show_reading_time"), "“4 min” next to each article in the list (about 200 words a minute)."),
+          settingRow("Show site icons", checkControl("show_site_icons"), "Each site's little logo in front of its name in the list. Icons are fetched once in the background and kept on the server."),
+          settingRow("Highlight these words", highlightControl(), "One word or phrase per line (up to 50) — your company, products, suppliers, people. They are marked in the article list and the reader."))),
       h("div", { class: "panel-section" }, h("h4", { text: "Smart features" }),
         h("div", { class: "grid-form" },
           settingRow("Group articles about the same story", checkControl("story_grouping"), "When several sources report the same story, the list shows one article with a 🧩 +n sources button for the others."),
@@ -1365,8 +1484,9 @@
       h("div", { class: "panel-section" }, h("h4", { text: "Updates & storage" }),
         h("div", { class: "grid-form" },
           settingRow("Default refresh interval", defaultIntervalControl(), "Feeds without their own interval use this (5 minutes to 7 days). Failing feeds back off automatically."),
+          settingRow("Check quiet feeds less often", checkControl("adaptive_refresh"), "Feeds that use the default interval learn their own pace: one that posts every few days is checked every few hours (at most every 12 hours), never more often than the default. Feeds with their own interval keep it."),
           settingRow("Keep articles for (days)", numberControl("retention_days", 0, 3650), "0 = keep forever. Starred and manually-filed articles are always kept. Each feed can override this (⚙ next to the feed); feeds whose history you loaded keep everything."),
-          settingRow("Scale back now", h("button", { type: "button", class: "btn small", text: "🗓️ Keep articles from…", onclick: () => FW.feedtools.openKeepArticles() }), "Remove older articles from all feeds, a folder or some feeds at once (with a count first), and keep them trimmed from now on."),
+          settingRow("Keep feeds", h("button", { type: "button", class: "btn small", text: "🗓️ Keep feeds…", onclick: () => FW.feedtools.openKeepFeeds({ type: "all" }) }), "How far back feeds keep items — article feeds, podcasts, YouTube or accounts, or all together — with a count before anything is removed, and an option to fetch older items back to that date."),
           settingRow("Max articles per feed", numberControl("max_articles_per_feed", 0, 100000), "0 = unlimited."))),
     );
     renderMutedNames();
@@ -1384,7 +1504,11 @@
       const text = await file.text();
       const res = await guarded(() => api("POST", "/opml/import", text, { raw: true, contentType: "text/xml" }));
       if (res) {
-        toast(`Imported ${res.added} feeds (${res.skipped} already present, ${res.invalid} invalid)`);
+        const t = res.by_type || {};
+        const parts = [["articles", "article feeds"], ["podcasts", "podcasts"], ["videos", "YouTube channels"], ["accounts", "accounts"]]
+          .filter(([k]) => t[k]).map(([k, label]) => `${t[k]} ${label}`);
+        toast(`Imported ${res.added} feeds${parts.length ? ` (${parts.join(", ")})` : ""} · ${res.skipped} already present` +
+          `${res.updated ? ` (${res.updated} moved to the right tab)` : ""}${res.invalid ? ` · ${res.invalid} invalid` : ""}`);
         await loadSidebar();
         rerender();
       }
@@ -1404,7 +1528,6 @@
       feeds.length
         ? window.FW.feedtools.manager(feeds, onChanged)
         : h("p", { class: "muted", text: "No feeds yet. Add one, or import an OPML file (a starter list of security feeds ships in examples/)." }),
-      window.FW.feeds ? h("div", { class: "panel-section", style: { "margin-top": "18px" } }, window.FW.feeds.backfillAllCard(state.sidebar.folders, () => { loadSidebar(); loadArticles(); })) : null,
     );
   }
 
@@ -1692,7 +1815,7 @@
 
     fill(panel, 
       h("p", { class: "muted" }, "Webhooks receive a JSON POST when a rule with a webhook action matches. With a secret, requests are signed: ",
-        h("code", { text: "X-Feedwarden-Signature: sha256=HMAC(secret, timestamp + \".\" + body)" }), "."),
+        h("code", { text: "X-EOS-Signature: sha256=HMAC(secret, timestamp + \".\" + body)" }), "."),
       h("form", { class: "card", onsubmit: async (e) => {
         e.preventDefault();
         const body = { name: name.value.trim(), url: url.value.trim() };
@@ -1786,7 +1909,7 @@ curl -X POST -H "Authorization: Bearer $FW_TOKEN" -H "Content-Type: application/
         h("p", null, "Free software under the ", h("a", { href: safeUrl(info.license_url), target: "_blank", rel: "noopener noreferrer", text: "GNU Affero General Public License v3.0 or later" }),
           ". You may use, study, share and modify it; if you run a modified version for other people over a network, you must offer them its source code."),
         h("p", null, "Source code: ", src ? h("a", { href: src, target: "_blank", rel: "noopener noreferrer", text: src })
-          : h("span", { class: "muted", text: "not configured — set FEEDWARDEN_SOURCE_URL to your repository (required if you run a modified version for others)." })),
+          : h("span", { class: "muted", text: "not configured — set EOS_SOURCE_URL to your repository (required if you run a modified version for others)." })),
         h("p", { class: "muted small", text: "Provided without any warranty. See the LICENSE file for the full terms." })));
   }
 
@@ -2272,6 +2395,7 @@ curl -X POST -H "Authorization: Bearer $FW_TOKEN" -H "Content-Type: application/
       document.body.prepend(bar);
     }
     state.settings = (await guarded(() => api("GET", "/settings"))) || {};
+    loadReadLater();
     applySettings();
     await loadSidebar();
     const dv = state.settings.default_view || "unread";
@@ -2286,7 +2410,7 @@ curl -X POST -H "Authorization: Bearer $FW_TOKEN" -H "Content-Type: application/
     api, h, fill, toast, guarded, safeUrl, safeColor, relTime, fullDate, fmtDate, fmtRetention, store, state,
     openArticleInReader, setMode, openSettings, currentMode, fmtMinutes, makeResizer, enhanceDrawer, buildContent,
     refreshPicker, fillFolderSelect, selectView: (v) => selectView(v), loadArticles: () => loadArticles(),
-    loadSidebar: () => loadSidebar(), tagFold, tagsToggle,
+    loadSidebar: () => loadSidebar(), tagFold, tagsToggle, loadReadLater: () => loadReadLater(), marked,
   };
 
   init();

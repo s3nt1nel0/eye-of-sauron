@@ -25,7 +25,7 @@ from app import entities
 from app.cve_sync import get_state, set_state
 from app.db import get_db, placeholders
 
-log = logging.getLogger("feedwarden.ttp")
+log = logging.getLogger("eos.ttp")
 
 REV = "1"  # bump when CONTEXT_TERMS / SKIP_NAMES change: the sub-technique entities are re-indexed once
 SLUGS = ("mitre-attack-techniques", "mitre-atlas-techniques")

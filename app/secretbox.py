@@ -6,7 +6,7 @@ Webhook signing secrets and integration credentials must be usable by the server
 leaked database file or backup does not leak the credentials.
 
 Key material (first match wins):
-  1. FEEDWARDEN_SECRET_KEY or FEEDWARDEN_SECRET_KEY_FILE (Docker secret) - one or more
+  1. EOS_SECRET_KEY or EOS_SECRET_KEY_FILE (Docker secret) - one or more
      comma-separated Fernet keys; the FIRST key encrypts, all keys can decrypt (rotation).
   2. <data dir>/secret.key, generated on first start with mode 0600.
 
@@ -24,7 +24,7 @@ from cryptography.fernet import Fernet, InvalidToken, MultiFernet
 
 from app.config import get_settings
 
-log = logging.getLogger("feedwarden.secretbox")
+log = logging.getLogger("eos.secretbox")
 
 PREFIX = "fw1:"
 _lock = threading.Lock()
@@ -50,7 +50,7 @@ def _load_keys() -> list[bytes]:
             fh.write(key + b"\n")
         log.warning(
             "Generated an encryption key for stored credentials at %s. For stronger protection "
-            "move it to FEEDWARDEN_SECRET_KEY_FILE (a Docker secret) outside the data volume.",
+            "move it to EOS_SECRET_KEY_FILE (a Docker secret) outside the data volume.",
             path,
         )
     try:
@@ -96,7 +96,7 @@ def decrypt(stored: str) -> str:
     try:
         return _get_box().decrypt(stored[len(PREFIX):].encode("ascii")).decode("utf-8")
     except (InvalidToken, ValueError, UnicodeError) as exc:
-        raise SecretError("Stored credential cannot be decrypted (wrong FEEDWARDEN_SECRET_KEY?)") from exc
+        raise SecretError("Stored credential cannot be decrypted (wrong EOS_SECRET_KEY?)") from exc
 
 
 def rotate(stored: str) -> str:

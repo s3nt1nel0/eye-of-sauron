@@ -52,7 +52,7 @@ Eye of Sauron is **one small web service plus one SQLite database file**. It nee
 
 ```bash
 git clone <repository-url> eye-of-sauron && cd eye-of-sauron
-cp .env.example .env           # optional: set FEEDWARDEN_ADMIN_PASSWORD (12+ characters)
+cp .env.example .env           # optional: set EOS_ADMIN_PASSWORD (12+ characters)
 docker compose up -d --build
 ```
 
@@ -106,22 +106,22 @@ For Debian/Ubuntu servers, Proxmox LXCs or any VM where you'd rather not run Doc
 
 ```bash
 sudo apt install -y python3 python3-venv git
-sudo useradd --system --home /opt/feedwarden --shell /usr/sbin/nologin feedwarden
-sudo git clone <repository-url> /opt/feedwarden
-sudo python3 -m venv /opt/feedwarden/.venv
+sudo useradd --system --home /opt/eye-of-sauron --shell /usr/sbin/nologin eos
+sudo git clone <repository-url> /opt/eye-of-sauron
+sudo python3 -m venv /opt/eye-of-sauron/.venv
 # install the exact, hash-verified dependency set (refuses tampered packages)
-sudo /opt/feedwarden/.venv/bin/pip install --require-hashes --no-deps -r /opt/feedwarden/requirements.lock
-sudo mkdir -p /etc/feedwarden
-sudo cp /opt/feedwarden/.env.example /etc/feedwarden/feedwarden.env
-sudo chmod 600 /etc/feedwarden/feedwarden.env
-sudo cp /opt/feedwarden/deploy/feedwarden.service /etc/systemd/system/
-sudo systemctl daemon-reload && sudo systemctl enable --now feedwarden
+sudo /opt/eye-of-sauron/.venv/bin/pip install --require-hashes --no-deps -r /opt/eye-of-sauron/requirements.lock
+sudo mkdir -p /etc/eye-of-sauron
+sudo cp /opt/eye-of-sauron/.env.example /etc/eye-of-sauron/eye-of-sauron.env
+sudo chmod 600 /etc/eye-of-sauron/eye-of-sauron.env
+sudo cp /opt/eye-of-sauron/deploy/eye-of-sauron.service /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now eye-of-sauron
 ```
 
-* **Data:** lives in `/var/lib/feedwarden`. Back up that directory.
+* **Data:** lives in `/var/lib/eye-of-sauron`. Back up that directory.
 * **Hardening:** the unit file runs the service as an unprivileged user with a strict sandbox (`ProtectSystem=strict`, no capabilities, private `/tmp`, and so on).
 * **Python version:** the project is built and tested on **Python 3.12**. Use that version, for example from the deadsnakes PPA or the distribution's own package where available.
-* **Logs:** `journalctl -u feedwarden -f`.
+* **Logs:** `journalctl -u eye-of-sauron -f`.
 
 ## 5. Cloud VPS (Hetzner, DigitalOcean, Linode, AWS Lightsail, Oracle Cloud…)
 
@@ -136,7 +136,7 @@ A €4–6/month VPS (1 vCPU, 1–2 GB RAM) is plenty.
    }
    ```
 4. Set these in `.env`:
-   * `FEEDWARDEN_ALLOWED_HOSTS=feeds.example.com`;
+   * `EOS_ALLOWED_HOSTS=feeds.example.com`;
    * `FORWARDED_ALLOW_IPS=127.0.0.1`. Only the proxy's IP may set the client-IP and HTTPS headers that login throttling and secure cookies rely on.
 5. **Strongly recommended for internet-facing installs:** put single sign-on with MFA in front, such as Authelia, Authentik, Cloudflare Access or Tailscale Funnel with ACLs. Eye of Sauron has strong passwords, throttling and session controls, but no built-in second factor yet.
 6. **Firewall:** allow only 22 (SSH, ideally restricted to your IP) and 80/443.
@@ -147,8 +147,8 @@ Eye of Sauron is designed as **one instance**: SQLite, an in-process scheduler a
 
 * **Pod count:** `replicas: 1`, with `strategy: Recreate` so two pods never share the database.
 * **Storage:** a **ReadWriteOnce** PersistentVolumeClaim mounted at `/data`.
-* **Secrets:** a Secret for `FEEDWARDEN_SECRET_KEY` and the admin password.
-* **Exposure:** an Ingress with TLS, plus `FEEDWARDEN_ALLOWED_HOSTS` and `FORWARDED_ALLOW_IPS` set to your ingress controller's address range.
+* **Secrets:** a Secret for `EOS_SECRET_KEY` and the admin password.
+* **Exposure:** an Ingress with TLS, plus `EOS_ALLOWED_HOSTS` and `FORWARDED_ALLOW_IPS` set to your ingress controller's address range.
 * **Health checks:** liveness and readiness probes on `GET /healthz`.
 * **Container security:** `runAsNonRoot`, `readOnlyRootFilesystem: true` with an `emptyDir` for `/tmp`, and `allowPrivilegeEscalation: false`.
 
@@ -171,8 +171,8 @@ spec:
           image: eye-of-sauron:0.8.0          # push to your registry first
           ports: [{ containerPort: 8080 }]
           env:
-            - { name: FEEDWARDEN_ALLOWED_HOSTS, value: "feeds.example.com" }
-            - name: FEEDWARDEN_SECRET_KEY
+            - { name: EOS_ALLOWED_HOSTS, value: "feeds.example.com" }
+            - name: EOS_SECRET_KEY
               valueFrom: { secretKeyRef: { name: eye-of-sauron, key: secret-key } }
           securityContext: { readOnlyRootFilesystem: true, allowPrivilegeEscalation: false, capabilities: { drop: [ALL] } }
           readinessProbe: { httpGet: { path: /healthz, port: 8080 } }
@@ -206,7 +206,7 @@ For developing without Docker, see [CONTRIBUTING.md](../CONTRIBUTING.md).
    * Use a **spare account**. X may lock accounts used this way, and the token gives full access to the account.
    * Without a token, RSSHub only returns old posts.
 3. **Start it:** `docker compose up -d`. It listens on `127.0.0.1:1200` only, read-only, with all capabilities dropped. Pin the image digest as the file explains.
-4. **Let Eye of Sauron reach it:** set `FEEDWARDEN_PRIVATE_ALLOWLIST=127.0.0.1:1200` and restart. In one Compose project, use the service name instead: `rsshub:1200`.
+4. **Let Eye of Sauron reach it:** set `EOS_PRIVATE_ALLOWLIST=127.0.0.1:1200` and restart. In one Compose project, use the service name instead: `rsshub:1200`.
 5. **Connect X:** Settings → Integrations → X → Bridge: **RSSHub**, address `http://127.0.0.1:1200` (or `http://rsshub:1200`).
 6. **Add accounts:**
    * For X, paste x.com profile links into 👥 Accounts.
@@ -220,7 +220,7 @@ Never publish RSSHub to the internet: anyone who can reach it can read X through
 |---|---|---|---|
 | **Tailscale / WireGuard VPN** | Low | Excellent: nothing is exposed to the internet | Best choice for personal use. Phone apps work over it. |
 | **Cloudflare Tunnel + Cloudflare Access** | Low–medium | Very good: SSO/MFA before traffic reaches you | No open ports. |
-| **Reverse proxy (Caddy/Traefik/Nginx) + TLS + SSO** | Medium | Good, if kept updated | Needed for a public URL. Set `FEEDWARDEN_ALLOWED_HOSTS` and `FORWARDED_ALLOW_IPS`. |
+| **Reverse proxy (Caddy/Traefik/Nginx) + TLS + SSO** | Medium | Good, if kept updated | Needed for a public URL. Set `EOS_ALLOWED_HOSTS` and `FORWARDED_ALLOW_IPS`. |
 | Port-forwarding plain HTTP | — | **Don't** | Passwords and app passwords would travel unencrypted. |
 
 Cookies automatically become `Secure` and `__Host-`-prefixed when served over HTTPS.
@@ -237,11 +237,11 @@ Cookies automatically become `Secure` and `__Host-`-prefixed when served over HT
 - [ ] **Password:** logged in, changed the password, deleted `initial_admin_password.txt`.
 - [ ] **HTTPS or VPN:** used for any access beyond your own machine.
 - [ ] **Backups:** of the data directory scheduled, and **restore tested** once ([GUIDE §5.2](GUIDE.md#52-backups--restore)).
-- [ ] **Encryption key:** moved out of the data volume (Docker secret / `FEEDWARDEN_SECRET_KEY_FILE`), optional but recommended.
-- [ ] **Source link:** if you run a **modified** version for other people, `FEEDWARDEN_SOURCE_URL` is set (AGPL; shown in Settings → About).
+- [ ] **Encryption key:** moved out of the data volume (Docker secret / `EOS_SECRET_KEY_FILE`), optional but recommended.
+- [ ] **Source link:** if you run a **modified** version for other people, `EOS_SOURCE_URL` is set (AGPL; shown in Settings → About).
 - [ ] **Optional extras:**
   - an NVD API key for faster CVE sync;
   - a YouTube API key;
   - an AI provider;
   - delivery channels for alerts.
-- [ ] **Monitoring:** healthcheck at `GET /healthz`. Watch the logs for `feedwarden.audit` events ([GUIDE §5.6](GUIDE.md#56-monitoring)).
+- [ ] **Monitoring:** healthcheck at `GET /healthz`. Watch the logs for `eos.audit` events ([GUIDE §5.6](GUIDE.md#56-monitoring)).

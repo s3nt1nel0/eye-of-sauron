@@ -34,7 +34,7 @@ from app import netguard
 from app.cve_sync import get_state, set_state
 from app.db import get_db, now
 
-log = logging.getLogger("feedwarden.atlas")
+log = logging.getLogger("eos.atlas")
 
 DIST = "https://raw.githubusercontent.com/mitre-atlas/atlas-data/main/dist/"
 MANIFEST_URL = DIST + "manifest.yaml"

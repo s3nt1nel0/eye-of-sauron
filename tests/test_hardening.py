@@ -40,7 +40,7 @@ def test_analytics_rate_limited(authed):
 
 
 def test_audit_log_records_admin_actions_without_secrets(authed, caplog):
-    caplog.set_level(logging.INFO, logger="feedwarden.audit")
+    caplog.set_level(logging.INFO, logger="eos.audit")
     created = authed.post("/api/v1/tokens", json={"name": "ci", "scope": "read"}).json()
     authed.delete(f"/api/v1/tokens/{created['id']}")
     authed.patch("/api/v1/settings", json={"theme": "dark"})
@@ -74,8 +74,8 @@ def test_weak_bootstrap_password_rejected(tmp_path, monkeypatch):
     from app.db import init_db
     from app.security import ensure_admin_user
 
-    monkeypatch.setenv("FEEDWARDEN_DATA_DIR", str(tmp_path))
-    monkeypatch.setenv("FEEDWARDEN_ADMIN_PASSWORD", "password123456")
+    monkeypatch.setenv("EOS_DATA_DIR", str(tmp_path))
+    monkeypatch.setenv("EOS_ADMIN_PASSWORD", "password123456")
     reset_settings()
     from app.config import get_settings
 
@@ -88,8 +88,8 @@ def test_weak_bootstrap_password_rejected(tmp_path, monkeypatch):
 def test_session_lifetime_defaults(monkeypatch):
     from app.config import load_settings
 
-    monkeypatch.delenv("FEEDWARDEN_SESSION_IDLE_HOURS", raising=False)
-    monkeypatch.delenv("FEEDWARDEN_SESSION_MAX_DAYS", raising=False)
+    monkeypatch.delenv("EOS_SESSION_IDLE_HOURS", raising=False)
+    monkeypatch.delenv("EOS_SESSION_MAX_DAYS", raising=False)
     s = load_settings()
     assert s.session_idle_hours == 24 and s.session_max_days == 14
 
@@ -116,9 +116,9 @@ def test_about_endpoint_and_source_url(authed, monkeypatch):
     assert info["license"] == "AGPL-3.0-or-later" and info["version"]
     from app.config import ConfigError, load_settings
 
-    monkeypatch.setenv("FEEDWARDEN_SOURCE_URL", "https://github.com/example/eye-of-sauron")
+    monkeypatch.setenv("EOS_SOURCE_URL", "https://github.com/example/eye-of-sauron")
     assert load_settings().source_url == "https://github.com/example/eye-of-sauron"
-    monkeypatch.setenv("FEEDWARDEN_SOURCE_URL", "javascript:alert(1)")
+    monkeypatch.setenv("EOS_SOURCE_URL", "javascript:alert(1)")
     import pytest
 
     with pytest.raises(ConfigError):

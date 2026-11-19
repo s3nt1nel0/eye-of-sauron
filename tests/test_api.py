@@ -176,7 +176,8 @@ def test_opml_roundtrip_and_xxe(authed):
     <outline text="Threat Intel"><outline type="rss" text="A" xmlUrl="https://a.example/feed"/></outline>
     <outline type="rss" text="Bad" xmlUrl="file:///etc/passwd"/></body></opml>"""
     r = authed.post("/api/v1/opml/import", content=opml, headers={"Content-Type": "text/xml"})
-    assert r.json() == {"added": 1, "skipped": 0, "invalid": 1}
+    assert r.json() == {"added": 1, "skipped": 0, "invalid": 1, "updated": 0,
+                        "by_type": {"articles": 1, "podcasts": 0, "videos": 0, "accounts": 0}}
     xxe = b"""<?xml version="1.0"?><!DOCTYPE x [<!ENTITY e SYSTEM "file:///etc/passwd">]>
     <opml><body><outline text="&e;" xmlUrl="https://b.example/"/></body></opml>"""
     assert authed.post("/api/v1/opml/import", content=xxe, headers={"Content-Type": "text/xml"}).status_code == 422

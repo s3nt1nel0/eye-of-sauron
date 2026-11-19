@@ -17,7 +17,7 @@ import threading
 from app.db import get_db, placeholders
 from app.entities_seed import BUILTIN_WATCHLISTS
 
-log = logging.getLogger("feedwarden.entities")
+log = logging.getLogger("eos.entities")
 
 TOKEN = re.compile(r"[^\W_]+", re.UNICODE)
 MAX_ALIAS_TOKENS = 8

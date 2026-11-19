@@ -3,7 +3,7 @@
 * **NVD CVE API 2.0** (https://services.nvd.nist.gov/rest/json/cves/2.0) - the source NIST
   recommends since retiring its RSS and legacy JSON feeds. Back-fill by publication date, then
   incremental sync by last-modified date. Public rate limit: 5 requests / 30 s (50 with a free
-  API key in FEEDWARDEN_NVD_API_KEY), so requests are spaced accordingly.
+  API key in EOS_NVD_API_KEY), so requests are spaced accordingly.
 * **CISA Known Exploited Vulnerabilities** JSON catalog - exploited-in-the-wild flag, date added,
   due date, known ransomware use. KEV CVEs missing locally are fetched from NVD (``hasKev``).
 * **MITRE CWE catalog** (cwec_latest.xml.zip) - weakness names and the official OWASP Top Ten
@@ -33,7 +33,7 @@ from app import app_settings, cve_classify, netguard
 from app.config import get_settings
 from app.db import get_db, now
 
-log = logging.getLogger("feedwarden.cve")
+log = logging.getLogger("eos.cve")
 
 NVD_URL = "https://services.nvd.nist.gov/rest/json/cves/2.0"
 KEV_URL = "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json"

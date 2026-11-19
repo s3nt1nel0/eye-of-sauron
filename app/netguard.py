@@ -142,7 +142,7 @@ def ip_allowed(ip: IPAddress, allow_private: bool) -> bool:
 
 def private_ok(host: str, port: int, allow_private: bool) -> bool:
     """True when local/private targets are allowed for this host:port: globally, or by the exact allow-list
-    (FEEDWARDEN_PRIVATE_ALLOWLIST, e.g. a self-hosted bridge on 127.0.0.1:1200). Reserved, unspecified and
+    (EOS_PRIVATE_ALLOWLIST, e.g. a self-hosted bridge on 127.0.0.1:1200). Reserved, unspecified and
     multicast addresses stay blocked either way (see ip_allowed)."""
     if allow_private:
         return True

@@ -1,7 +1,7 @@
 services:
   eye-of-sauron:
     build: .
-    image: eye-of-sauron:1.0.0
+    image: eye-of-sauron:1.1.0
     container_name: eye-of-sauron
     restart: unless-stopped
     ports:
@@ -16,8 +16,8 @@ services:
     # Optional (recommended): keep secrets OUT of the data volume as Docker secrets.
     # The credential-encryption key protects social/webhook credentials if a backup leaks.
     # secrets:
-    #   - feedwarden_admin_password
-    #   - feedwarden_secret_key
+    #   - eos_admin_password
+    #   - eos_secret_key
     volumes:
       - eye-of-sauron-data:/data
     # ---- hardening ----
@@ -38,8 +38,8 @@ volumes:
   eye-of-sauron-data:
 
 # secrets:
-#   feedwarden_admin_password:
-#     file: ./secrets/admin_password.txt   # then set FEEDWARDEN_ADMIN_PASSWORD_FILE=/run/secrets/feedwarden_admin_password
-#   feedwarden_secret_key:
-#     file: ./secrets/secret_key.txt       # then set FEEDWARDEN_SECRET_KEY_FILE=/run/secrets/feedwarden_secret_key
-#                                          # create with: docker compose run --rm feedwarden python -m app.cli gen-secret-key
+#   eos_admin_password:
+#     file: ./secrets/admin_password.txt   # then set EOS_ADMIN_PASSWORD_FILE=/run/secrets/eos_admin_password
+#   eos_secret_key:
+#     file: ./secrets/secret_key.txt       # then set EOS_SECRET_KEY_FILE=/run/secrets/eos_secret_key
+#                                          # create with: docker compose run --rm eye-of-sauron python -m app.cli gen-secret-key

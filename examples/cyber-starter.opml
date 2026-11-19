@@ -2,7 +2,7 @@
 <!-- Starter list of security feeds. Import via Settings -> Feeds -> Import OPML.
      Publishers occasionally move feeds; failing ones show a warning icon in the sidebar. -->
 <opml version="2.0">
-  <head><title>Feedwarden cyber starter pack</title></head>
+  <head><title>Eye of Sauron cyber starter pack</title></head>
   <body>
     <outline text="News">
       <outline type="rss" text="Krebs on Security" xmlUrl="https://krebsonsecurity.com/feed/" htmlUrl="https://krebsonsecurity.com/"/>

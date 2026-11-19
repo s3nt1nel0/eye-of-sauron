@@ -21,13 +21,14 @@ from app.api import ai as ai_api
 from app.api import sources as sources_api
 from app.api import accounts as accounts_api
 from app.api import podcasts as podcasts_api
+from app.api import extras as extras_api
 from app.config import get_settings
 from app.db import init_db
 from app.scheduler import scheduler
 from app.security import Principal, ensure_admin_user, require_read
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
-log = logging.getLogger("feedwarden")
+log = logging.getLogger("eos")
 
 CSP = (
     "default-src 'none'; "
@@ -360,15 +361,15 @@ def _smart_feature_upkeep() -> None:
         try:
             _ttp_upkeep()
         except Exception:
-            logging.getLogger("feedwarden").exception("Tactic collections could not be brought up to date")
+            logging.getLogger("eos").exception("Tactic collections could not be brought up to date")
         try:
             stories.ensure_current()
         except Exception:
-            logging.getLogger("feedwarden").exception("Story grouping could not start")
+            logging.getLogger("eos").exception("Story grouping could not start")
         try:
             declutter.ensure_current()
         except Exception:
-            logging.getLogger("feedwarden").exception("Ad clean-up could not start")
+            logging.getLogger("eos").exception("Ad clean-up could not start")
 
     threading.Thread(target=work, name="smart-upkeep", daemon=True).start()
 
@@ -423,12 +424,12 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="Eye of Sauron API",
         version=__version__,
-        description="Authenticate with `Authorization: Bearer fw_...` (create tokens in Settings → API).",
+        description="Authenticate with `Authorization: Bearer eos_...` (create tokens in Settings → API).",
         docs_url=None,
         redoc_url=None,
         openapi_url=None,  # served below, behind authentication (no anonymous API map)
         # No automatic trailing-slash redirects: Starlette builds them from the Host header
-        # (host-header redirect vector when FEEDWARDEN_ALLOWED_HOSTS is "*").
+        # (host-header redirect vector when EOS_ALLOWED_HOSTS is "*").
         redirect_slashes=False,
         lifespan=lifespan,
     )
@@ -444,7 +445,7 @@ def create_app() -> FastAPI:
     app.add_middleware(SecurityHeadersMiddleware)
 
     for router in (accounts_api.router, podcasts_api.router, attack.router, auth.router, content.router, automation.router, insights.router, cves.router, history.router, scrape.router, greader.admin_router,
-                   sources_api.router, library.router, ai_api.router):
+                   sources_api.router, library.router, ai_api.router, extras_api.router):
         app.include_router(router, prefix="/api/v1")
     # Google Reader-compatible API for native RSS apps (FreshRSS-style path and a short alias).
     app.include_router(greader.build_router("/api/greader.php"))

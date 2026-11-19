@@ -139,75 +139,140 @@
   }
 
 
-  // ===================================================================== keep articles to a time frame
-  /** "Keep articles from…": scale Reader feeds back (all, a folder, or the ticked feeds), with a live preview. */
-  function openKeepArticles({ feedIds = [], onDone = () => {} } = {}) {
+  // ===================================================================== keep feeds to a time frame (retention + history)
+  const FEED_TYPES = [["articles", "📰 Article feeds"], ["podcasts", "🎙 Podcasts"], ["videos", "▶ YouTube channels"], ["accounts", "💬 Accounts"]];
+  const feedType = (f) => (f.kind === "podcast" ? "podcasts" : f.kind === "youtube" ? "videos" : f.social_platform ? "accounts" : "articles");
+  const BACKFILL_KINDS = new Set(["rss", "podcast", "youtube", "hfpapers", "telegram"]);
+
+  /**
+   * "Keep feeds…": one place for how much every feed keeps. Pick the kind of feed (article feeds, podcasts, YouTube,
+   * accounts, or all together - preset to the tab you are on), optionally a folder or the ticked feeds, and a time
+   * frame. Applying sets their retention and removes older items (with a count first); optionally it also fetches the
+   * older items back to that date (history back-fill, in the background, with progress here).
+   */
+  async function openKeepFeeds({ feedIds = [], type = null, onDone = () => {} } = {}) {
     const dlg = $("#sourceDialog");
-    const frame = FW.sources.timeFramePicker({ label: "Keep articles from", selected: 365, everythingText: "Everything (no limit)" });
-    const scope = h("select", { "aria-label": "Which feeds" },
-      feedIds.length ? h("option", { value: "feeds", text: `The ${feedIds.length} ticked feed${feedIds.length === 1 ? "" : "s"}` }) : null,
-      h("option", { value: "all", text: "All article feeds" }),
-      state.sidebar.folders.length ? h("optgroup", { label: "A folder" },
-        state.sidebar.folders.map((f) => h("option", { value: `folder:${f.id}`, text: f.name }))) : null);
+    fill(dlg, h("p", { class: "muted", text: "Loading…" }));
+    if (!dlg.open) dlg.showModal();
+    const feeds = await api("GET", "/feeds").catch(() => null);
+    if (!feeds) { fill(dlg, h("p", { class: "error", text: "Could not load your feeds." })); return; }
+    const count = (t) => feeds.filter((f) => t === "all" || feedType(f) === t).length;
+    const kind = h("select", { "aria-label": "Kind of feed" },
+      feedIds.length ? h("option", { value: "ticked", text: `The ${feedIds.length} ticked feed${feedIds.length === 1 ? "" : "s"}` }) : null,
+      FEED_TYPES.filter(([t]) => count(t)).map(([t, label]) => h("option", { value: t, text: `${label} (${count(t)})` })),
+      h("option", { value: "all", text: `All feeds together (${feeds.length})` }));
+    kind.value = feedIds.length ? "ticked" : (type && (type === "all" || count(type)) ? type : "articles");
+    const folder = h("select", { "aria-label": "Folder" }, h("option", { value: "", text: "Any folder" }),
+      state.sidebar.folders.map((f) => h("option", { value: String(f.id), text: f.name })));
+    const frame = FW.sources.timeFramePicker({ label: "Keep items published in", selected: 365, everythingText: "Everything (keep forever)" });
+    const fetchOlder = h("input", { type: "checkbox" });
+    const bf = FW.feeds.backfillControls({ pagesDefault: 30, pagesLabel: "pages per feed" });
+    const onlyMissing = h("input", { type: "checkbox", checked: true });
+    const older = h("div", { class: "keep-older", hidden: true },
+      h("div", { class: "grid-form" },
+        h("label", { text: "Where to look" }), bf.method,
+        h("label", { text: "Effort" }), bf.pages,
+        h("span"), h("label", { class: "toggle", title: "Skips feeds whose items already reach back to the chosen date." }, onlyMissing, " Only feeds missing that history")),
+      h("p", { class: "muted small", text: "Feeds list only their newest items, so older ones are looked up feed by feed: on the site itself first (archive pages, WordPress, Blogger, Ghost, ?page=N), then in copies saved by the Internet Archive; YouTube channels through the YouTube Data API (needs a key). It runs in the background, one feed after another — many feeds can take an hour or more. Scraped pages and X feeds are skipped." }));
+    fetchOlder.addEventListener("change", () => { older.hidden = !fetchOlder.checked; });
     const preview = h("p", { class: "keep-preview", "aria-live": "polite" });
+    const progress = h("div", { class: "muted small", "aria-live": "polite" });
     const err = h("p", { class: "error" });
+
+    const chosen = () => {
+      if (kind.value === "ticked") return feeds.filter((f) => feedIds.includes(f.id));
+      return feeds.filter((f) => (kind.value === "all" || feedType(f) === kind.value) && (!folder.value || f.folder_id === Number(folder.value)));
+    };
+    const scopeText = (list) => {
+      const kinds = FEED_TYPES.filter(([t]) => list.some((f) => feedType(f) === t)).map(([, l]) => l.replace(/^\S+\s/, "").toLowerCase());
+      return `${list.length} feed${list.length === 1 ? "" : "s"}${kinds.length ? ` (${kinds.join(", ")})` : ""}`;
+    };
     const body = (dry) => {
       const days = frame.days();
       if (Number.isNaN(days)) return null;
-      const b = { days, dry_run: dry };
-      if (scope.value === "feeds") Object.assign(b, { scope: "feeds", feed_ids: feedIds });
-      else if (scope.value.startsWith("folder:")) Object.assign(b, { scope: "folder", folder_id: Number(scope.value.slice(7)) });
-      else b.scope = "all";
-      return b;
+      const list = chosen();
+      return list.length ? { scope: "feeds", feed_ids: list.map((f) => f.id), days, dry_run: dry } : { empty: true, days };
     };
     let seq = 0;
     const update = async () => {
+      folder.disabled = kind.value === "ticked";
       const b = body(true);
       err.textContent = "";
       if (!b) { preview.textContent = "Custom time frame: enter a whole number from 1 to 100."; return; }
-      if (!b.days) { preview.textContent = "Nothing is removed; these feeds keep every article from now on."; return; }
+      if (b.empty) { preview.textContent = "No feeds match this choice."; return; }
+      const list = chosen();
+      if (!b.days) { preview.textContent = `Nothing is removed: these ${scopeText(list)} keep every item from now on.`; return; }
       const mine = ++seq;
       preview.textContent = "Counting…";
       const r = await api("POST", "/feeds/keep", b).catch((e) => ({ error: e.message }));
       if (mine !== seq) return;
       if (r.error) { preview.textContent = ""; err.textContent = r.error; return; }
-      const left = r.skipped ? ` ${r.skipped} podcast, video or account feed${r.skipped === 1 ? " is" : "s are"} left untouched.` : "";
-      preview.textContent = (r.removed
-        ? `Removes ${r.removed.toLocaleString()} article${r.removed === 1 ? "" : "s"} published before ${FW.fmtDate(Math.floor(Date.now() / 1000) - b.days * 86400)} (the oldest from ${FW.fmtDate(r.oldest)}) in ${r.feeds} article feed${r.feeds === 1 ? "" : "s"}.`
-        : `Nothing older than that in ${r.feeds} article feed${r.feeds === 1 ? "" : "s"}; they are kept trimmed from now on.`) + left;
+      preview.textContent = r.removed
+        ? `Removes ${r.removed.toLocaleString()} item${r.removed === 1 ? "" : "s"} published before ${FW.fmtDate(Math.floor(Date.now() / 1000) - b.days * 86400)} (the oldest from ${FW.fmtDate(r.oldest)}) in ${scopeText(list)}, and keeps them trimmed from now on.`
+        : `Nothing older than that in these ${scopeText(list)}; they are kept trimmed from now on.`;
+    };
+    const watch = async () => {
+      const st = await api("GET", "/history/status").catch(() => null);
+      if (!st || !dlg.open) return;
+      const j = st.backfill;
+      if (j.state === "running") {
+        progress.textContent = `⏳ Fetching older items: feed ${j.current || 0} of ${j.total || "?"}${j.feed_title ? ` — ${j.feed_title}` : ""}; ${(j.new_total || 0).toLocaleString()} so far.`;
+        setTimeout(watch, 2000);
+      } else if (j.state && j.state !== "idle") {
+        progress.textContent = `${j.state === "cancelled" ? "Stopped" : j.state === "error" ? `✗ ${j.error}` : "✓ Finished"}: ${(j.new_total || 0).toLocaleString()} older item(s) from ${j.done || 0} of ${j.total || 0} feed(s).`;
+        FW.loadSidebar(); FW.loadArticles(); onDone(true);
+      }
     };
     frame.select.addEventListener("change", update);
     frame.el.addEventListener("input", () => { clearTimeout(frame.t); frame.t = setTimeout(update, 400); });
-    scope.addEventListener("change", update);
-    fill(dlg, h("form", { class: "form source-wizard", onsubmit: async (e) => {
+    kind.addEventListener("change", update);
+    folder.addEventListener("change", update);
+
+    fill(dlg, h("form", { class: "form source-wizard keep-feeds", onsubmit: async (e) => {
       e.preventDefault();
       const b = body(false);
       if (!b) { err.textContent = "Custom time frame: enter a whole number from 1 to 100."; return; }
-      if (b.days && !window.confirm(`${preview.textContent}\n\nStarred and hand-filed articles are kept. Removed articles cannot be brought back. Continue?`)) return;
+      if (b.empty) { err.textContent = "No feeds match this choice."; return; }
+      if (b.days && !window.confirm(`${preview.textContent}\n\nStarred, hand-filed and video-group items are kept. Removed items cannot be brought back. Continue?`)) return;
       const r = await guarded(() => api("POST", "/feeds/keep", b));
       if (!r) return;
-      dlg.close();
-      toast(b.days ? `Removed ${r.removed.toLocaleString()} older article${r.removed === 1 ? "" : "s"} — keeping the ${frame.describe()} from now on`
-        : `${r.feeds} feed${r.feeds === 1 ? "" : "s"} now keep every article`);
+      toast(b.days ? `${r.feeds} feed${r.feeds === 1 ? "" : "s"} now keep the ${frame.describe()}${r.removed ? ` — removed ${r.removed.toLocaleString()} older item${r.removed === 1 ? "" : "s"}` : ""}`
+        : `${r.feeds} feed${r.feeds === 1 ? "" : "s"} now keep every item`);
       FW.loadSidebar(); FW.loadArticles();
+      if (fetchOlder.checked) {
+        const ids = chosen().filter((f) => BACKFILL_KINDS.has(f.kind || "rss")).map((f) => f.id);
+        const req = { ...bf.body(), keep_forever: false, only_missing: onlyMissing.checked, feed_ids: ids };
+        if (b.days) req.since_days = b.days; else delete req.since_days;
+        const s = ids.length ? await guarded(() => api("POST", "/history/backfill-all", req)) : { started: false };
+        if (s && s.started) { progress.textContent = `⏳ Fetching older items for ${s.feeds} feed(s)…`; setTimeout(watch, 1200); onDone(true); return; }
+        if (s) progress.textContent = "Nothing to fetch: the chosen feeds already reach back that far (or cannot fetch history).";
+        onDone(true);
+        return;
+      }
+      dlg.close();
       onDone();
     } },
-      h("div", { class: "sd-head" }, h("h3", { text: "🗓️ Keep articles from…" }),
+      h("div", { class: "sd-head" }, h("h3", { text: "🗓️ Keep feeds…" }),
         h("button", { type: "button", class: "icon-btn", "aria-label": "Close", text: "✕", onclick: () => dlg.close() })),
+      h("p", { class: "muted small", text: "How far back your feeds keep items — article feeds, podcasts, YouTube channels and accounts, one kind at a time or all together." }),
       h("div", { class: "grid-form" },
-        h("label", { text: "Feeds" }), scope,
-        h("label", { text: "Keep articles published in" }), frame.el),
+        h("label", { text: "Feeds" }), kind,
+        h("label", { text: "In folder" }), folder,
+        h("label", { text: "Keep items published in" }), frame.el,
+        h("span"), h("label", { class: "toggle" }, fetchOlder, " Also fetch older items back to this date")),
+      older,
       preview,
       h("ul", { class: "small src-notes" },
-        h("li", { text: "Older articles are removed now, and new ones drop off as they pass the limit, so the feeds stay this size." }),
-        h("li", { text: "Starred articles and articles you filed into a collection by hand are always kept." }),
-        h("li", { text: "Podcast shows, YouTube channels and accounts among the ticked feeds are never touched here. YouTube channels have their own 🗓️ Keep… in the Videos tab." })),
+        h("li", { text: "Older items are removed now, and new ones drop off as they pass the limit, so the feeds stay this size. “Everything” keeps every item from now on." }),
+        h("li", { text: "Starred items, items you filed into a collection by hand and videos in your video groups are always kept." })),
+      progress,
       err,
       h("div", { class: "form-actions" },
-        h("button", { type: "button", class: "btn", text: "Cancel", onclick: () => dlg.close() }),
+        h("button", { type: "button", class: "btn", text: "Stop fetching", title: "Stop a running history back-fill", onclick: () => api("POST", "/history/cancel", {}) }),
+        h("button", { type: "button", class: "btn", text: "Close", onclick: () => dlg.close() }),
         h("button", { type: "submit", class: "btn primary", text: "Apply" }))));
-    if (!dlg.open) dlg.showModal();
     update();
+    api("GET", "/history/status").then((st) => { if (st.backfill.state === "running") watch(); }).catch(() => {});
   }
 
   // ===================================================================== feed table with multi-select
@@ -284,8 +349,8 @@
         h("button", { type: "button", class: "btn small", text: "⟳ Fetch now", onclick: () => bulk("fetch_now") }),
         h("button", { type: "button", class: "btn small", text: "Reset errors", title: "Clear the error counter and retry at once", onclick: () => bulk("reset_errors") }),
         h("button", { type: "button", class: "btn small", text: "🩺 Check", title: "Troubleshoot the selected feeds", onclick: () => doctor.start(ids()) }),
-        h("button", { type: "button", class: "btn small", text: "🗓️ Keep…", title: "Keep only articles from a time frame in the selected feeds",
-          onclick: () => openKeepArticles({ feedIds: ids(), onDone: () => onChanged() }) }),
+        h("button", { type: "button", class: "btn small", text: "🗓️ Keep…", title: "How far back the selected feeds keep items (and fetch older ones)",
+          onclick: () => openKeepFeeds({ feedIds: ids(), onDone: (soft) => onChanged(soft) }) }),
         h("button", { type: "button", class: "btn small danger", text: "Delete", onclick: () => bulk("delete", {}, `Unsubscribe from ${selected.size} feed(s) and delete their articles? This cannot be undone.`) })),
       h("button", { type: "button", class: "btn small", text: "Clear", onclick: () => { selected.clear(); render(); } }));
 
@@ -365,8 +430,8 @@
     return h("div", { class: "feed-manager" },
       typeTabs,
       h("div", { class: "row-form feed-filters" }, search, status, folderFilter,
-        h("button", { type: "button", class: "btn", text: "🗓️ Keep articles from…", title: "Scale your feeds back: remove articles older than a time frame (all feeds, a folder, or the ticked ones)",
-          onclick: () => openKeepArticles({ feedIds: ids(), onDone: () => onChanged() }) }),
+        h("button", { type: "button", class: "btn", text: "🗓️ Keep feeds…", title: "How far back feeds keep items — the kind of feed on this tab, a folder or the ticked ones — and fetch older items",
+          onclick: () => openKeepFeeds({ feedIds: ids(), type: filters.type, onDone: (soft) => onChanged(soft) }) }),
         failing.length ? h("button", { type: "button", class: "btn", text: `🩺 Troubleshoot failing feeds (${failing.length})`, onclick: () => doctor.start(null) }) : null),
       h("p", { class: "muted small", text: "Tick feeds (Shift+click for a range, or the header box for all shown) to move them to a folder, change the refresh interval, enable, disable, fetch, check or delete them together." }),
       bar,
@@ -377,5 +442,5 @@
         tbody)));
   }
 
-  FW.feedtools = { manager, reportCard, openKeepArticles };
+  FW.feedtools = { manager, reportCard, openKeepFeeds, openKeepArticles: openKeepFeeds };
 })();

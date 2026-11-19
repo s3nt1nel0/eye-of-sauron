@@ -23,19 +23,29 @@ _ALLOW_ENTRY = re.compile(r"^(\[[0-9a-fA-F:.]+\]|[A-Za-z0-9.-]{1,253}):(\d{1,5})
 
 
 def _allowlist(raw: str) -> frozenset:
-    """FEEDWARDEN_PRIVATE_ALLOWLIST: comma-separated host:port pairs (exact match, no wildcards)."""
+    """EOS_PRIVATE_ALLOWLIST: comma-separated host:port pairs (exact match, no wildcards)."""
     out = set()
     for item in (x.strip() for x in raw.split(",")):
         if not item:
             continue
         m = _ALLOW_ENTRY.match(item)
         if not m or not 0 < int(m.group(2)) < 65536:
-            raise ConfigError(f"FEEDWARDEN_PRIVATE_ALLOWLIST: {item!r} is not host:port")
+            raise ConfigError(f"EOS_PRIVATE_ALLOWLIST: {item!r} is not host:port")
         out.add(f"{m.group(1).strip('[]').lower()}:{int(m.group(2))}")
     return frozenset(out)
 
-def _env(name: str, default: str | None = None) -> str | None:
+LEGACY_PREFIX = "FEEDWARDEN_"  # the project's working name before the EOS rename; still read so old deployments keep working
+
+
+def _raw(name: str) -> str | None:
     value = os.environ.get(name)
+    if (value is None or value.strip() == "") and name.startswith("EOS_"):
+        value = os.environ.get(LEGACY_PREFIX + name[4:])
+    return value
+
+
+def _env(name: str, default: str | None = None) -> str | None:
+    value = _raw(name)
     if value is None or value.strip() == "":
         return default
     return value.strip()
@@ -79,18 +89,18 @@ def _secret(name: str) -> str | None:
 
 def _source_url() -> str | None:
     """Where users of this instance can get its source code (AGPL-3.0 section 13)."""
-    url = _env("FEEDWARDEN_SOURCE_URL")
+    url = _env("EOS_SOURCE_URL")
     if url is None:
         return None
     if not re.fullmatch(r"https?://[^\s<>\"']{3,500}", url):
-        raise ConfigError("FEEDWARDEN_SOURCE_URL must be an http(s) URL")
+        raise ConfigError("EOS_SOURCE_URL must be an http(s) URL")
     return url
 
 
 def _nvd_key() -> str | None:
-    key = _secret("FEEDWARDEN_NVD_API_KEY")
+    key = _secret("EOS_NVD_API_KEY")
     if key is not None and not re.fullmatch(r"[A-Za-z0-9-]{20,64}", key):
-        raise ConfigError("FEEDWARDEN_NVD_API_KEY looks invalid (expected a UUID-style key)")
+        raise ConfigError("EOS_NVD_API_KEY looks invalid (expected a UUID-style key)")
     return key
 
 
@@ -120,25 +130,25 @@ class Settings:
 
     @property
     def db_path(self) -> Path:
-        return self.data_dir / "feedwarden.db"
+        return self.data_dir / "eos.db"
 
 
 def load_settings() -> Settings:
-    cookie_secure = (_env("FEEDWARDEN_COOKIE_SECURE", "auto") or "auto").lower()
+    cookie_secure = (_env("EOS_COOKIE_SECURE", "auto") or "auto").lower()
     if cookie_secure not in {"auto", "true", "false"}:
-        raise ConfigError("FEEDWARDEN_COOKIE_SECURE must be auto, true or false")
+        raise ConfigError("EOS_COOKIE_SECURE must be auto, true or false")
 
-    log_level = (_env("FEEDWARDEN_LOG_LEVEL", "INFO") or "INFO").upper()
+    log_level = (_env("EOS_LOG_LEVEL", "INFO") or "INFO").upper()
     if log_level not in {"DEBUG", "INFO", "WARNING", "ERROR"}:
-        raise ConfigError("FEEDWARDEN_LOG_LEVEL must be DEBUG, INFO, WARNING or ERROR")
+        raise ConfigError("EOS_LOG_LEVEL must be DEBUG, INFO, WARNING or ERROR")
 
-    hosts_raw = _env("FEEDWARDEN_ALLOWED_HOSTS", "*") or "*"
+    hosts_raw = _env("EOS_ALLOWED_HOSTS", "*") or "*"
     allowed_hosts = [h.strip() for h in hosts_raw.split(",") if h.strip()]
 
-    admin_user = _env("FEEDWARDEN_ADMIN_USER", "admin") or "admin"
+    admin_user = _env("EOS_ADMIN_USER", "admin") or "admin"
 
     secret_keys: list[str] | None = None
-    raw_keys = _secret("FEEDWARDEN_SECRET_KEY")
+    raw_keys = _secret("EOS_SECRET_KEY")
     if raw_keys:
         secret_keys = [k.strip() for k in raw_keys.split(",") if k.strip()]
         try:
@@ -148,29 +158,29 @@ def load_settings() -> Settings:
                 Fernet(key.encode("ascii"))
         except (ValueError, TypeError, UnicodeError) as exc:
             raise ConfigError(
-                "FEEDWARDEN_SECRET_KEY must be comma-separated Fernet keys "
+                "EOS_SECRET_KEY must be comma-separated Fernet keys "
                 "(generate one with: python -m app.cli gen-secret-key)"
             ) from exc
 
     return Settings(
-        data_dir=Path(_env("FEEDWARDEN_DATA_DIR", "/data") or "/data"),
+        data_dir=Path(_env("EOS_DATA_DIR", "/data") or "/data"),
         # Default deny: feeds/webhooks may not target internal networks (SSRF).
-        allow_private_feeds=_bool("FEEDWARDEN_ALLOW_PRIVATE_FEEDS", False),
-        allow_private_webhooks=_bool("FEEDWARDEN_ALLOW_PRIVATE_WEBHOOKS", False),
-        private_allowlist=_allowlist(_env("FEEDWARDEN_PRIVATE_ALLOWLIST", "") or ""),
+        allow_private_feeds=_bool("EOS_ALLOW_PRIVATE_FEEDS", False),
+        allow_private_webhooks=_bool("EOS_ALLOW_PRIVATE_WEBHOOKS", False),
+        private_allowlist=_allowlist(_env("EOS_PRIVATE_ALLOWLIST", "") or ""),
         cookie_secure=cookie_secure,
-        session_idle_hours=_int("FEEDWARDEN_SESSION_IDLE_HOURS", 24, 1, 24 * 90),
-        session_max_days=_int("FEEDWARDEN_SESSION_MAX_DAYS", 14, 1, 365),
-        fetch_timeout=_int("FEEDWARDEN_FETCH_TIMEOUT", 20, 3, 120),
-        max_feed_bytes=_int("FEEDWARDEN_MAX_FEED_BYTES", 10 * 1024 * 1024, 64 * 1024, 100 * 1024 * 1024),
-        fetch_concurrency=_int("FEEDWARDEN_FETCH_CONCURRENCY", 6, 1, 32),
-        max_body_bytes=_int("FEEDWARDEN_MAX_BODY_BYTES", 1024 * 1024, 16 * 1024, 20 * 1024 * 1024),
-        max_opml_bytes=_int("FEEDWARDEN_MAX_OPML_BYTES", 5 * 1024 * 1024, 64 * 1024, 50 * 1024 * 1024),
+        session_idle_hours=_int("EOS_SESSION_IDLE_HOURS", 24, 1, 24 * 90),
+        session_max_days=_int("EOS_SESSION_MAX_DAYS", 14, 1, 365),
+        fetch_timeout=_int("EOS_FETCH_TIMEOUT", 20, 3, 120),
+        max_feed_bytes=_int("EOS_MAX_FEED_BYTES", 10 * 1024 * 1024, 64 * 1024, 100 * 1024 * 1024),
+        fetch_concurrency=_int("EOS_FETCH_CONCURRENCY", 6, 1, 32),
+        max_body_bytes=_int("EOS_MAX_BODY_BYTES", 1024 * 1024, 16 * 1024, 20 * 1024 * 1024),
+        max_opml_bytes=_int("EOS_MAX_OPML_BYTES", 5 * 1024 * 1024, 64 * 1024, 50 * 1024 * 1024),
         allowed_hosts=allowed_hosts or ["*"],
         admin_user=admin_user,
-        admin_password=_secret("FEEDWARDEN_ADMIN_PASSWORD"),
+        admin_password=_secret("EOS_ADMIN_PASSWORD"),
         log_level=log_level,
-        disable_scheduler=_bool("FEEDWARDEN_DISABLE_SCHEDULER", False),
+        disable_scheduler=_bool("EOS_DISABLE_SCHEDULER", False),
         secret_keys=secret_keys,
         nvd_api_key=_nvd_key(),
         source_url=_source_url(),
