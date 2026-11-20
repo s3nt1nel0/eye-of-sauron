@@ -328,3 +328,14 @@ History imports use the same storage path but **never** fire events: no webhooks
 | Site icons | `app/media.py` (`refresh_icons`, `IconWorker`), table `feed_icons`, `GET /feeds/{id}/icon` | Started from the scheduler loop every 6 hours. |
 | Reading time | `read_minutes` in `/articles` and `/articles/{id}` | `ceil(len(text_content) / 1200)`. |
 | Read later | `app/readlater.py`, `app/api/extras.py` (`/readlater`, `/articles/{id}/save`), `PUT /integrations/readlater` | Obsidian / Markdown are built in the browser. |
+
+
+## 1.2.0 additions
+
+| Module | Purpose |
+|---|---|
+| `app/github.py` | 📦 Repos: GitHub sources (repo / owner / topic / stars / gist / doc) through api.github.com and release Atom feeds; strict name validation, plain-text storage, topic filing, per-budget rate limits, background `repo_sync` |
+| `app/api/repos.py` | `/repos`, shelves, releases, meta, sources (single and batch), status, folders, token |
+| `static/repos.js` | The Repos tab |
+
+Outbound: api.github.com and github.com only, through the SSRF guard; every URL is built from validated names. Tables: `repo_sources`, `repos`, `repo_source_links`, `repo_topics`, `repo_releases`, `repo_folders`, `repo_folder_items`.

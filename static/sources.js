@@ -881,6 +881,7 @@
       if (!["grid", "list"].includes(f.layout)) f.layout = "grid";
       f.topic_match = "any";  // the any/all switch was removed: several topics = videos from any of them
       if (f.sort === "topic") f.sort = "added";  // Sort: Topic (shelves) was removed 2026-11-15
+      f.dates = FW.dateRange.clean(f.dates);       // 📅 custom from / to range (null = any date)
       return f;
     })(),
     items: [], total: 0, meta: null, loading: false,
@@ -1159,6 +1160,8 @@
             },
             onChange: (ids, match) => { f.topic_ids = ids; f.topic_match = match; this.save(); this.syncChips(); this.reload(); } }),
           select("length", "Length", [["any", "Any length"], ["short", "Shorts (≤3 min)"], ["medium", "3–20 min"], ["long", "Over 20 min"]]),
+          FW.dateRange.button({ value: f.dates, title: "Show only videos published between two dates",
+            onChange: (r) => { f.dates = r; this.save(); this.renderShell(); this.reload(); } }),
           (() => { const s = select("state", "Watched", [["all", "All"], ["unwatched", "Unwatched"], ["watched", "Watched"], ["starred", "★ Starred"]]);
             if (f.view === "starred" || f.view === "watched") { s.value = f.view; s.disabled = true; s.title = `The ${f.view === "starred" ? "★ Starred" : "✓ Watched"} tab shows these videos`; } return s; })(),
           sortSel, layoutSel,
@@ -1237,6 +1240,7 @@
       if (f.channels.length) p.set("channels", this.channelKeys().join(","));
       if (f.topic_ids.length) { p.set("topic_ids", this.topicIds().join(",")); p.set("topic_match", f.topic_ids.includes("fav") ? "any" : f.topic_match); }
       if (f.q) p.set("q", f.q);
+      FW.dateRange.addParams(p, f.dates);
       if (this.mention && this.mention.article) p.set("related_to", String(this.mention.article));
       else if (this.mention) { p.set("entity_id", String(this.mention.id)); p.set("days", String(this.mention.days || 0)); }
       return `/library/videos?${p}`;
@@ -1248,6 +1252,7 @@
       const p = new URLSearchParams({ length: f.length, state: this.stateNow() });
       if (f.channels.length) p.set("channels", this.channelKeys().join(","));
       if (f.q) p.set("q", f.q);
+      FW.dateRange.addParams(p, f.dates);
       if (this.mention && this.mention.article) p.set("related_to", String(this.mention.article));
       else if (this.mention) { p.set("entity_id", String(this.mention.id)); p.set("days", String(this.mention.days || 0)); }
       const res = await api("GET", `/library/topic-counts?${p}`).catch(() => null);
@@ -1267,6 +1272,8 @@
       if (this.filters.view === "groups") { await this.renderGroups(); return; }
       this.refreshCounts();
       this.items = [];
+      const grid0 = $("#libGrid");
+      if (grid0 && !grid0.children.length) fill(grid0, Array.from({ length: 8 }, () => h("div", { class: "skeleton-card", "aria-hidden": "true" })));  // first load: placeholders, not a blank page
       if (this.shelfMode()) {
         const p = new URLSearchParams(this.query(0).split("?")[1]);
         ["limit", "offset", "topic_ids", "topic_match"].forEach((k) => p.delete(k));
@@ -1320,7 +1327,7 @@
       const f = this.filters;
       return [f.channels.length ? `${f.channels.length} channel${f.channels.length === 1 ? "" : "s"}` : null,
         f.topic_ids.length ? `${f.topic_ids.length} topic${f.topic_ids.length === 1 ? "" : "s"}` : null,
-        f.length !== "any" ? "length" : null, this.stateNow() !== "all" ? (this.stateNow() === "starred" ? "starred only" : this.stateNow()) : null].filter(Boolean);
+        f.length !== "any" ? "length" : null, f.dates ? `dates: ${FW.dateRange.label(f.dates)}` : null, this.stateNow() !== "all" ? (this.stateNow() === "starred" ? "starred only" : this.stateNow()) : null].filter(Boolean);
     },
 
     noMatches() {
@@ -1330,7 +1337,7 @@
       return h("p", { class: "muted lib-pad" }, `Nothing matches with these filters on (${active.join(", ")}). `,
         h("button", { type: "button", class: "btn small", text: "Clear filters and search all videos", onclick: () => {
           const f = this.filters;
-          f.channels = []; f.topic_ids = []; f.length = "any"; f.state = "all";
+          f.channels = []; f.topic_ids = []; f.length = "any"; f.state = "all"; f.dates = null;
           if (f.view === "starred" || f.view === "watched") f.view = "all";
           this.save(); this.renderShell(); this.reload();
         } }));

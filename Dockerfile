@@ -18,7 +18,10 @@ LABEL org.opencontainers.image.title="Eye of Sauron" \
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH="/opt/venv/bin:$PATH" \
-    EOS_DATA_DIR=/data
+    EOS_DATA_DIR=/data \
+    SQLITE_TMPDIR=/data/tmp
+# SQLITE_TMPDIR: big sorts (video shelves, retention) spill to the data volume, not the 16 MB /tmp tmpfs.
+# The app creates /data/tmp (0700) at start; SQLite falls back to /tmp if it is missing.
 
 # Unprivileged runtime user; application code is owned by root and read-only to it.
 RUN groupadd --system --gid 10001 eos \

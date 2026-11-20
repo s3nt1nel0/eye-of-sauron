@@ -27,6 +27,7 @@
     if (f.topic_id !== "" && f.topic_id != null && !(f.topic_ids || []).length) f.topic_ids = [String(f.topic_id)];  // saved by a topic chip
     f.topic_id = "";
     f.topic_match = "any";
+    f.dates = FW.dateRange.clean(f.dates);  // 📅 custom from / to range
     return f;
   }
 
@@ -114,6 +115,8 @@
             onChange: (ids) => { f.topic_ids = ids; f.topic_match = "any"; f.topic_id = ""; if (ids.length) f.view = "grid"; this.save(); this.reload(); } }) : null,
           select("state", "Show", [["all", "All posts"], ["unread", "Unread"], ["starred", "★ Starred"]]),
           select("sort", "Sort", [["newest", "📅 Date — newest"], ["oldest", "📅 Date — oldest"]]),
+          FW.dateRange.button({ value: f.dates, title: "Show only posts published between two dates",
+            onChange: (r) => { f.dates = r; this.save(); this.renderShell(); this.reload(); } }),
           h("span", { class: "lib-view", role: "group", "aria-label": "View" }, viewBtn("topics", "▤ By topic"), viewBtn("grid", "▦ All posts"),
             viewBtn("read", "☰ Read")),
           FW.tagsToggle("accounts", () => { this.renderShell(); this.reload(); })),
@@ -134,6 +137,7 @@
       if (f.feed_ids.length) p.set("feed_ids", f.feed_ids.join(","));
       if (f.platforms.length) p.set("platforms", f.platforms.join(","));
       if (f.q) p.set("q", f.q);
+      FW.dateRange.addParams(p, f.dates);
       p.set("state", f.state);
       for (const [k, v] of Object.entries(extra)) p.set(k, v);
       return p;
@@ -159,7 +163,9 @@
         return;
       }
       grid.className = f.view === "read" ? "acc-read" : "lib-grid";
-      fill(grid);
+      // placeholders of the same size while the posts load (no empty flash, no jump)
+      fill(grid, Array.from({ length: 6 }, () => h("div", { class: "skeleton-card", "aria-hidden": "true" })));
+      grid.dataset.skeleton = "1";
       this.loadingMore = false;
       await this.loadMore();
       this.watchScroll();
@@ -187,9 +193,12 @@
       if ((f.topic_ids || []).length) { extra.topic_ids = f.topic_ids.join(","); extra.topic_match = "any"; }
       const data = await api("GET", `/accounts/posts?${this.params(extra)}`).catch((e) => { toast(e.message, true); return null; });
       this.loadingMore = false;
+      const g0 = $("#accGrid");
+      if (!data && g0 && g0.dataset.skeleton) { fill(g0); delete g0.dataset.skeleton; }
       if (!data) return;
       const grid = $("#accGrid");
       if (!grid || (f.view === "read") !== reading) return;  // switched view meanwhile
+      if (grid.dataset.skeleton) { fill(grid); delete grid.dataset.skeleton; }  // placeholders out, posts in
       grid.append(...data.items.map((p) => (reading ? this.readCard(p) : this.card(p))));
       this.offset += data.items.length;
       $("#accCount").textContent = `${data.total} post${data.total === 1 ? "" : "s"}`;
@@ -400,9 +409,8 @@
       const box = h("textarea", { rows: 6, maxlength: 20000, "aria-label": "Links, one per line",
         placeholder: "Paste links, one per line — profiles, subreddits or single posts:\nhttps://www.reddit.com/r/homelab\nhttps://x.com/vxunderground\nhttps://bsky.app/profile/troyhunt.com\n@GossiTheDog@cyberplace.social\nhttps://t.me/somechannel\nhttps://www.linkedin.com/posts/…   (a single post)" });
       const list = h("ul", { class: "acc-detected small" });
-      const keep = h("select", { "aria-label": "Keep (retention)" }, KEEP_CHOICES.map(([v, l]) => h("option", { value: v, text: l })));
       const g = Number(FW.state.settings.retention_days ?? 90);
-      keep.options[0].textContent = `Default (global setting: ${keepText(g)})`;
+      const keep = FW.keepPicker({ choices: KEEP_CHOICES.map(([v, l]) => [v, v === "" ? `Default (global setting: ${keepText(g)})` : l]) });
       const platform = h("select", { "aria-label": "Platform for bridge feed links" }, h("option", { value: "", text: "Detect automatically" }),
         BRIDGE_PLATFORMS.map(([v, l]) => h("option", { value: v, text: l })));
       const err = h("p", { class: "error" });
@@ -436,14 +444,16 @@
           const s = seen.get(line);
           return { line, kind: s && s.info ? s.info.kind : null, text: s && s.text ? s.text.value.trim() : "" };
         });
-        this.addBatch(items, { platform: platform.value || null, retention_days: keep.value === "" ? null : Number(keep.value) });
+        const days = keep.days();
+        if (Number.isNaN(days)) { err.textContent = "Custom keep time frame must be 1 day to 100 years."; return; }
+        this.addBatch(items, { platform: platform.value || null, retention_days: days });
       };
       fill(dlg, h("form", { class: "form source-wizard", onsubmit: go },
         h("div", { class: "sd-head" }, h("h3", { text: "＋ Add accounts, subreddits or posts" }),
           h("button", { type: "button", class: "icon-btn", "aria-label": "Close", text: "✕", onclick: () => dlg.close() })),
         box, list,
         h("div", { class: "grid-form" },
-          h("label", { text: "Keep (retention)" }), keep,
+          h("label", { text: "Keep (retention)" }), keep.el,
           h("label", { text: "Bridge feed links are" }), platform),
         h("ul", { class: "small src-notes" },
           h("li", { text: "Subreddits (reddit.com/r/…) bring in every new post as it's submitted, checked every 30 minutes." }),

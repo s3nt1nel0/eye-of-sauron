@@ -177,6 +177,11 @@ def refile_tags(tag_ids: list[int]) -> int:
                     f"FROM articles a JOIN feeds f ON f.id = a.feed_id WHERE a.id IN ({placeholders(len(chunk))})", chunk).fetchall()
                 facts = cve_facts(db, articles) if needs_cves else None
                 drop = [a["id"] for a in articles if not any(_matches(r, a, facts) for r in rules)]
+                if drop:  # publications filed here (advisories, reports, guidance) stay, whatever the rules say
+                    from app import reports
+
+                    kept = reports.filed_ids(db, tag_id, drop)
+                    drop = [i for i in drop if i not in kept]
                 if drop:
                     db.execute(f"DELETE FROM article_tags WHERE tag_id = ? AND source = 'rule' AND article_id IN ({placeholders(len(drop))})",
                                [tag_id, *drop])

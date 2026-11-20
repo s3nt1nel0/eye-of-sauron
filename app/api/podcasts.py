@@ -14,7 +14,7 @@ import threading
 
 from app import app_settings, podcast_youtube, podcasts, related, sources
 from app.api import content
-from app.api.common import StrictModel, TopicIds, not_found, topic_clause
+from app.api.common import date_clause, StrictModel, TopicIds, not_found, topic_clause
 from app.db import get_db, placeholders
 from app.security import Principal, audit, rate_limit, require_read, require_write
 
@@ -110,6 +110,7 @@ def episodes(feed_ids: FeedIdList | None = None, q: Annotated[str, StringConstra
              limit: int = Query(40, ge=1, le=200), offset: int = Query(0, ge=0, le=100_000),
              entity_id: int | None = Query(None, ge=1, le=2**31 - 1), days: int = 0,  # episodes that mention a watchlist entity
              related_to: int | None = Query(None, ge=1, le=2**31 - 1),               # episodes related to this article
+             since: int | None = Query(None, ge=0, le=2**40), until: int | None = Query(None, ge=0, le=2**40),  # custom date range (unix seconds)
              _: Principal = Depends(require_read)) -> dict:
     if days not in (0, 7, 30, 90, 365):
         raise HTTPException(status_code=422, detail="days must be 0, 7, 30, 90 or 365")
@@ -128,7 +129,8 @@ def episodes(feed_ids: FeedIdList | None = None, q: Annotated[str, StringConstra
     base = (f"FROM articles a JOIN feeds f ON f.id = a.feed_id JOIN episodes e ON e.article_id = a.id "  # nosec B608 - fixed fragments
             f"WHERE {' AND '.join(where)}{STATES[state]}")
     extra, extra_params = topic_clause(topic_ids, "any")
-    base, params = base + extra, params + extra_params
+    dates, date_params = date_clause(since, until)
+    base, params = base + extra + dates, params + extra_params + date_params
     with get_db() as db:
         ment, ment_params = related.media_filter(db, entity_id, days, related_to, "podcasts")
         base, params = base + ment, params + ment_params

@@ -66,3 +66,18 @@ def topic_clause(ids_csv: str | None, match: str) -> tuple[str, list[int]]:
     if 0 in ids:
         parts.append(none)
     return " AND (" + " OR ".join(parts) + ")", real
+
+
+def date_clause(since: int | None, until: int | None, column: str = "a.sort_ts") -> tuple[str, list[int]]:
+    """" AND <column> >= since AND <column> < until" for the custom date range (from / to) filters. ``column`` is
+    always a fixed name chosen in code, never user input; the timestamps are bound."""
+    sql, params = "", []
+    if since is not None:
+        sql += f" AND {column} >= ?"
+        params.append(since)
+    if until is not None:
+        sql += f" AND {column} < ?"
+        params.append(until)
+    if since is not None and until is not None and until <= since:
+        raise HTTPException(status_code=422, detail="The end date must be after the start date")
+    return sql, params

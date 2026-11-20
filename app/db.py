@@ -7,6 +7,8 @@
 
 from __future__ import annotations
 
+import logging
+import os
 import sqlite3
 import time
 from contextlib import contextmanager
@@ -609,7 +611,9 @@ CREATE TABLE IF NOT EXISTS threat_actor_meta (
     key       TEXT NOT NULL UNIQUE,
     country   TEXT NOT NULL DEFAULT '',
     kind      TEXT NOT NULL DEFAULT '',
-    sources   TEXT NOT NULL DEFAULT '[]'
+    sources   TEXT NOT NULL DEFAULT '[]',
+    names     TEXT NOT NULL DEFAULT '[]',   -- every name the sources give it (display / search; not all are matched)
+    attack_id TEXT                          -- its MITRE ATT&CK group ID (G0065), when it is one
 );
 -- A tactic collection you took an article out of by hand: the technique filing never puts it back.
 CREATE TABLE IF NOT EXISTS ttp_tag_removed (
@@ -636,6 +640,94 @@ CREATE TABLE IF NOT EXISTS feed_icons (
     data       BLOB,                 -- NULL = looked, found nothing usable (retried after a month)
     fetched_at INTEGER NOT NULL
 );
+
+-- 📦 Repos tab: GitHub sources you follow (an owner's repos, one repo, a GitHub topic, a user's stars) and the repos they list
+CREATE TABLE IF NOT EXISTS repo_sources (
+    id          INTEGER PRIMARY KEY,
+    kind        TEXT NOT NULL CHECK (kind IN ('owner', 'repo', 'topic', 'stars', 'gist', 'doc')),
+    value       TEXT NOT NULL COLLATE NOCASE,  -- login, owner/name, topic, login, gist id or a normalised doc / website URL
+    title       TEXT NOT NULL DEFAULT '',
+    avatar_url  TEXT,
+    created_at  INTEGER NOT NULL,
+    last_fetch  INTEGER,
+    next_fetch  INTEGER,
+    last_error  TEXT,
+    repo_count  INTEGER NOT NULL DEFAULT 0,
+    etag        TEXT,                          -- GitHub's ETag of the last answer (conditional refreshes)
+    origin      TEXT,                          -- the line you pasted (shown as text)
+    note        TEXT,                          -- how a link was mapped, e.g. "the website's source repo"
+    alt_value   TEXT,                          -- a second repo to try when a website link's first guess doesn't exist
+    folder_id   INTEGER,                       -- 📁 file what this source brings in on its first fetch (then cleared)
+    UNIQUE (kind, value)
+);
+CREATE TABLE IF NOT EXISTS repos (
+    id           INTEGER PRIMARY KEY,
+    gh_id        INTEGER UNIQUE,
+    full_name    TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    owner        TEXT NOT NULL COLLATE NOCASE,
+    name         TEXT NOT NULL,
+    description  TEXT NOT NULL DEFAULT '',
+    language     TEXT,
+    stars        INTEGER NOT NULL DEFAULT 0,
+    forks        INTEGER NOT NULL DEFAULT 0,
+    open_issues  INTEGER NOT NULL DEFAULT 0,
+    gh_topics    TEXT NOT NULL DEFAULT '[]',   -- JSON list of GitHub's own topic tags
+    license      TEXT,
+    homepage     TEXT,                         -- http(s) only
+    archived     INTEGER NOT NULL DEFAULT 0,
+    is_fork      INTEGER NOT NULL DEFAULT 0,
+    owner_avatar TEXT,                         -- https://avatars.githubusercontent.com/... only
+    created_ts   INTEGER,                      -- created on GitHub
+    pushed_ts    INTEGER,                      -- last push on GitHub
+    added_at     INTEGER NOT NULL,             -- first seen here
+    updated_at   INTEGER NOT NULL,
+    starred      INTEGER NOT NULL DEFAULT 0,   -- your ★ here (kept even when no source lists it any more)
+    kind         TEXT NOT NULL DEFAULT 'repo', -- repo | gist | doc (a GitHub Docs page or a website with no public repo)
+    url          TEXT                          -- gists / docs: their own address (repos: built from full_name)
+);
+CREATE INDEX IF NOT EXISTS idx_repos_owner ON repos(owner);
+CREATE INDEX IF NOT EXISTS idx_repos_pushed ON repos(pushed_ts);
+CREATE TABLE IF NOT EXISTS repo_source_links (
+    source_id INTEGER NOT NULL REFERENCES repo_sources(id) ON DELETE CASCADE,
+    repo_id   INTEGER NOT NULL REFERENCES repos(id) ON DELETE CASCADE,
+    PRIMARY KEY (source_id, repo_id)
+);
+CREATE INDEX IF NOT EXISTS idx_repo_source_links_repo ON repo_source_links(repo_id);
+CREATE TABLE IF NOT EXISTS repo_topics (
+    repo_id  INTEGER NOT NULL REFERENCES repos(id) ON DELETE CASCADE,
+    topic_id INTEGER NOT NULL REFERENCES topics(id) ON DELETE CASCADE,
+    PRIMARY KEY (repo_id, topic_id)
+);
+CREATE INDEX IF NOT EXISTS idx_repo_topics_topic ON repo_topics(topic_id, repo_id);
+CREATE TABLE IF NOT EXISTS repo_releases (
+    id           INTEGER PRIMARY KEY,
+    repo_id      INTEGER NOT NULL REFERENCES repos(id) ON DELETE CASCADE,
+    tag          TEXT NOT NULL,
+    title        TEXT NOT NULL DEFAULT '',
+    url          TEXT NOT NULL,                -- built from validated names
+    published_ts INTEGER NOT NULL,
+    summary      TEXT NOT NULL DEFAULT '',
+    fetched_at   INTEGER NOT NULL,
+    UNIQUE (repo_id, tag)
+);
+CREATE INDEX IF NOT EXISTS idx_repo_releases_time ON repo_releases(published_ts);
+-- 📁 your own repo folders (a repo can be in several); separate from GitHub sources: a repo in a folder is kept
+-- even when the source that brought it in is removed
+CREATE TABLE IF NOT EXISTS repo_folders (
+    id         INTEGER PRIMARY KEY,
+    name       TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    emoji      TEXT NOT NULL DEFAULT '📁',
+    color      TEXT NOT NULL DEFAULT '#64748b',
+    position   INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS repo_folder_items (
+    folder_id INTEGER NOT NULL REFERENCES repo_folders(id) ON DELETE CASCADE,
+    repo_id   INTEGER NOT NULL REFERENCES repos(id) ON DELETE CASCADE,
+    added_at  INTEGER NOT NULL,
+    PRIMARY KEY (folder_id, repo_id)
+);
+CREATE INDEX IF NOT EXISTS idx_repo_folder_items_repo ON repo_folder_items(repo_id);
 """
 
 _db_path: Path | None = None
@@ -663,9 +755,22 @@ def _adopt_legacy_file(path: Path) -> None:
     old.rename(path)
 
 
+def _sqlite_tmpdir() -> None:
+    """Create the folder SQLITE_TMPDIR names (the container image points it into the data volume, so big sorts do
+    not fill the small /tmp tmpfs). Private to the app user; never fatal - SQLite falls back to /tmp."""
+    target = os.environ.get("SQLITE_TMPDIR")
+    if not target:
+        return
+    try:
+        Path(target).mkdir(mode=0o700, parents=True, exist_ok=True)
+    except OSError:
+        logging.getLogger("eos.db").warning("Could not create SQLITE_TMPDIR %s; SQLite will use /tmp", target)
+
+
 def init_db(path: Path) -> None:
     global _db_path
     path.parent.mkdir(parents=True, exist_ok=True)
+    _sqlite_tmpdir()
     _adopt_legacy_file(path)
     _db_path = path
     conn = sqlite3.connect(path, timeout=15)
@@ -706,6 +811,11 @@ def _migrate(conn: sqlite3.Connection) -> None:
     article_columns = {row[1] for row in conn.execute("PRAGMA table_info(articles)")}
     if "fulltext" not in article_columns:
         conn.execute("ALTER TABLE articles ADD COLUMN fulltext INTEGER")
+    meta_columns = {row[1] for row in conn.execute("PRAGMA table_info(threat_actor_meta)")}
+    if meta_columns and "names" not in meta_columns:  # every name of a catalogue actor (display), not only the matched ones
+        conn.execute("ALTER TABLE threat_actor_meta ADD COLUMN names TEXT NOT NULL DEFAULT '[]'")
+    if meta_columns and "attack_id" not in meta_columns:
+        conn.execute("ALTER TABLE threat_actor_meta ADD COLUMN attack_id TEXT")
     if "title_original" not in article_columns:  # the title before translation
         conn.execute("ALTER TABLE articles ADD COLUMN title_original TEXT")
     if "story_id" not in article_columns:  # v11: articles about the same story share the first one's id
@@ -717,6 +827,48 @@ def _migrate(conn: sqlite3.Connection) -> None:
     tomb_columns = {row[1] for row in conn.execute("PRAGMA table_info(article_tombstones)")}
     if tomb_columns and "manual" not in tomb_columns:  # v9: videos you removed yourself
         conn.execute("ALTER TABLE article_tombstones ADD COLUMN manual INTEGER NOT NULL DEFAULT 0")
+    repo_source_columns = {row[1] for row in conn.execute("PRAGMA table_info(repo_sources)")}
+    for column in ("etag", "origin", "note", "alt_value"):  # 📦 Repos: conditional refreshes, pending links (fixed names)
+        if repo_source_columns and column not in repo_source_columns:
+            conn.execute(f"ALTER TABLE repo_sources ADD COLUMN {column} TEXT")
+    if repo_source_columns and "folder_id" not in repo_source_columns:  # 📁 file new repos into a folder
+        conn.execute("ALTER TABLE repo_sources ADD COLUMN folder_id INTEGER")
+    repo_columns = {row[1] for row in conn.execute("PRAGMA table_info(repos)")}
+    if repo_columns and "kind" not in repo_columns:  # gists and docs live next to repos
+        conn.execute("ALTER TABLE repos ADD COLUMN kind TEXT NOT NULL DEFAULT 'repo'")
+    if repo_columns and "url" not in repo_columns:
+        conn.execute("ALTER TABLE repos ADD COLUMN url TEXT")
+    ddl = conn.execute("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'repo_sources'").fetchone()
+    if ddl and "'gist'" not in ddl[0]:  # widen the allowed source kinds: SQLite can't change a CHECK, so copy the table once
+        conn.commit()
+        conn.execute("PRAGMA foreign_keys = OFF")
+        try:
+            conn.execute("DROP TABLE IF EXISTS repo_sources_new")
+            conn.execute("""CREATE TABLE repo_sources_new (
+    id          INTEGER PRIMARY KEY,
+    kind        TEXT NOT NULL CHECK (kind IN ('owner', 'repo', 'topic', 'stars', 'gist', 'doc')),
+    value       TEXT NOT NULL COLLATE NOCASE,
+    title       TEXT NOT NULL DEFAULT '',
+    avatar_url  TEXT,
+    created_at  INTEGER NOT NULL,
+    last_fetch  INTEGER,
+    next_fetch  INTEGER,
+    last_error  TEXT,
+    repo_count  INTEGER NOT NULL DEFAULT 0,
+    etag        TEXT,
+    origin      TEXT,
+    note        TEXT,
+    alt_value   TEXT,
+    folder_id   INTEGER,
+    UNIQUE (kind, value)
+)""")
+            cols = "id, kind, value, title, avatar_url, created_at, last_fetch, next_fetch, last_error, repo_count, etag, origin, note, alt_value, folder_id"
+            conn.execute(f"INSERT INTO repo_sources_new ({cols}) SELECT {cols} FROM repo_sources")
+            conn.execute("DROP TABLE repo_sources")
+            conn.execute("ALTER TABLE repo_sources_new RENAME TO repo_sources")
+            conn.commit()
+        finally:
+            conn.execute("PRAGMA foreign_keys = ON")
     rule_columns = {row[1] for row in conn.execute("PRAGMA table_info(rules)")}
     if "ai_summarize" not in rule_columns:  # v8: AI summaries + instant alerts from rules
         conn.execute("ALTER TABLE rules ADD COLUMN ai_summarize INTEGER NOT NULL DEFAULT 0")

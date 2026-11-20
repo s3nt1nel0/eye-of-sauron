@@ -218,3 +218,12 @@ def test_colour_several_collections_at_once(authed, client):
     fresh = {k: v for k, v in authed.headers.items() if k.lower() != "x-csrf-token"}
     assert authed.post("/api/v1/tags/colors", json={"ids": [ids[2]], "color": "#000000"}, headers={"X-CSRF-Token": "wrong"}).status_code in (401, 403)
     assert {t["name"]: t["color"] for t in authed.get("/api/v1/tags").json()}["Other"] == "#111111" and fresh is not None
+
+
+def test_tab_order_setting(authed):
+    r = authed.patch("/api/v1/settings", json={"tab_order": ["repos", "reader", "repos", "threatmap"]})
+    assert r.status_code == 200 and r.json()["tab_order"] == ["repos", "reader", "threatmap"]       # repeats dropped
+    assert authed.get("/api/v1/settings").json()["tab_order"] == ["repos", "reader", "threatmap"]
+    for bad in (["evil"], "repos", [1], ["reader"] * 21):
+        assert authed.patch("/api/v1/settings", json={"tab_order": bad}).status_code == 422, bad
+    assert authed.patch("/api/v1/settings", json={"tab_order": []}).json()["tab_order"] == []

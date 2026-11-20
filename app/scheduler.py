@@ -65,6 +65,9 @@ class Scheduler:
                 from app.media import icons
 
                 icons.maybe_start()                    # site icons for the article list (background, cached)
+                from app.github import repo_sync
+
+                repo_sync.maybe_start()                # 📦 GitHub repos you follow (twice a day, within GitHub's limits)
                 if time.monotonic() - last_retention > RETENTION_INTERVAL:
                     run_retention()
                     last_retention = time.monotonic()

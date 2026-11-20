@@ -408,3 +408,9 @@ This is a self-hosted personal project; open an issue or contact the maintainer 
 - **Title translation** sends titles to the configured AI provider as numbered data lines with instructions to
   translate only; the answer is parsed strictly (only "<n>|<text>" lines for numbers that were sent), cleaned to plain
   text and length-capped. The daily AI request limit applies.
+
+
+## 1.2.0: GitHub repos
+
+- **GitHub repos (📦 Repos):** outbound read-only HTTPS to api.github.com and github.com (release Atom feeds) only, through the SSRF guard (redirects capped at 2, size and time caps). URLs are built from strictly validated names (owner: GitHub's login rule; repo: `[A-Za-z0-9._-]`, not `.`/`..`; topic: `[a-z0-9-]`); pasted links must be github.com. Responses are validated field by field: text stored markup-free, homepages only as http(s) without credentials, avatars only from avatars.githubusercontent.com, release links only under the repo's own `/releases/tag/` path, Atom feeds pass the XXE guard. Follow / unfollow / ★ / refresh need write scope and are rate-limited; source changes are audit-logged. The optional GitHub token is admin-only (interactive session), validated against GitHub before saving, secretbox-encrypted in `integrations`, never returned or logged. GitHub's rate limits are honoured (the sync stops at 0 and waits for the reset).
+
