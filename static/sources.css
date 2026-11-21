@@ -375,9 +375,11 @@ button.acc-post-title:hover, a.acc-post-title:hover { text-decoration: underline
 .pod-dock-title:hover, .pod-dock-title:focus-visible { text-decoration: underline; color: var(--accent); }
 .pod-ep.pod-ep-focus { outline: 2px solid var(--accent); outline-offset: 2px; }
 .pod-dock audio { flex: 1 1 auto; min-width: 180px; }
+.pod-dock-controls { flex: 1 1 auto; display: flex; align-items: center; gap: 6px; min-width: 0; }
+.pod-skip { flex: none; font-variant-numeric: tabular-nums; white-space: nowrap; padding: 4px 8px; }
 /* the whole app (every tab) ends where the player starts, so nothing sits behind it */
 body.has-pod-dock .app { height: calc(100vh - var(--pod-dock-h, 62px)); height: calc(100dvh - var(--pod-dock-h, 62px)); }
-@media (max-width: 700px) { .pod-dock { flex-wrap: wrap; } .pod-dock-info { flex-basis: calc(100% - 100px); } }
+@media (max-width: 700px) { .pod-dock { flex-wrap: wrap; } .pod-dock-info { flex-basis: calc(100% - 100px); } .pod-dock-controls { flex-basis: 100%; } }
 
 /* ★ favourite channels: the star in the All channels list and before a video's channel name */
 .tp-star, .lib-fav { background: none; border: 0; padding: 0 2px; cursor: pointer; color: var(--muted); font-size: 1rem; line-height: 1; }
@@ -388,3 +390,88 @@ body.has-pod-dock .app { height: calc(100vh - var(--pod-dock-h, 62px)); height: 
 /* episode buttons sit together (the card rule pushes each .btn to the right) */
 .pod-ep .lib-actions .btn { margin-left: 0; }
 .tp-item[data-topic='fav'] .tp-name { font-weight: 600; }
+
+/* 📦 Repos tab */
+.app.mode-repos { grid-template-columns: 1fr; grid-template-areas: "top" "studio"; }
+.app.mode-repos .sidebar, .app.mode-repos .list-pane, .app.mode-repos .reader { display: none !important; }
+.app.mode-repos .pane-resizer { display: none; }
+.repo-filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding-top: 4px; padding-bottom: 4px; }
+.repo-tick { display: inline-flex; align-items: center; gap: 4px; font-size: .9em; white-space: nowrap; }
+.repo-warn { border-color: var(--danger, #dc2626); }
+.repo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; padding: 0 16px 16px; }
+.repo-card { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel, var(--bg)); min-width: 0; }
+.repo-card.archived { opacity: .8; }
+.repo-head { display: flex; align-items: flex-start; gap: 10px; }
+.repo-avatar { width: 28px; height: 28px; border-radius: 6px; flex: none; object-fit: cover; background: var(--border); }
+.repo-avatar-none { display: inline-flex; align-items: center; justify-content: center; font-weight: 600; font-size: 13px; }
+.repo-title { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.repo-name { overflow-wrap: anywhere; text-decoration: none; }
+.repo-name:hover strong { text-decoration: underline; }
+.repo-owner-btn { background: none; border: 0; padding: 0; cursor: pointer; text-align: left; color: inherit; width: fit-content; }
+.repo-owner-btn:hover { text-decoration: underline; }
+.repo-star { font-size: 18px; line-height: 1; }
+.repo-star.on { color: #d97706; }
+.repo-desc { margin: 0; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.repo-facts, .repo-topics, .repo-tags { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.repo-fact { font-size: .85em; white-space: nowrap; }
+.repo-badge { font-size: .75em; padding: 1px 7px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); }
+.repo-topic { font-size: .78em; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); color: inherit; cursor: pointer; }
+.repo-tag { font-size: .78em; padding: 1px 7px; border-radius: 999px; border: 1px dashed var(--border); background: none; color: var(--muted); cursor: pointer; }
+.repo-tag:hover, .repo-topic:hover { filter: brightness(1.1); text-decoration: underline; }
+.repo-foot { display: flex; justify-content: space-between; gap: 8px; margin-top: auto; flex-wrap: wrap; }
+.repo-chip-on { border-style: dashed; }
+.repo-shelf { margin-bottom: 8px; }
+.repo-shelf-head { display: flex; align-items: center; gap: 10px; padding: 8px 16px; }
+.repo-shelf-head h3 { margin: 0; font-size: 1.05em; }
+.repo-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c); flex: none; }
+.repo-releases { list-style: none; margin: 0; padding: 0 16px 16px; }
+.repo-release { display: grid; grid-template-columns: 96px 1fr; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.repo-rel-title { font-weight: 600; }
+.repo-rel-sum { margin: 4px 0 0; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.repo-srcs { list-style: none; margin: 0 0 8px; padding: 0; max-height: 45vh; overflow: auto; }
+.repo-src { display: grid; grid-template-columns: 90px 1fr auto; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.repo-src-main { min-width: 0; overflow-wrap: anywhere; }
+.repo-src-err { display: block; }
+.repo-src-actions { display: inline-flex; gap: 4px; }
+@media (max-width: 600px) {
+  .repo-grid { grid-template-columns: 1fr; padding: 0 8px 8px; }
+  .repo-release { grid-template-columns: 1fr; gap: 2px; padding: 8px 0; }
+  .repo-releases { padding: 0 8px 8px; }
+  .repo-src { grid-template-columns: 1fr; }
+}
+
+/* 📁 Repo folders */
+.repo-folders { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; padding: 0 16px 16px; }
+.repo-folder { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid var(--border); border-left: 4px solid var(--c, var(--border));
+  border-radius: 10px; background: var(--panel, var(--bg)); min-width: 0; text-align: left; color: inherit; font: inherit; }
+.repo-folder-head { display: flex; align-items: center; gap: 6px; }
+.repo-folder-open { display: flex; align-items: baseline; gap: 6px; flex: 1; min-width: 0; background: none; border: 0; padding: 0; cursor: pointer; color: inherit; font: inherit; text-align: left; }
+.repo-folder-open strong { overflow-wrap: anywhere; }
+.repo-folder-open:hover strong { text-decoration: underline; }
+.repo-folder-emoji { font-size: 1.3em; line-height: 1; }
+.repo-folder-peek { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.repo-folder-peek li { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.repo-folder-peek li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.repo-folder-peek img { border-radius: 3px; flex: none; }
+.repo-folder-new { align-items: center; justify-content: center; border-style: dashed; cursor: pointer; min-height: 90px; }
+.repo-folder-menu { position: relative; }
+.repo-folder-menu > summary { list-style: none; cursor: pointer; }
+.repo-folder-menu > summary::-webkit-details-marker { display: none; }
+.repo-folder-menu-list { position: absolute; right: 0; top: 100%; z-index: 5; display: grid; gap: 4px; padding: 6px; min-width: 190px;
+  background: var(--panel, var(--bg)); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,.25); }
+.repo-fbtn { font-size: 16px; line-height: 1; opacity: .55; }
+.repo-fbtn.on { opacity: 1; }
+.repo-fchips { display: flex; flex-wrap: wrap; gap: 6px; }
+.repo-fchip { font-size: .78em; padding: 1px 8px; border-radius: 6px; border: 1px solid var(--c); background: color-mix(in srgb, var(--c) 12%, transparent); color: inherit; cursor: pointer; }
+.repo-check { width: 18px; height: 18px; flex: none; margin-top: 4px; }
+.repo-card.picked { outline: 2px solid var(--accent, #7c3aed); }
+.repo-sel-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; position: sticky; top: 0; z-index: 4; padding-top: 6px; padding-bottom: 6px;
+  background: var(--bg); border-bottom: 1px solid var(--border); }
+.repo-folder-ticks { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 6px; max-height: 50vh; overflow: auto; }
+.repo-emoji-input { width: 5em; }
+@media (max-width: 600px) { .repo-folders { grid-template-columns: 1fr; padding: 0 8px 8px; } }
+.repo-kind { border-style: solid; color: inherit; }
+.repo-remove-actions { flex-wrap: wrap; }
+.repo-ask { display: inline-flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.repo-ask-all { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 4px 0; }
+.repo-ask-all[hidden] { display: none; }

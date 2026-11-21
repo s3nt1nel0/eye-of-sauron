@@ -216,7 +216,7 @@ def insert_article(db, feed_id: int, *, guid: str, url: str | None, title: str, 
     return int(cur.lastrowid) if cur.rowcount == 1 else None
 
 
-PODCAST_MAX_ENTRIES = 3000          # a podcast feed is its whole archive
+PODCAST_MAX_ENTRIES = 20000         # a podcast feed is its whole archive (CyberWire Daily alone lists 3,000+)
 PODCAST_MAX_FEED_BYTES = 60 * 1024 * 1024  # ...and long-running daily shows publish big feeds
 
 
@@ -460,7 +460,9 @@ def run_retention() -> None:
         excess = (
             "SELECT a.id FROM (SELECT id, feed_id, ROW_NUMBER() OVER (PARTITION BY feed_id ORDER BY sort_ts DESC, id DESC) rn "
             f"FROM articles WHERE {keep}) a JOIN feeds f ON f.id = a.feed_id "
-            "WHERE COALESCE(f.max_articles, ?) > 0 AND a.rn > COALESCE(f.max_articles, ?)"
+            # the global per-feed cap is for article feeds: podcasts and videos keep by time (unless a feed sets its own)
+            "WHERE COALESCE(f.max_articles, CASE WHEN f.kind IN ('podcast', 'youtube') THEN 0 ELSE ? END) > 0 "
+            "AND a.rn > COALESCE(f.max_articles, CASE WHEN f.kind IN ('podcast', 'youtube') THEN 0 ELSE ? END)"
         )
         db.execute(
             "INSERT OR IGNORE INTO article_tombstones (feed_id, guid, removed_at) "

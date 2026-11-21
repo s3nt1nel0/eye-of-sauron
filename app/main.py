@@ -15,13 +15,14 @@ from fastapi.staticfiles import StaticFiles
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from app import __version__
-from app import cve_classify, entities, secretbox, topics
+from app import cve_classify, entities, github, secretbox, topics
 from app.api import attack, auth, automation, content, cves, greader, history, insights, library, scrape
 from app.api import ai as ai_api
 from app.api import sources as sources_api
 from app.api import accounts as accounts_api
 from app.api import podcasts as podcasts_api
 from app.api import extras as extras_api
+from app.api import repos as repos_api
 from app.config import get_settings
 from app.db import init_db
 from app.scheduler import scheduler
@@ -414,6 +415,7 @@ def create_app() -> FastAPI:
         _reddit_subreddits_follow_new_posts(db)
         seeded = topics.seed_builtin(db)
         upgraded = topics.upgrade_builtin(db)
+        github.classify(db)        # repos too (name + description + GitHub topics)
     if seeded or upgraded:  # after the commit above, so the re-tag sees the new topics
         topics.reclassifier.start()  # tag existing articles with the (new) built-in topics
     if entities.seed_builtin_watchlists():
@@ -445,7 +447,7 @@ def create_app() -> FastAPI:
     app.add_middleware(SecurityHeadersMiddleware)
 
     for router in (accounts_api.router, podcasts_api.router, attack.router, auth.router, content.router, automation.router, insights.router, cves.router, history.router, scrape.router, greader.admin_router,
-                   sources_api.router, library.router, ai_api.router, extras_api.router):
+                   sources_api.router, library.router, ai_api.router, extras_api.router, repos_api.router):
         app.include_router(router, prefix="/api/v1")
     # Google Reader-compatible API for native RSS apps (FreshRSS-style path and a short alias).
     app.include_router(greader.build_router("/api/greader.php"))

@@ -5,6 +5,41 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.2.0] — 2026-11-21
+
+### Added
+- **📦 Repos tab (GitHub).** Follow single repos (with their releases), owners, GitHub topics and someone's stars; gists;
+  GitHub Docs pages (titled from the link, never downloaded) and `<name>.github.io` websites. Paste up to 200 links at
+  once — any page inside a repo works (`/blob/…`, `/tree/…`, `/wiki`, `?tab=…`, `#…`); every valid line is saved straight
+  away and checked in the background with live per-line results. Profile links ask first (follow every repo / save the
+  profile as a link / skip). Repo cards with language, stars, licence, archived / fork badges, GitHub tags and your
+  topics; views by topic / owner / language and 🚀 Releases; filters for type, language, stars, last-updated dates,
+  archived, forks and ★. **📁 Folders** of your own (a repo can be in several; folders view, bulk add / remove, file
+  new repos straight into a folder). One GitHub request per repo; lines past GitHub's free hourly limit are saved and
+  finish by themselves after its reset; an optional read-only token (stored encrypted, never returned) raises the limit
+  to 5,000 an hour. API: `/api/v1/repos*`.
+- **📅 Custom date range (from / to) on every tab** — Articles, Videos, Podcasts, Accounts, Dashboards and the Threat Map.
+- **Whole collection folders at once:** click a folder heading in Collections (ATT&CK, ATLAS, AI, CVEs…) to read every
+  article in it with the usual filters.
+- **Podcasts:** ↺ 10 / 10 ↻ skip buttons (and headphone / lock-screen skip), and **older episodes** — the show's whole feed
+  again, its older pages, then Internet Archive copies.
+- **Custom keep time frame** in every add dialog (a number + days / weeks / months / years).
+- **Tabs in your own order:** drag the tabs at the top, or Settings → Appearance → ⇄ Arrange tabs….
+- **Sidebar hide / show button** and smoother tab switching.
+
+### Changed
+- **One history setting per feed:** *Keep & fetch … from* is both how long items are kept and how far back loading older
+  items goes; feed settings adapt to articles, podcast episodes, YouTube videos and account posts. Podcasts and videos
+  are no longer trimmed by the article count cap.
+- **Reports, advisories and guidance are filed into your collections** (Threat advisories, Threat intelligence, Defensive
+  security) instead of a separate sidebar view; alerts work as before.
+- **Threat actors:** catalogue rebuilt from MITRE ATT&CK and ATLAS with every alias (e.g. APT40's full set of names).
+
+### Fixed
+- **Videos → By topic: "Internal server error" in Docker** on big libraries — the image now sets `SQLITE_TMPDIR=/data/tmp`
+  so large sorts use the data volume instead of the 16 MB `/tmp`, and the query only ranks ids.
+- Older GitHub user names ending in a hyphen, podcast history duplicates through archived copies, and smaller fixes.
+
 ## [1.1.0] — 2026-11-18
 
 ### Added (ideas borrowed from FreshRSS extensions)

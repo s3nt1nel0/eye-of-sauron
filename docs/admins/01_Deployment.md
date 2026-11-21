@@ -245,3 +245,10 @@ Cookies automatically become `Secure` and `__Host-`-prefixed when served over HT
   - an AI provider;
   - delivery channels for alerts.
 - [ ] **Monitoring:** healthcheck at `GET /healthz`. Watch the logs for `eos.audit` events ([GUIDE §5.6](GUIDE.md#56-monitoring)).
+
+
+## Temporary space for big sorts (1.2.0)
+
+The image sets `SQLITE_TMPDIR=/data/tmp`, so large sorts (Videos → By topic, retention) use the data volume instead of the
+16 MB `/tmp` of the read-only container. The app creates the folder (mode 0700) at start-up. If you run the app
+outside the image on a small `/tmp`, set `SQLITE_TMPDIR` to a folder on a bigger disk.

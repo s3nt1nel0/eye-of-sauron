@@ -8,7 +8,7 @@ import threading
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import Field
+from pydantic import Field, StringConstraints
 
 from app import app_settings, atlas_sync, feed_doctor, intel, related, sources, stories, threat_actors
 from app.scraper import ScrapeConfig
@@ -85,9 +85,8 @@ def sidebar(_: Principal = Depends(require_read)) -> dict:
             "COALESCE(SUM(a.is_starred), 0) AS starred FROM articles a JOIN feeds f ON f.id = a.feed_id "
             f"WHERE {ARTICLE_FEED}"  # nosec B608 - fixed fragment
         ).fetchone()
-        reports_unread = db.execute("SELECT COUNT(*) FROM publications p JOIN articles a ON a.id = p.article_id WHERE a.is_read = 0").fetchone()[0]
     return {"folders": folders, "feeds": feeds, "media_feeds": media_feeds, "account_feeds": account_feeds, "tags": tags,
-            "counts": {**dict(counts), "reports_unread": reports_unread}}
+            "counts": dict(counts)}
 
 
 # ============================================================================ folders
@@ -544,6 +543,13 @@ def diagnose_cancel(_: Principal = Depends(require_write)) -> dict:
 
 
 # ============================================================================ articles
+TagIdList = Annotated[str, StringConstraints(pattern=r"^\d{1,9}(,\d{1,9}){0,199}$")]
+
+
+def _ids(raw: str | None) -> list[int] | None:
+    return sorted({int(x) for x in raw.split(",")}) if raw else None
+
+
 READER_ONLY = ARTICLE_FEED  # articles only: videos, podcast episodes and account posts have their own tabs
 
 
@@ -560,6 +566,7 @@ def _article_filters(
     technique: str | None = None,
     entity_id: int | None = None,
     publication: str | None = None,
+    tag_ids: list[int] | None = None,
 ) -> tuple[list[str], list]:
     # Videos, podcast episodes and account posts stay out of the Articles lists (All, Unread, Starred, folders,
     # collections, search): they have their own tabs. Only an explicit feed_id still opens that feed's own items.
@@ -576,6 +583,9 @@ def _article_filters(
     if tag_id is not None:
         where.append("EXISTS (SELECT 1 FROM article_tags at WHERE at.article_id = a.id AND at.tag_id = ?)")
         params.append(tag_id)
+    if tag_ids:  # a collection folder ("ATT&CK", "CVEs", ...): articles in any of its collections
+        where.append(f"EXISTS (SELECT 1 FROM article_tags at WHERE at.article_id = a.id AND at.tag_id IN ({placeholders(len(tag_ids))}))")  # nosec B608
+        params += tag_ids
     if technique is not None:  # an ATT&CK / ATLAS technique ID: articles the technique watchlists matched
         where.append("a.id IN (SELECT ae.article_id FROM article_entities ae WHERE ae.entity_id = "
                      "(SELECT e.id FROM entities e JOIN watchlists w ON w.id = e.watchlist_id "
@@ -636,6 +646,7 @@ def list_articles(
     feed_id: int | None = None,
     folder_id: int | None = None,
     tag_id: int | None = None,
+    tag_ids: TagIdList | None = None,                   # a collection folder: "3,7,12" (any of them)
     unread: bool = False,
     read: bool = False,
     starred: bool = False,
@@ -651,7 +662,8 @@ def list_articles(
 ) -> dict:
     if unread and read:
         raise HTTPException(status_code=422, detail="Choose either unread or read, not both")
-    where, params = _article_filters(feed_id, folder_id, tag_id, unread, starred, since, until, q, read, technique, entity_id, publication)
+    where, params = _article_filters(feed_id, folder_id, tag_id, unread, starred, since, until, q, read, technique, entity_id,
+                                     publication, _ids(tag_ids))
     clause = ("WHERE " + " AND ".join(where)) if where else ""
     direction = "DESC" if sort == "newest" else "ASC"  # from a Literal: never user text
     with get_db() as db:
@@ -792,6 +804,7 @@ class MarkReadIn(StrictModel):
     feed_id: int | None = None
     folder_id: int | None = None
     tag_id: int | None = None
+    tag_ids: list[Annotated[int, Field(ge=1, le=2**62)]] | None = Field(default=None, max_length=200)
     starred: bool = False
     all: bool = False
     before: int | None = Field(default=None, ge=0)
@@ -811,10 +824,10 @@ def mark_read(body: MarkReadIn, principal: Principal = Depends(require_write)) -
                 [value, *body.ids],
             ).rowcount
             return {"updated": count}
-        if not (body.all or body.feed_id or body.folder_id or body.tag_id or body.starred):
+        if not (body.all or body.feed_id or body.folder_id or body.tag_id or body.tag_ids or body.starred):
             raise HTTPException(status_code=422, detail="Specify ids, a scope, or all=true")
         where, params = _article_filters(
-            body.feed_id, body.folder_id, body.tag_id, False, body.starred, None, body.before, None
+            body.feed_id, body.folder_id, body.tag_id, False, body.starred, None, body.before, None, tag_ids=body.tag_ids or None
         )
         clause = ("WHERE " + " AND ".join(where)) if where else ""
         count = db.execute(

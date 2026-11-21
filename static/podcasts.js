@@ -13,7 +13,7 @@
 
   const view = {
     meta: null, topics: [], items: [], total: 0,
-    filters: { ...DEFAULTS, ...(store.get("fw-podcast-filters") || {}) },
+    filters: (() => { const f = { ...DEFAULTS, ...(store.get("fw-podcast-filters") || {}) }; f.dates = FW.dateRange.clean(f.dates); return f; })(),
 
     show() {
       // one load at a time: start-up restoring the tab and a click on it no longer build the view twice
@@ -54,12 +54,26 @@
         if (onEnded) onEnded();
       });
       const close = () => { audio.pause(); if (this.dockSize) this.dockSize.disconnect(); dock.remove(); document.body.classList.remove("has-pod-dock"); };
+      // ⏪ / ⏩ 10 seconds: replay a part you missed, or skip ahead (also from headphones / the lock screen)
+      const skip = (secs) => {
+        const end = Number.isFinite(audio.duration) ? audio.duration : Infinity;
+        audio.currentTime = Math.min(Math.max(0, (audio.currentTime || 0) + secs), Math.max(0, end - 0.5));
+      };
+      const skipBtn = (secs) => h("button", { type: "button", class: "icon-btn pod-skip", text: secs < 0 ? "↺ 10" : "10 ↻",
+        title: secs < 0 ? "Back 10 seconds" : "Forward 10 seconds", "aria-label": secs < 0 ? "Back 10 seconds" : "Forward 10 seconds",
+        onclick: () => skip(secs) });
+      if ("mediaSession" in navigator) {
+        try {
+          navigator.mediaSession.setActionHandler("seekbackward", (d) => skip(-((d && d.seekOffset) || 10)));
+          navigator.mediaSession.setActionHandler("seekforward", (d) => skip((d && d.seekOffset) || 10));
+        } catch { /* not supported by this browser */ }
+      }
       fill(dock,
         safeUrl(e.image) ? h("img", { class: "pod-dock-art", src: safeUrl(e.image), alt: "", referrerpolicy: "no-referrer" }) : h("span", { class: "pod-dock-art pod-noart", text: "🎙" }),
         h("div", { class: "pod-dock-info" },
           h("button", { type: "button", class: "pod-dock-title", title: `${e.title}\nClick: open this episode in Podcasts`, text: e.title, onclick: () => this.goTo(e) }),
           h("span", { class: "muted small", text: e.show || "" })),
-        audio,
+        h("div", { class: "pod-dock-controls" }, skipBtn(-10), audio, skipBtn(10)),
         h("button", { type: "button", class: "icon-btn", text: "✕", title: "Stop and close the player", "aria-label": "Stop and close the player", onclick: close }));
       document.body.classList.add("has-pod-dock");
       // the app ends where the player starts, so the player never covers the bottom of a list (its height can wrap on phones)
@@ -138,6 +152,8 @@
             onChange: (ids) => { f.topic_ids = ids; this.save(); this.reload(); } }) : null,
           select("state", "Show", [["all", "All episodes"], ["unplayed", "Unplayed"], ["played", "Played"], ["starred", "★ Starred"]]),
           select("sort", "Sort", [["newest", "📅 Newest"], ["oldest", "📅 Oldest"], ["longest", "Longest"], ["shortest", "Shortest"]]),
+          FW.dateRange.button({ value: f.dates, title: "Show only episodes published between two dates",
+            onChange: (r) => { f.dates = r; this.save(); this.renderShell(); this.reload(); } }),
           (() => {  // how episodes are laid out (more on screen with Compact / Grid)
             const s = h("select", { "aria-label": "View", onchange: (e) => { f.layout = e.target.value; this.save(); this.reload(); } },
               [["comfortable", "☰ View: Comfortable"], ["compact", "≡ View: Compact"], ["grid", "▦ View: Grid"]]
@@ -147,7 +163,8 @@
           this.categorySelect(),
           h("span", { class: "lib-view", role: "group", "aria-label": "View" }, tab("episodes", "🎧 Episodes"), tab("shows", "🗂️ Shows"))),
         h("div", { id: "podCount", class: "muted small lib-pad" }),
-        h("div", { id: "podList", class: "pod-list" }),
+        h("div", { id: "podList", class: "pod-list" }, Array.from({ length: 6 }, () => h("div", { class: "skeleton-row", "aria-hidden": "true" },
+          h("span", { class: "sk sk-meta" }), h("span", { class: "sk sk-title" }), h("span", { class: "sk sk-line" })))),
         h("div", { class: "lib-more" }, h("button", { id: "podMore", type: "button", class: "btn", text: "Load more", hidden: true, onclick: () => this.loadMore() })));
       if (!m.shows.length) {
         $("#podList").replaceWith(h("div", { class: "card lib-empty" },
@@ -179,6 +196,7 @@
       if (f.feed_ids.length) p.set("feed_ids", f.feed_ids.join(","));
       if (f.topic_ids.length) p.set("topic_ids", f.topic_ids.join(","));
       if (f.q) p.set("q", f.q);
+      FW.dateRange.addParams(p, f.dates);
       if (this.mention && this.mention.article) p.set("related_to", String(this.mention.article));
       else if (this.mention) { p.set("entity_id", String(this.mention.id)); p.set("days", String(this.mention.days || 0)); }
       return `/podcasts/episodes?${p}`;
@@ -349,11 +367,13 @@
         placeholder: "Links, one per line:\nhttps://podcasts.apple.com/…/id1296350485\nhttps://open.spotify.com/show/…\nhttps://feeds.example.com/podcast.xml" });
       const find = h("input", { type: "search", maxlength: 200, placeholder: "…or find a show by name (e.g. Darknet Diaries)", "aria-label": "Find a show by name" });
       const results = h("ul", { class: "pod-results" });
-      const keep = h("select", { "aria-label": "Keep (retention)" }, KEEP.map(([v, l]) => h("option", { value: v, text: l })));
+      const keep = FW.keepPicker({ choices: KEEP, selected: "0" });
       const log = h("ol", { class: "batch-list small" });
       const err = h("p", { class: "error" });
-      const days = () => Number(keep.value);
+      const days = () => keep.days();
       const addOne = async (input, label) => {
+        if (Number.isNaN(days())) { err.textContent = "Custom keep time frame must be 1 day to 100 years."; return false; }
+        err.textContent = "";
         const li = h("li", null, h("code", { text: label }), " — ", h("span", { class: "muted", text: "adding…" }));
         log.append(li);
         const status = li.lastChild;
@@ -399,7 +419,7 @@
         h("div", { class: "sd-head" }, h("h3", { text: "＋ Add podcasts" }),
           h("button", { type: "button", class: "icon-btn", "aria-label": "Close", text: "✕", onclick: () => dlg.close() })),
         links, find, results,
-        h("div", { class: "grid-form" }, h("label", { text: "Keep" }), keep),
+        h("div", { class: "grid-form" }, h("label", { text: "Keep" }), keep.el),
         h("ul", { class: "small src-notes" },
           h("li", { text: "Episodes come from each show's own open feed and play here - no account needed." }),
           h("li", { text: "Spotify links: the show's name is looked up in Apple's podcast directory to find its feed. Spotify-exclusive shows have no open feed." })),

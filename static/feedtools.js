@@ -241,8 +241,7 @@
       FW.loadSidebar(); FW.loadArticles();
       if (fetchOlder.checked) {
         const ids = chosen().filter((f) => BACKFILL_KINDS.has(f.kind || "rss")).map((f) => f.id);
-        const req = { ...bf.body(), keep_forever: false, only_missing: onlyMissing.checked, feed_ids: ids };
-        if (b.days) req.since_days = b.days; else delete req.since_days;
+        const req = { ...bf.body(b.days || 0), only_missing: onlyMissing.checked, feed_ids: ids };
         const s = ids.length ? await guarded(() => api("POST", "/history/backfill-all", req)) : { started: false };
         if (s && s.started) { progress.textContent = `⏳ Fetching older items for ${s.feeds} feed(s)…`; setTimeout(watch, 1200); onDone(true); return; }
         if (s) progress.textContent = "Nothing to fetch: the chosen feeds already reach back that far (or cannot fetch history).";

@@ -108,7 +108,7 @@
           p.actor.country ? h("span", { class: "chip sub-chip", title: "Country the catalogue links it to", text: `${FLAG(p.actor.country)} ${p.actor.country}` }) : null,
           (p.actor.sources || []).length ? h("span", { class: "muted small", text: `Sources: ${p.actor.sources.join(", ")}` }) : null,
           p.actor.members > 1 ? h("span", { class: "muted small", title: "The numbers on this page count mentions under any of its names", text: ` · counts ${p.actor.members} lists' entries as one actor` }) : null) : null,
-        p.actor && (p.actor.also || []).length ? h("div", { class: "intel-line muted small", text: `Also known as: ${p.actor.also.slice(0, 24).join(" · ")}` }) : null,
+        p.actor && (p.actor.also || []).length ? h("div", { class: "intel-line muted small", title: "Every name the sources give this actor", text: `Also known as (${p.actor.also.length}): ${p.actor.also.join(" · ")}` }) : null,
         m && m.kind === "technique" && m.tactics.length ? h("div", { class: "intel-line" }, h("span", { class: "muted", text: "Tactics: " }), m.tactics.join(", ")) : null,
         m && m.kind === "technique" && m.parent ? h("div", { class: "intel-line" }, h("span", { class: "muted", text: "Sub-technique of: " }),
           m.parent.entity_id ? entityChip({ id: m.parent.entity_id, name: `${m.parent.id} ${m.parent.name}` }) : `${m.parent.id} ${m.parent.name}`) : null,
@@ -152,7 +152,8 @@ ${s.n ? `${plural(s.n, "mention")} name this sub-technique, ${periodText(p.days)
         m && m.kind === "group" && m.techniques.length ? h("div", { class: "intel-section" },
           h("div", { class: "intel-section-head" }, h("strong", { text: `Techniques it uses (${m.techniques.length})` }), h("span", { class: "muted", text: " · from MITRE ATT&CK" })),
           h("div", { class: "chips" }, m.techniques.map((t) => t.entity_id ? entityChip({ ...t, name: `${t.id} ${t.name}` }) : h("span", { class: "chip", text: `${t.id} ${t.name}` })))) : null,
-        p.aliases.length ? h("div", { class: "intel-line muted small", title: "The names this entity is recognised by", text: `Recognised by: ${p.aliases.join(" · ")}` }) : null));
+        p.aliases.length ? h("div", { class: "intel-line muted small", title: p.actor ? "The names looked for in articles, videos and podcasts (names that are ordinary words, such as Leviathan, are shown above but not looked for on their own)" : "The names this entity is recognised by",
+          text: `Recognised by${p.actor ? ` (${p.aliases.length})` : ""}: ${p.aliases.join(" · ")}` }) : null));
   }
 
   /** Open the page of a technique, sub-technique or tactic by its ID (T1566, T1566.001, TA0001, AML.T0051). */

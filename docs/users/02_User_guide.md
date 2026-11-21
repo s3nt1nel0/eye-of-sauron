@@ -32,6 +32,7 @@ Use the buttons at the top to switch between them:
 | 📰 **Articles** | Reading articles, like an email inbox for news. Includes 📑 Reports & guidance and the 🎭 Threat actors filter. |
 | 📊 **Dashboards** | Charts and numbers: what's trending, which threats are active, CVE tracking, MITRE ATT&CK / ATLAS matrices. |
 | 📺 **Videos** | YouTube channels and saved videos as a library, split into categories by topic. |
+| 📦 **Repos** | GitHub projects you follow, plus gists, GitHub Docs pages and websites, in your own folders. |
 | 👥 **Accounts** | Posts from social media accounts you follow (Mastodon, Bluesky, Reddit, X through a bridge…). |
 | 🎙 **Podcasts** | Podcast shows and episodes, with a built-in player. |
 | 🌍 **Threat Map** | A world map of where threats in your news are happening, plus links to live attack maps. |
@@ -365,6 +366,38 @@ The line under the menus says what you're looking at, for example: *"Qilin — 8
 - **Filters:** platform, account, several topics (any or all), unread or starred, and search. **▦ All posts** shows one grid instead of topic shelves.
 - **Remove an account:** pick it, then click **🗑 Remove account**.
 - Posts also appear in the reader under the **Social Accounts** folder.
+
+---
+
+## 7a. GitHub repos (📦 Repos)
+
+Keep the GitHub projects you care about in one place. Press **＋** (*Add from GitHub*), paste one per line and press **＋ Add**:
+
+| Paste | You get |
+|---|---|
+| `https://github.com/SpecterOps` (an owner) | Every public repo of that person or organisation (up to 500). |
+| `https://github.com/projectdiscovery/nuclei` (a repo, or any page inside it: a file, a folder, the README) | That repo, plus its new versions in **🚀 Releases**. |
+| `https://swisskyrepo.github.io/InternalAllTheThings/…` (a GitHub Pages website) | The repo the website is built from, if it is public. |
+| `topic:homelab` or `https://github.com/topics/homelab` | The 100 most-starred repos GitHub tags with that topic. |
+| `stars:octocat` or `https://github.com/octocat?tab=stars` | Everything that person starred (up to 500). |
+
+- **Also follow the owner:** tick this in the ＋ dialog to add the repo *and* everything its owner publishes. Leave it off (the default) to add only the repo.
+- **Website links:** `name.github.io` adds the repo the website is built from (`name/name.github.io`); a blog post on it adds that same repo; `name.github.io/project/…` adds `name/project`. The line tells you which repo it picked. Wiki links (`…/wiki`) add the repo.
+- **Big pastes:** up to 200 lines at a time. Everything is saved at once and checked in the background; the window shows how far it has got and each line updates when it's done. You can close it and keep working.
+- **Why a limit of 200?** It keeps one paste reviewable and stops a runaway script from filling the list; a free GitHub account (no token) only checks 60 links an hour anyway, so a big paste finishes over a few hours by itself. With a token it's done in minutes.
+- **When GitHub's free limit runs out:** the line is still saved (⏳) and finishes by itself after the time shown. Nothing to paste again. Each pasted repo uses one of the 60 free requests an hour (none if it's already in your Repos).
+- **Every line gets an answer:** *Added*, *Already here*, *No public repo* (it doesn't exist, was deleted or renamed, or is private), *a website, not a repo*, *Gists aren't supported yet*, or GitHub's limit with the time to try again.
+- **Gists, docs and websites:** paste gist links (gist.github.com/…) and GitHub Docs pages (docs.github.com/…) like repos. They get their own cards (🧾 Gist, 📄 GitHub Docs, 🌐 Website), can go in folders and be starred, and **Type** in the filters shows only one kind. Docs pages are never downloaded: the title comes from the link.
+- **Profile links ask first:** for a `github.com/<name>` line you choose *Follow all repos* (everything they publish, up to 500 - e.g. OWASP, Elastic), *Profile link only* (a 👤 card linking to the profile) or *Skip*; several at once get "for all of them" buttons.
+- **Removing an owner:** ⚙ Sources → ✕. If some of its repos are in your folders you can choose *Remove it and its repos* or *Remove it, keep its repos*. Repos you pasted yourself or starred always stay.
+- **📁 Folders:** Repos opens on your folders. Click a folder to see its repos (with all the filters); **← All folders** goes back. Make one with **＋ New folder**; **⋯** on a folder renames it, changes its emoji or colour, moves it, or deletes it (its repos stay). Put a repo in folders with **📁** on its card (a repo can be in several), tick many with **☑ Select** and use **Add to folder** / **Remove from folder**, or choose *Put them in* when adding. A repo in a folder stays even if you remove the owner or topic it came from.
+- **Each card** shows what the repo is, its language, ★ stars, forks, licence, when it was last updated, GitHub's own tags (click one, e.g. **#homelab**, to see every repo with it) and your topics (click one to see that topic's repos). **archived** means the owner stopped maintaining it; **fork** means it's a copy of another repo.
+- **Views:** *All repos*, *By topic*, *By owner*, *By language* (press **Show all ›** on a shelf to open it), and *🚀 Releases*.
+- **Filters:** search, topics, language, minimum stars, **📅** last-updated dates, **★ Starred**, **Hide archived**, **Hide forks**. **Clear filters** resets them.
+- **★ on a card** keeps that repo here even if you unfollow the owner, topic or stars list it came from.
+- **⚙ Sources** lists what you follow: **Show** (only its repos), **⟳** (check now), **✕** (unfollow; its repos go unless you starred them or another source lists them). Problems show as ⚠ with the reason.
+- **How often:** everything is checked twice a day in the background, and **⟳** at the top checks all now.
+- **GitHub's limit:** without an account GitHub allows 60 requests an hour, which is plenty for a handful of sources (an owner with 300 repos takes about 4). If you follow a lot, create a free **read-only token** on GitHub (*Settings → Developer settings → Fine-grained tokens*, "Public repositories (read-only)", no other permissions) and paste it in **⚙ Sources → GitHub token**. That raises the limit to 5,000. The token is stored encrypted and never shown again. When the limit is reached the app simply waits and carries on after GitHub's reset.
 
 ---
 

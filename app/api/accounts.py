@@ -10,7 +10,7 @@ from pydantic import Field, StringConstraints
 from app import accounts, app_settings, integrations, netguard, reddit, social_posts, topics
 from app.api import content
 from app.api import sources as sources_api
-from app.api.common import StrictModel, TopicIds, not_found, topic_clause
+from app.api.common import StrictModel, TopicIds, date_clause, not_found, topic_clause
 from app.config import get_settings
 from app.db import get_db, placeholders
 from app.fetcher import ACCEPT, parse_bytes, xml_guard
@@ -231,8 +231,11 @@ def posts(feed_id: int | None = Query(None, ge=1), platform: Platform | None = N
           feed_ids: FeedIdList | None = None, platforms: PlatformList | None = None, full: bool = False,
           q: Q = "", state: Literal["all", "unread", "starred"] = "all", sort: Literal["newest", "oldest"] = "newest",
           limit: int = Query(40, ge=1, le=200), offset: int = Query(0, ge=0, le=100_000),
+          since: int | None = Query(None, ge=0, le=2**40), until: int | None = Query(None, ge=0, le=2**40),  # custom date range (unix seconds)
           _: Principal = Depends(require_read)) -> dict:
     base, params = _filters(feed_id, platform, topic_id or None, q.strip(), state, feed_ids, platforms)
+    dates, date_params = date_clause(since, until)
+    base, params = base + dates, params + date_params
     if topic_id == 0:  # "Other": no topic matched
         base += " AND NOT EXISTS (SELECT 1 FROM article_topics t WHERE t.article_id = a.id)"
     extra, extra_params = topic_clause(topic_ids, topic_match)
@@ -269,9 +272,12 @@ def post_thread(article_id: int, _: Principal = Depends(require_read)) -> dict:
 def shelves(feed_id: int | None = Query(None, ge=1), platform: Platform | None = None, q: Q = "",
             state: Literal["all", "unread", "starred"] = "all", per: int = Query(12, ge=1, le=48),
             feed_ids: FeedIdList | None = None, platforms: PlatformList | None = None,
+            since: int | None = Query(None, ge=0, le=2**40), until: int | None = Query(None, ge=0, le=2**40),
             _: Principal = Depends(require_read)) -> dict:
     """Posts split into categories by topic (a post with several topics is on each shelf), plus "Other"."""
     base, params = _filters(feed_id, platform, None, q.strip(), state, feed_ids, platforms)
+    dates, date_params = date_clause(since, until)
+    base, params = base + dates, params + date_params
     out = []
     with get_db() as db:
         topics = db.execute("SELECT id, name, color FROM topics WHERE enabled = 1").fetchall()

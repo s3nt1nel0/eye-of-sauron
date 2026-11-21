@@ -35,7 +35,8 @@ from app import app_settings, netguard, sources, topics
 from app.config import get_settings
 from app.db import get_db, now
 from app.entities import extract_for_articles
-from app.fetcher import _guid, _timestamp, effective_retention, parse_bytes, store_entries, xml_guard, ACCEPT
+from app.fetcher import (PODCAST_MAX_FEED_BYTES, _guid, _timestamp, effective_retention, parse_bytes, store_entries,
+                         xml_guard, ACCEPT)
 from app.rules import apply_rules
 from app.sanitize import to_text
 
@@ -112,11 +113,16 @@ def _post_process(db, ids: list[int]) -> None:
         apply_rules(db, ids)  # events are discarded: no webhooks/alerts for history
 
 
-def _get(url: str, cfg, *, timeout: float | None = None) -> netguard.SafeResponse:
+def _feed_bytes(feed, cfg) -> int:
+    """Size limit for one document of this feed: podcast feeds (a show's whole archive) may be much bigger."""
+    return max(cfg.max_feed_bytes, PODCAST_MAX_FEED_BYTES) if (feed["kind"] or "") == "podcast" else cfg.max_feed_bytes
+
+
+def _get(url: str, cfg, *, timeout: float | None = None, max_bytes: int | None = None) -> netguard.SafeResponse:
     try:
         resp = netguard.request("GET", url, headers={"User-Agent": cfg.user_agent, "Accept": ACCEPT},
                                 allow_private=cfg.allow_private_feeds, timeout=timeout or cfg.fetch_timeout,
-                                max_bytes=cfg.max_feed_bytes)
+                                max_bytes=max_bytes or cfg.max_feed_bytes)
     except (netguard.FetchError, netguard.UnsafeURLError) as exc:
         raise ImportError_(str(exc)) from None
     if resp.status_code >= 400:
@@ -127,9 +133,9 @@ def _get(url: str, cfg, *, timeout: float | None = None) -> netguard.SafeRespons
     return resp
 
 
-def _parse(resp: netguard.SafeResponse, *, trust_content_type: bool = True):
+def _parse(resp: netguard.SafeResponse, *, trust_content_type: bool = True, base: str | None = None):
     ctype = resp.headers.get("content-type") if trust_content_type else None
-    return parse_bytes(resp.content, ctype, resp.url)
+    return parse_bytes(resp.content, ctype, base or resp.url)
 
 
 def _entry_keys(entries) -> set[str]:
@@ -174,6 +180,9 @@ def _prepare(feed_id: int, opts: dict):
             # (their tombstones would otherwise stop them being stored again).
             db.execute("UPDATE feeds SET retention_days = 0, max_articles = 0 WHERE id = ?", (feed_id,))
             db.execute("DELETE FROM article_tombstones WHERE feed_id = ? AND manual = 0", (feed_id,))  # yours stay removed
+        # Older items the retention clean-up removed earlier may come back now that you ask for them; items you
+        # deleted yourself (manual tombstones) stay removed.
+        db.execute("DELETE FROM article_tombstones WHERE feed_id = ? AND manual = 0", (feed_id,))
         feed = db.execute("SELECT * FROM feeds WHERE id = ?", (feed_id,)).fetchone()
         if feed is None:
             raise ImportError_("Feed not found")
@@ -197,7 +206,14 @@ def _backfill_one(job: Job, feed, opts: dict, cutoff: int | None) -> None:
     max_pages = int(opts.get("max_pages") or 20)
     if kind in sources.KINDS:
         return _backfill_source(job, feed, max_pages, cutoff)
-    if kind != "rss":
+    if kind == "podcast":
+        # A podcast feed is usually the show's whole archive: read all of it again first (episodes an earlier
+        # time frame or the old 3,000-episode cap left out). Many shows list only their latest 100-300, so the
+        # show's own older pages and the Internet Archive follow, as for article feeds.
+        _reread_podcast(job, feed, cutoff)
+        if job.stop.is_set():
+            return
+    elif kind != "rss":
         raise ImportError_("Scraped web pages have no older pages to fetch - only what the page shows now.")
     method = opts.get("method") or "auto"
     if method in ("auto", "paged"):
@@ -253,17 +269,39 @@ def _pagers(url: str) -> list[tuple[str, Any]]:
 
 def _store(feed_id: int, entries, cutoff: int | None) -> int:
     with get_db() as db:
-        new_ids = store_entries(db, feed_id, entries, cutoff, now())
+        row = db.execute("SELECT kind FROM feeds WHERE id = ?", (feed_id,)).fetchone()
+        podcast = bool(row) and row["kind"] == "podcast"
+        on_new = None
+        if podcast:  # an episode keeps its audio (and art: its own, else the show's)
+            from app import podcasts
+
+            art = db.execute("SELECT e.image FROM episodes e JOIN articles a ON a.id = e.article_id WHERE a.feed_id = ? "
+                             "AND e.image IS NOT NULL ORDER BY a.sort_ts DESC LIMIT 1", (feed_id,)).fetchone()
+
+            def on_new(db, entry, article_id, published):
+                podcasts.store_episode(db, article_id, entry, art[0] if art else None)
+        new_ids = store_entries(db, feed_id, entries, cutoff, now(), on_new=on_new, podcast=podcast)
         _post_process(db, new_ids)
+        if podcast and new_ids:
+            topics.fill_episode_topics(db, new_ids)
     return len(new_ids)
+
+
+def _reread_podcast(job: Job, feed, cutoff: int | None) -> None:
+    cfg = get_settings()
+    job.update(method="feed")
+    parsed = _parse(_get(feed["url"], cfg, max_bytes=_feed_bytes(feed, cfg)))
+    added = _store(feed["id"], parsed.entries, cutoff)
+    job.update(pages=1, new=(job.status.get("new") or 0) + added, reached=_oldest(parsed.entries))
 
 
 def _backfill_paged(job: Job, feed, max_pages: int, cutoff: int | None) -> bool:
     """Walk the site's own older pages. Returns False if the site offers none."""
     cfg = get_settings()
     feed_id = feed["id"]
-    first = _parse(_get(feed["url"], cfg))
-    total = _store(feed_id, first.entries, cutoff)
+    big = _feed_bytes(feed, cfg)
+    first = _parse(_get(feed["url"], cfg, max_bytes=big))
+    total = _store(feed_id, first.entries, cutoff) + (job.status.get("new") or 0)
     nxt = _archive_link(first)
     if nxt:
         job.update(method="rfc5005")
@@ -272,7 +310,7 @@ def _backfill_paged(job: Job, feed, max_pages: int, cutoff: int | None) -> bool:
             seen.add(nxt)
             time.sleep(PAGE_DELAY)
             try:
-                parsed = _parse(_get(nxt, cfg))
+                parsed = _parse(_get(nxt, cfg, max_bytes=big))
             except ImportError_:
                 break
             pages += 1
@@ -291,7 +329,7 @@ def _backfill_paged(job: Job, feed, max_pages: int, cutoff: int | None) -> bool:
             return True
         time.sleep(PAGE_DELAY)
         try:
-            probe = _parse(_get(page_url(2), cfg))
+            probe = _parse(_get(page_url(2), cfg, max_bytes=big))
         except ImportError_:
             continue
         if not probe.entries or not (_entry_keys(probe.entries) - page1):
@@ -306,7 +344,7 @@ def _backfill_paged(job: Job, feed, max_pages: int, cutoff: int | None) -> bool:
                 break
             time.sleep(PAGE_DELAY)
             try:
-                probe = _parse(_get(page_url(n), cfg))
+                probe = _parse(_get(page_url(n), cfg, max_bytes=big))
             except ImportError_:
                 break
             keys = _entry_keys(probe.entries)
@@ -396,7 +434,7 @@ def _backfill_wayback(job: Job, feed, max_pages: int, cutoff: int | None) -> Non
         if pages:
             time.sleep(WAYBACK_DELAY)
         try:
-            resp = _get(snap_url, cfg, timeout=60)
+            resp = _get(snap_url, cfg, timeout=60, max_bytes=_feed_bytes(feed, cfg))
         except ImportError_ as exc:
             if "HTTP 429" in str(exc):
                 job.update(pages=pages, new=total, note="Stopped early: the Internet Archive is rate-limiting.")
@@ -405,7 +443,9 @@ def _backfill_wayback(job: Job, feed, max_pages: int, cutoff: int | None) -> Non
             continue
         pages += 1
         # Archived copies are often served as text/html; let the parser read the XML's own declaration.
-        entries = _parse(resp, trust_content_type=False).entries
+        # Relative IDs and links resolve against the feed's own address, as on a normal refresh: an episode's ID is
+        # then the same in the live feed and in every archived copy (no duplicates).
+        entries = _parse(resp, trust_content_type=False, base=url).entries
         total += _store(feed_id, entries, cutoff)
         job.update(pages=pages, new=total, reached=snap)
         oldest = _oldest(entries)
@@ -495,7 +535,7 @@ def _backfill_source(job: Job, feed, max_pages: int, cutoff: int | None) -> None
 
 
 # =========================================================================== many feeds
-def bulk_feed_ids(folder_id: int | None, only_missing: bool, since_days: int | None) -> list[int]:
+def bulk_feed_ids(folder_id: int | None, only_missing: bool, since_days: int | None, keep_days: int | None = None) -> list[int]:
     """Feeds a bulk back-fill should visit: enabled RSS and history-capable sources (not X, not scraped pages).
     ``only_missing`` skips feeds whose history already reaches back to the chosen period."""
     clauses = ["enabled = 1", "COALESCE(kind, 'rss') IN ('rss', 'youtube', 'hfpapers', 'telegram')", "url != ?"]
@@ -505,9 +545,12 @@ def bulk_feed_ids(folder_id: int | None, only_missing: bool, since_days: int | N
         params.append(folder_id)
     with get_db() as db:
         ids = [r[0] for r in db.execute(f"SELECT id FROM feeds WHERE {' AND '.join(clauses)} ORDER BY id", params)]  # nosec B608 - fixed clauses
-    if not (only_missing and since_days):
+    back = keep_days if keep_days is not None else since_days  # keep & fetch back (one setting) wins
+    if not only_missing:
         return ids
-    target = now() - int(since_days) * 86400 + 14 * 86400  # two weeks' slack
+    if not back:  # "everything": feeds whose history is under 5 years are worth a visit
+        back = 5 * 365
+    target = now() - int(back) * 86400 + 14 * 86400  # two weeks' slack
     return [i for i in ids if _history_start(i) > target]
 
 

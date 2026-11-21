@@ -29,6 +29,16 @@ def _boolean(value: Any) -> bool:
     return value
 
 
+TAB_KEYS = ("reader", "dashboard", "library", "accounts", "podcasts", "repos", "threatmap")
+
+
+def _tab_order(value: Any) -> list[str]:
+    """The order of the tabs at the top (known tab names only, no repeats); [] = the built-in order."""
+    if not isinstance(value, list) or len(value) > 20 or any(not isinstance(v, str) or v not in TAB_KEYS for v in value):
+        raise ValueError("must be a list of tab names")
+    return list(dict.fromkeys(value))
+
+
 def _choice(*options: str) -> Callable[[Any], str]:
     def check(value: Any) -> str:
         if value not in options:
@@ -96,8 +106,9 @@ SCHEMA: dict[str, tuple[Any, Callable[[Any], Any]]] = {
     "hide_watched": (True, _boolean),  # watched videos leave the Videos views and wait in the Watched tab  # read articles leave feeds/folders/collections and stay in the Read view
     "show_snippets": (True, _boolean),
     "font_size": ("medium", _choice("small", "medium", "large")),
-    "ui_mode": ("reader", _choice("reader", "dashboard", "library", "accounts", "podcasts", "threatmap")),
+    "ui_mode": ("reader", _choice("reader", "dashboard", "library", "accounts", "podcasts", "repos", "threatmap")),
     "sidebar_drag_drop": (True, _boolean),
+    "tab_order": ([], _tab_order),   # the order of the tabs at the top; [] = built-in
     "default_dashboard_id": (0, _int_range(1, 2**31 - 1, allow_zero=True)),
     # CVE tracking (NVD API 2.0 + CISA KEV + MITRE CWE)
     "cve_enabled": (True, _boolean),

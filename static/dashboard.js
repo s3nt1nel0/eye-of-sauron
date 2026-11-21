@@ -25,6 +25,7 @@
     meta: { watchlists: [], entities: [] },
     cveMeta: null,
     range: 0,  // top "Range": 0 = each widget's own; otherwise a temporary sync for all widgets (not remembered)
+    custom: null,  // 📅 custom from / to range for all widgets ({from, to}); st.range then holds its length in days
     dragWidget: null, dragDash: null,
     edit: false,
     timer: null,
@@ -153,6 +154,10 @@
       q.days = st.range;
       if (q.type === "timeseries") q.bucket = autoBucket(st.range);
     }
+    if (st.custom && q.dataset !== "observatory") {  // ready-made 🔭 panels have fixed periods
+      const t = FW.dateRange.times(st.custom);
+      q.until_ts = t.until != null ? t.until : Math.floor(Date.now() / 1000) + 1;
+    }
     return q;
   }
 
@@ -171,8 +176,23 @@
 
   function setSync(days) {
     st.range = days;
+    st.custom = null;
     render();
   }
+
+  /** 📅 one custom from / to range for every widget: its length becomes the widgets' period, its end their window end. */
+  async function pickCustom() {
+    const r = await FW.dateRange.pick(st.custom, "Date range for all widgets");
+    if (r === undefined) { render(); return; }
+    if (!r) { setSync(0); return; }
+    const t = FW.dateRange.times(r);
+    const until = t.until != null ? t.until : Math.floor(Date.now() / 1000) + 1;
+    const since = t.since != null ? t.since : until - 3650 * 86400;
+    st.custom = r;
+    st.range = Math.min(3650, Math.max(1, Math.round((until - since) / 86400)));
+    render();
+  }
+  const syncLabel = () => (st.custom ? FW.dateRange.label(st.custom) : periodLabel(st.range).toLowerCase());
 
   // ===================================================================== rendering
   function render() {
@@ -194,8 +214,9 @@
     newSel.addEventListener("change", () => { const v = newSel.value; newSel.value = ""; if (v) createDashboard(v); });
 
     const rangeSel = h("select", { "aria-label": "Time range for all widgets", title: "Show every widget over the same period for now (each widget keeps its own range)" },
-      RANGE_CHOICES.map(([v, l]) => h("option", { value: v, text: v ? `All: ${l.toLowerCase()}` : l, selected: v === st.range })));
-    rangeSel.addEventListener("change", () => setSync(Number(rangeSel.value)));
+      RANGE_CHOICES.map(([v, l]) => h("option", { value: v, text: v ? `All: ${l.toLowerCase()}` : l, selected: !st.custom && v === st.range })),
+      h("option", { value: "custom", text: st.custom ? `📅 All: ${FW.dateRange.label(st.custom)}` : "📅 Custom range…", selected: Boolean(st.custom) }));
+    rangeSel.addEventListener("change", () => (rangeSel.value === "custom" ? pickCustom() : setSync(Number(rangeSel.value))));
 
     const tools = h("div", { class: "dash-tools" },
       h("label", { class: "muted", text: "Range" }), rangeSel,
@@ -208,7 +229,8 @@
     if (st.current && st.edit) tabs.querySelectorAll("button[role=tab]").forEach((b, i) => dashTabDrag(b, st.dashboards[i]));
     if (st.range && st.current) {
       view.append(h("div", { class: "dash-sync", role: "status" },
-        h("span", { text: `🔗 All widgets show ${periodLabel(st.range).toLowerCase()} for now. Their own ranges are unchanged.` }),
+        h("span", { text: `🔗 All widgets show ${syncLabel()} for now. Their own ranges are unchanged.` }),
+        st.custom ? h("button", { type: "button", class: "btn small", text: "📅 Change dates", onclick: () => pickCustom() }) : null,
         h("button", { type: "button", class: "btn small", text: "↺ Back to each widget's own range", onclick: () => setSync(0) })));
     }
 
@@ -269,7 +291,7 @@
     const own = typeof w.query.days === "number" ? w.query.days : null;
     const rangeSel = own === null ? null : h("select", {
       class: "widget-range", "aria-label": `Time range for ${w.title}`, disabled: Boolean(st.range),
-      title: st.range ? `Synced to the top Range (${periodLabel(st.range).toLowerCase()}). This widget's own range: ${periodLabel(own).toLowerCase()} - press ↺ Reset to go back.`
+      title: st.range ? `Synced to the top Range (${syncLabel()}). This widget's own range: ${periodLabel(own).toLowerCase()} - press ↺ Reset to go back.`
         : "This widget's time range (saved with the widget)",
     }, [...new Set([...DAY_CHOICES, own, st.range || own])].sort((a, b) => a - b).map((d) => h("option", { value: d, text: periodLabel(d), selected: d === (st.range || own) })));
     if (rangeSel) rangeSel.addEventListener("change", () => setWidgetRange(idx, Number(rangeSel.value)));
@@ -1328,6 +1350,7 @@
       st.cards.forEach((entry) => loadWidget(entry));
       return;
     }
+    if (!root().childElementCount) fill(root(), h("p", { class: "muted lib-pad", text: "Loading dashboards…" }));  // never a blank page
     await loadMeta();
     await loadList();
     if (!st.current || !st.dashboards.some((d) => d.id === st.current.id)) {

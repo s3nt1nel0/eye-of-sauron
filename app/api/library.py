@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import Field, StrictBool, StringConstraints, model_validator
 
 from app import app_settings, sources, topics
-from app.api.common import Color, StrictModel, TopicIds, conflict, not_found, topic_clause
+from app.api.common import date_clause, Color, StrictModel, TopicIds, conflict, not_found, topic_clause
 from app import related
 from app.db import get_db, now, placeholders
 from app.security import Principal, audit, rate_limit, require_read, require_write
@@ -152,9 +152,13 @@ def videos(
     entity_id: int | None = Query(None, ge=1, le=2**31 - 1),   # only items that mention this watchlist entity…
     days: int = 0,                                              # …in the last n days (0 = any time)
     related_to: int | None = Query(None, ge=1, le=2**31 - 1),  # only items related to this article (see app/related.py)
+    since: int | None = Query(None, ge=0, le=2**40),                  # custom date range: published at or after…
+    until: int | None = Query(None, ge=0, le=2**40),                  # …and before (unix seconds)
     _: Principal = Depends(require_read),
 ) -> dict:
     base, params = _video_filters(feed_id, topic_id, q, length, state)
+    dates, date_params = date_clause(since, until)
+    base, params = base + dates, params + date_params
     extra, extra_params = topic_clause(topic_ids, topic_match)
     chan, chan_params = _channel_clause(channels)
     _check_days(days)
@@ -178,11 +182,15 @@ def shelves(
     length: Literal["any", "short", "medium", "long"] = "any",
     state: Literal["all", "unwatched", "watched", "starred"] = "all",
     per: int = Query(12, ge=1, le=48),
+    since: int | None = Query(None, ge=0, le=2**40),
+    until: int | None = Query(None, ge=0, le=2**40),
     _: Principal = Depends(require_read),
 ) -> dict:
     """Videos split into categories by topic: one shelf per topic (a video with several topics is on each of
     their shelves), plus "Other" for videos no enabled topic matched. Same filters as /library/videos."""
     base, params = _video_filters(feed_id, None, q, length, state)
+    dates, date_params = date_clause(since, until)
+    base, params = base + dates, params + date_params
     chan, chan_params = _channel_clause(channels)
     base, params = base + chan, params + chan_params
     no_topic = (" AND NOT EXISTS (SELECT 1 FROM article_topics x JOIN topics xt ON xt.id = x.topic_id "
@@ -193,19 +201,29 @@ def shelves(
         # one pass for every shelf: the same filtered videos joined to their topics, counted and ranked per topic
         joined = base.replace("FROM videos v ", "FROM article_topics x JOIN videos v ON v.article_id = x.article_id ", 1)
         joined += " AND x.topic_id IN (SELECT id FROM topics WHERE enabled = 1)"
-        ranked = [dict(r) for r in db.execute(
-            f"SELECT * FROM (SELECT {VIDEO_COLUMNS}, x.topic_id AS shelf_topic, "  # nosec B608 - fixed fragments, values bound
+        # Rank only (topic, id) pairs: sorting whole rows (titles, URLs, thumbnails) of a big library needs tens of MB
+        # of SQLite temp space, more than a read-only container's small /tmp has ("database or disk is full").
+        picks = db.execute(
+            "SELECT shelf_topic, id, shelf_total FROM (SELECT x.topic_id AS shelf_topic, a.id AS id, "  # nosec B608 - fixed fragments, values bound
             "COUNT(*) OVER (PARTITION BY x.topic_id) AS shelf_total, "
             f"ROW_NUMBER() OVER (PARTITION BY x.topic_id ORDER BY {SORTS[sort]}) AS shelf_rank {joined}) "
-            "WHERE shelf_rank <= ?", [*params, per])]
+            "WHERE shelf_rank <= ? ORDER BY shelf_topic, shelf_rank", [*params, per]).fetchall()
+        rows_by_id: dict[int, dict] = {}
+        wanted = sorted({p["id"] for p in picks})
+        for start in range(0, len(wanted), 500):
+            chunk = wanted[start:start + 500]
+            for r in db.execute(
+                    f"SELECT {VIDEO_COLUMNS} FROM videos v JOIN articles a ON a.id = v.article_id "  # nosec B608 - fixed columns
+                    f"JOIN feeds f ON f.id = a.feed_id WHERE a.id IN ({placeholders(len(chunk))})", chunk):
+                rows_by_id[r["id"]] = dict(r)
+        _attach_topics(db, list(rows_by_id.values()))
         totals: dict[int, int] = {}
-        _attach_topics(db, ranked)
         by_topic: dict[int, list[dict]] = {}
-        for r in ranked:
-            tid = r.pop("shelf_topic")
-            totals[tid] = r.pop("shelf_total")
-            r.pop("shelf_rank", None)
-            by_topic.setdefault(tid, []).append(r)
+        for p in picks:
+            tid = p["shelf_topic"]
+            totals[tid] = p["shelf_total"]
+            if p["id"] in rows_by_id:
+                by_topic.setdefault(tid, []).append(dict(rows_by_id[p["id"]]))
         for tid, total in totals.items():
             if tid in names and total:
                 t = names[tid]
@@ -268,11 +286,15 @@ def topic_counts(
     entity_id: int | None = Query(None, ge=1, le=2**31 - 1),   # only items that mention this watchlist entity…
     days: int = 0,                                              # …in the last n days (0 = any time)
     related_to: int | None = Query(None, ge=1, le=2**31 - 1),  # only items related to this article (see app/related.py)
+    since: int | None = Query(None, ge=0, le=2**40),                  # custom date range: published at or after…
+    until: int | None = Query(None, ge=0, le=2**40),                  # …and before (unix seconds)
     _: Principal = Depends(require_read),
 ) -> dict:
     """Videos per topic under the current channel / length / watched / search filters, so the numbers next to
     the topic names match what clicking a topic shows."""
     base, params = _video_filters(feed_id, None, q, length, state)
+    dates, date_params = date_clause(since, until)
+    base, params = base + dates, params + date_params
     chan, chan_params = _channel_clause(channels)
     _check_days(days)
     base, params = base + chan, params + chan_params

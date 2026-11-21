@@ -89,11 +89,14 @@ class BackfillIn(StrictModel):
     since_days: int | None = Field(default=None, ge=1, le=36500)   # how far back; None = as far as possible
     keep_forever: bool = False               # set the feed to keep forever so retention doesn't drop what we fetch
     whole_playlists: bool = False            # YouTube playlists among the feeds are loaded whole (no time frame)
+    # One setting for history: the feed keeps this many days AND older items are fetched back to it (0 = everything).
+    # Replaces since_days + keep_forever (still accepted from older clients).
+    keep_days: int | None = Field(default=None, ge=0, le=36500)
 
 
 @router.post("/feeds/{feed_id}/backfill", tags=["feeds"], dependencies=[Depends(rate_limit("backfill", 6))])
 def backfill(feed_id: int, body: BackfillIn, principal: Principal = Depends(require_write)) -> dict:
-    audit("backfill_requested", principal, feed_id=feed_id, max_pages=body.max_pages, method=body.method)
+    audit("backfill_requested", principal, feed_id=feed_id, max_pages=body.max_pages, method=body.method, keep_days=body.keep_days)
     with get_db() as db:
         if db.execute("SELECT 1 FROM feeds WHERE id = ?", (feed_id,)).fetchone() is None:
             raise not_found("Feed")
@@ -117,7 +120,7 @@ def backfill_all(body: BulkBackfillIn, principal: Principal = Depends(require_ad
         with get_db() as db:
             if db.execute("SELECT 1 FROM folders WHERE id = ?", (body.folder_id,)).fetchone() is None:
                 raise not_found("Folder")
-    ids = history.bulk_feed_ids(body.folder_id, body.only_missing, body.since_days)
+    ids = history.bulk_feed_ids(body.folder_id, body.only_missing, body.since_days, body.keep_days)
     if body.feed_ids is not None:  # e.g. the channels just added together in the Library
         wanted = set(body.feed_ids)
         ids = [i for i in ids if i in wanted]
