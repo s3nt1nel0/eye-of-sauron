@@ -1,0 +1,47 @@
+/* 👥 Accounts tab: single saved posts shown readably - author, picture, collapsed preview, Follow (accounts.js). */
+.acc-avatar { flex: none; width: 28px; height: 28px; border-radius: 50%; object-fit: cover; background: var(--panel-2); }
+.acc-initial { display: grid; place-items: center; font-weight: 700; font-size: .8rem; color: var(--muted); border: 1px solid var(--border); }
+.acc-who { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.2; }
+.acc-who .acc-name { flex: none; }
+.acc-handle { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.acc-date { flex: none; }
+.acc-thumb { display: block; width: 100%; margin: 2px 0; padding: 0; border: 0; border-radius: 8px; overflow: hidden;
+  background: var(--panel-2); cursor: zoom-in; }
+.acc-thumb:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.acc-zoom { cursor: zoom-in; }
+/* the picture viewer (accounts.js openPhoto) */
+.acc-lightbox { padding: 0; border: 0; background: transparent; max-width: 96vw; max-height: 94vh; overflow: auto; }
+.acc-lightbox::backdrop { background: rgba(0, 0, 0, .85); }
+.acc-lightbox img { display: block; max-width: 96vw; max-height: 94vh; object-fit: contain; cursor: zoom-in; border-radius: 6px; }
+.acc-lightbox.actual img { max-width: none; max-height: none; cursor: zoom-out; }
+.acc-lightbox-close { position: sticky; top: 6px; float: right; margin: 6px; z-index: 1; background: rgba(0, 0, 0, .6); color: #fff;
+  border-radius: 50%; width: 34px; height: 34px; }
+.acc-thumb img { display: block; width: 100%; max-height: 260px; object-fit: cover; }
+.acc-read .acc-thumb img, .acc-post .acc-thumb img { max-height: 520px; object-fit: contain; }
+.acc-clamp { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 6; line-clamp: 6; overflow: hidden; }
+/* Show more / Show less sits above the text and stays in view while you scroll through an opened post */
+.acc-card { overflow: clip; position: relative; }    /* clip (not hidden): the sticky toggle follows the page's scroll */
+.acc-more { align-self: stretch; text-align: left; font-size: .85em; position: sticky; top: var(--acc-head-h, 0px); z-index: 2;
+  padding: 4px 0; background: var(--panel); }
+.acc-post .acc-more { background: var(--panel); }
+/* Drag the right edge of a post to set the posts' width (accounts.js widthHandle; double-click = automatic) */
+.acc-post { position: relative; }
+.acc-resize { position: absolute; top: 0; right: 0; bottom: 0; width: 8px; cursor: ew-resize; touch-action: none; z-index: 3; }
+.acc-resize::after { content: ""; position: absolute; top: 50%; right: 2px; width: 3px; height: 36px; margin-top: -18px;
+  border-radius: 2px; background: var(--border); opacity: 0; transition: opacity .15s; }
+.acc-card:hover .acc-resize::after, .acc-post:hover .acc-resize::after, .acc-resize:focus-visible::after { opacity: 1; }
+.acc-resize:hover::after, body.is-resizing .acc-resize::after { background: var(--accent); opacity: 1; }
+#accGrid.lib-grid.acc-sized:not(.shelves) { grid-template-columns: repeat(auto-fill, min(var(--acc-w), 100%)); }
+#accGrid.shelves.acc-sized .lib-shelf-row { grid-auto-columns: min(var(--acc-w), 100%); }
+#accGrid.acc-read.acc-sized { max-width: min(var(--acc-w), 100%); }
+.acc-full { font-size: .9em; line-height: 1.5; overflow-wrap: anywhere; }
+.acc-full p { margin: 0 0 .6em; }
+.acc-full img { max-width: 100%; height: auto; border-radius: 6px; }
+.acc-trunc { margin: 0; padding: 6px 8px; border-left: 3px solid var(--warn, #d97706); background: var(--panel-2); border-radius: 6px; }
+.acc-follow { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.acc-follow-note { flex-basis: 100%; }
+.acc-paste { display: grid; gap: 6px; }
+.acc-paste textarea { width: 100%; min-height: 7em; }
+.acc-paste .form-actions { justify-content: flex-end; }
+.acc-contacts { flex-basis: 100%; }
+.acc-post .acc-follow, .acc-post .acc-trunc { margin-top: 8px; }

@@ -37,12 +37,20 @@ you run yourself. It reads public sources only, keeps everything in a single SQL
 - Reader comforts: 🌐 AI title translation per feed, highlight words, reading time and site icons, an **image proxy**
   (publishers don't see your IP), 🔖 read later (Wallabag, Linkwarden, Obsidian, Markdown) and adaptive refresh.
 - **🗓️ Keep feeds**: one place to decide how far back article feeds, podcasts, YouTube channels and accounts keep items.
+- **📦 Repos**: GitHub and GitLab repos, owners, gists, GitHub Docs pages and websites in folders of your own, sorted
+  into topics, with new releases — paste up to 200 links at once.
+- **🔗 Resources**: your bookmarks (training platforms, labs, cheat sheets, tools…) imported from your browser and sorted
+  into topics, with a ★ Launchpad, a mind map and a **⌘/Ctrl+K launcher** that opens any saved site from every tab.
+- **▶ Videos play inside the app** (YouTube's privacy-enhanced player), one stored copy per video.
+- **📅 Custom date ranges** on every tab, whole collection folders at once, podcast skip buttons and older episodes,
+  and tabs in the order you like.
 - Works with native RSS apps (Reeder, NetNewsWire, Read You, FocusReader, …) through a Google Reader-compatible API.
 - OPML import / export that keeps article feeds, podcasts, YouTube channels and accounts in their own tabs.
-- Works on phones and tablets.
+- Works on phones, tablets and desktops, upright or sideways (swipeable tabs, ☰ Filters, finger-sized controls).
+- **One-command updates** for Docker installs: `./deploy/update.sh` backs up, updates and rolls back if anything fails.
 
 **Threat intelligence**
-- **📑 Reports & guidance**: advisories, guidance and threat reports from government agencies and CERTs (CISA, ASD's
+- **📑 Reports & guidance** filed into your collections: advisories, guidance and threat reports from government agencies and CERTs (CISA, ASD's
   ACSC, NCSC UK, CERT-EU, Canadian Cyber Centre, CERT-FR, JPCERT, FBI IC3, …) and vendor research teams (Mandiant,
   Microsoft, CrowdStrike, Unit 42, Talos, Check Point, Recorded Future, SentinelLABS, …) — with instant alerts.
 - **🎭 Threat actors**: 1,100+ tracked actors from MITRE ATT&CK, the open MISP galaxy and vendor naming, with every alias

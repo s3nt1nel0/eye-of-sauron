@@ -149,10 +149,54 @@ def test_bundled_catalogue_is_well_formed():
     for dragos in ("VOLTZITE", "ELECTRUM", "KAMACITE", "XENOTIME", "BAUXITE", "GRAPHITE", "PARISITE"):
         assert dragos.lower() in names or dragos.lower() in alias, dragos
     for a in data["actors"]:
-        assert isinstance(a["name"], str) and 0 < len(a["name"]) <= 80 and len(a["aliases"]) <= 30
-        assert set(a) == {"name", "match_name", "aliases", "country", "kind", "sources"}
-        assert a["match_name"] or a["aliases"]                           # something it can be recognised by
+        assert isinstance(a["name"], str) and 0 < len(a["name"]) <= 80 and len(a["aliases"]) <= 40 and len(a["names"]) <= 80
+        assert {"name", "match_name", "aliases", "names", "country", "kind", "sources"} <= set(a) <= \
+            {"name", "match_name", "aliases", "names", "country", "kind", "sources", "attack_id", "atlas_id"}
+        assert a["match_name"] or a["aliases"] or a.get("attack_id") or a.get("atlas_id")   # recognisable, or a MITRE group
         assert all(len(x) >= 4 and "<" not in x for x in a["aliases"])
+        assert set(a["aliases"]) <= set(a["names"])                      # matched names are a subset of all names
+
+
+def test_every_mitre_group_is_an_actor():
+    """Every live ATT&CK group (enterprise, mobile and ICS bundles) and every ATLAS activity cluster the catalogue was
+    built from is one actor, with its MITRE ID."""
+    data = threat_actors.load_catalog()
+    attack = [a["attack_id"] for a in data["actors"] if a.get("attack_id")]
+    assert len(data["attack_group_ids"]) >= 180
+    assert sorted(attack) == sorted(data["attack_group_ids"])            # every group exactly once
+    atlas = sorted(a["atlas_id"] for a in data["actors"] if a.get("atlas_id"))
+    assert atlas == sorted(data["atlas_actor_ids"]) and atlas
+
+
+def test_apt40_has_its_names_from_the_official_sources():
+    data = threat_actors.load_catalog()
+    apt40 = next(a for a in data["actors"] if a.get("attack_id") == "G0065")
+    names = {n.lower() for n in [apt40["name"], *apt40["names"]]}
+    for must in ("APT40", "Leviathan", "Kryptonite Panda", "Gadolinium", "Gingham Typhoon", "TEMP.Periscope", "TEMP.Jumper",
+                 "BRONZE MOHAWK", "MUDCARP", "ISLANDDREAMS", "Red Ladon", "ATK29", "TA423"):
+        assert must.lower() in names, must
+    assert "Leviathan" not in apt40["aliases"]                           # an ordinary word: shown, never looked for alone
+    assert "Gingham Typhoon" in apt40["aliases"]
+
+
+def test_actor_page_shows_every_name_of_every_list_entry(authed):
+    from app import entities, intel
+    from app.db import get_db
+
+    with mock.patch("app.threat_actors.entities.reindexer.request"):
+        threat_actors.apply_catalog()                     # the real, bundled catalogue
+    with get_db() as db:
+        wid = db.execute("SELECT id FROM watchlists WHERE slug = 'threat-actors'").fetchone()
+        wid = wid[0] if wid else db.execute("INSERT INTO watchlists (name, slug) VALUES ('Threat actors & APTs', 'threat-actors')").lastrowid
+        row = db.execute("SELECT id FROM entities WHERE watchlist_id = ? AND name = 'APT40'", (wid,)).fetchone()
+        mine = row[0] if row else db.execute("INSERT INTO entities (watchlist_id, name, aliases) VALUES (?, 'APT40', '[]')", (wid,)).lastrowid
+    entities.invalidate()
+    with get_db() as db:
+        page = intel.entity_page(db, mine)
+    shown = {n.lower() for n in page["actor"]["also"]}
+    assert {"kryptonite panda", "temp.periscope", "red ladon", "ta423", "leviathan"} <= shown
+    assert len({n.lower() for n in page["actor"]["also"]}) == len(page["actor"]["also"])     # no case duplicates
+    assert {"kryptonite panda", "temp.periscope", "red ladon"} <= {a.lower() for a in page["aliases"]}
 
 
 def test_conti_seed_fix_only_touches_an_unedited_entry(authed):

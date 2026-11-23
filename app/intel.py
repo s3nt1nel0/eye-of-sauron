@@ -128,7 +128,8 @@ def entity_page(db: sqlite3.Connection, entity_id: int, days: int = 90, per_kind
         mitre["subtechniques"].sort(key=lambda s: (-s["n"], s["id"]))
     return {
         "id": ent["id"], "name": ent["name"], "watchlist": {"id": ent["watchlist_id"], "name": ent["watchlist"]},
-        "aliases": [a for a in json.loads(ent["aliases"]) if a.lower() not in muted][:40],
+        # a threat actor is recognised by the names of every list entry that stands for it
+        "aliases": [a for a in (actor["matched"] if actor else json.loads(ent["aliases"])) if a.lower() not in muted][:160],
         "mitre": mitre, "actor": actor,
         "totals": totals, "all_time": seen["n"], "first_seen": first, "last_seen": last, "latest": latest,
         "days": days, "step": step, "timeline": timeline, "related": related,

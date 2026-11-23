@@ -502,6 +502,22 @@ def fetch_youtube(cfg: YouTubeSource, url: str) -> Fetched:
 
 
 def store_video(db, article_id: int, meta: dict, published: int | None) -> None:
+    """The video record of a just-stored article. One copy per video: if another article already holds this
+    video (a path that skipped the link_existing check), the new article is folded into it instead."""
+    from app import video_links  # stdlib-only module
+
+    vid = normalize_video_id(meta.get("video_id") or "")
+    if not vid:
+        return
+    meta = {**meta, "video_id": vid}
+    position = meta.get("position") if isinstance(meta.get("position"), int) else None
+    other = db.execute("SELECT article_id FROM videos WHERE video_id = ? AND article_id != ?", (vid, article_id)).fetchone()
+    if other is not None:
+        own = db.execute("SELECT feed_id FROM articles WHERE id = ?", (article_id,)).fetchone()
+        video_links.merge_into(db, other[0], article_id)
+        if own is not None and position is not None:
+            video_links.link(db, own[0], other[0], position)
+        return
     db.execute(
         "INSERT INTO videos (article_id, video_id, channel_id, channel_title, thumbnail, duration_s, views, published) "
         "VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(article_id) DO UPDATE SET duration_s = COALESCE(excluded.duration_s, duration_s), "
@@ -509,6 +525,22 @@ def store_video(db, article_id: int, meta: dict, published: int | None) -> None:
         (article_id, meta["video_id"], meta.get("channel_id"), meta.get("channel_title"), meta.get("thumbnail"),
          meta.get("duration_s"), meta.get("views"), published),
     )
+    if position is not None:  # its place in the playlist it came from
+        own = db.execute("SELECT feed_id FROM articles WHERE id = ?", (article_id,)).fetchone()
+        if own is not None:
+            video_links.link(db, own[0], article_id, position)
+
+
+def link_existing_video(db, feed_id: int, meta: dict | None) -> bool:
+    """Before storing a video for a feed: if it is already in the library (from any playlist / channel / saved),
+    link it to this feed instead and return True (nothing new to store). Only the differences get added."""
+    from app import video_links
+
+    if not meta:
+        return False
+    vid = normalize_video_id(meta.get("video_id") or "")
+    position = meta.get("position") if isinstance(meta.get("position"), int) else None
+    return bool(vid) and video_links.link_existing(db, feed_id, vid, position)
 
 
 def refresh_video_stats(db, metas: dict[str, dict]) -> None:
@@ -558,11 +590,25 @@ def adopt_as_youtube(db, feed_id: int, source: dict) -> int:
     return attached
 
 
-_VIDEO_PATHS = re.compile(r"^/(?:shorts|live|embed|v)/([A-Za-z0-9_-]{11})(?:[/?#]|$)")
+_VIDEO_PATHS = re.compile(r"^/(?:shorts|live|embed|v|e)/([A-Za-z0-9_-]{11})(?:[/?#]|$)")
+_VIDEO_HOSTS = ("youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com",
+                "youtube-nocookie.com", "www.youtube-nocookie.com")
+
+
+def normalize_video_id(text: str) -> str | None:
+    """The 11-character video id from a bare id, a "yt:video:<id>" guid or any single-video link, else None.
+    Every way a video enters the library goes through this, so one video is never stored under two spellings."""
+    text = (text or "").strip()
+    if VIDEO_ID.match(text):
+        return text
+    if text.startswith("yt:video:") and VIDEO_ID.match(text[9:]):
+        return text[9:]
+    return parse_video_id(text) if text else None
 
 
 def parse_video_id(text: str) -> str | None:
-    """The video id of a single-video link (watch?v=, youtu.be/, /shorts/, /live/, /embed/), else None."""
+    """The video id of a single-video link (watch?v=, youtu.be/, /shorts/, /live/, /embed/, youtube-nocookie),
+    else None. Extra parameters (&t=, &list=, ?si=, #t=) are ignored."""
     text = text.strip()
     if not text.startswith(("http://", "https://")):
         text = "https://" + text
@@ -571,9 +617,9 @@ def parse_video_id(text: str) -> str | None:
     if host == "youtu.be":
         vid = parts.path.strip("/").split("/")[0]
         return vid if VIDEO_ID.match(vid) else None
-    if host not in ("youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com"):
+    if host not in _VIDEO_HOSTS:
         return None
-    if parts.path == "/watch":
+    if parts.path in ("/watch", "/watch/"):
         vid = (parse_qs(parts.query).get("v") or [""])[0]
         return vid if VIDEO_ID.match(vid) else None
     m = _VIDEO_PATHS.match(parts.path)
@@ -700,9 +746,11 @@ def youtube_backfill(cfg: YouTubeSource, key: str, max_videos: int, stop, since:
                       link=f"https://www.youtube.com/watch?v={vid}",
                       html_body=video_html(vid, thumb, sn.get("description"), d.get("duration_s")), ts=ts,
                       author=to_text(sn.get("videoOwnerChannelTitle") or sn.get("channelTitle"), 300) or None)
+            pos = sn.get("position") if cfg.playlist_id else None  # the playlist's own order (0 = first)
             pairs.append((e, {"video_id": vid, "channel_id": sn.get("videoOwnerChannelId") or cfg.channel_id,
                               "channel_title": to_text(sn.get("videoOwnerChannelTitle") or sn.get("channelTitle"), 300),
-                              "thumbnail": thumb, **d}))
+                              "thumbnail": thumb, **d,
+                              **({"position": pos} if isinstance(pos, int) and 0 <= pos < 1_000_000 else {})}))
         token = data.get("nextPageToken") if isinstance(data.get("nextPageToken"), str) else ""
         if not token or not batch:
             break

@@ -176,6 +176,7 @@
   async function api(method, path, body, opts = {}) {
     const headers = { Accept: "application/json" };
     const init = { method, headers, credentials: "same-origin" };
+    if (opts.signal) init.signal = opts.signal;  // a newer request for the same place cancels this one
     if (body !== undefined) {
       if (opts.raw) {
         headers["Content-Type"] = opts.contentType || "application/octet-stream";
@@ -204,6 +205,7 @@
       if (okMessage) toast(okMessage);
       return result;
     } catch (err) {
+      if (err && err.name === "AbortError") return undefined;  // replaced by a newer request
       toast(err.message || "Something went wrong", true);
       return undefined;
     }
@@ -228,7 +230,88 @@
   };
 
   // ======================================================================= settings / theme
+  // ---------------------------------------------------------------- tab order (drag the tabs, or Settings → Arrange tabs…)
+  const TAB_IDS = { reader: "modeReader", dashboard: "modeDash", library: "modeLibrary", accounts: "modeAccounts",
+    podcasts: "modePodcasts", repos: "modeRepos", resources: "modeResources", threatmap: "modeThreatmap" };
+  const tabBar = () => document.querySelector(".mode-switch");
+  const tabKeys = () => [...(tabBar() ? tabBar().children : [])].map((b) => b.dataset.tab).filter(Boolean);
+  function applyTabOrder() {
+    const bar = tabBar();
+    if (!bar) return;
+    for (const [key, id] of Object.entries(TAB_IDS)) { const b = document.getElementById(id); if (b) b.dataset.tab = key; }
+    const buttons = new Map([...bar.children].filter((b) => b.dataset.tab).map((b) => [b.dataset.tab, b]));
+    const want = (state.settings.tab_order || []).filter((k) => buttons.has(k));
+    const order = [...want, ...[...buttons.keys()].filter((k) => !want.includes(k))];
+    if (order.join() !== tabKeys().join()) order.forEach((k) => bar.append(buttons.get(k)));
+  }
+  async function saveTabOrder(order) {
+    const res = await guarded(() => api("PATCH", "/settings", { tab_order: order }));
+    if (res) state.settings = res;
+    applyTabOrder();
+  }
+  /** Drag a tab left or right to move it (mouse / pen); Alt+Shift+←/→ moves the focused tab (keyboard). */
+  function setupTabDrag() {
+    const bar = tabBar();
+    if (!bar || bar.dataset.dragReady) return;
+    bar.dataset.dragReady = "1";
+    let dragged = null;
+    for (const b of bar.children) {
+      if (!b.dataset.tab) continue;
+      b.draggable = true;
+      b.addEventListener("dragstart", (e) => { dragged = b; b.classList.add("tab-dragging"); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", b.dataset.tab); });
+      b.addEventListener("dragend", () => { if (dragged) dragged.classList.remove("tab-dragging"); dragged = null; });
+      b.addEventListener("keydown", (e) => {
+        if (!e.altKey || !e.shiftKey || (e.key !== "ArrowLeft" && e.key !== "ArrowRight")) return;
+        e.preventDefault();
+        const order = tabKeys();
+        const i = order.indexOf(b.dataset.tab), j = i + (e.key === "ArrowLeft" ? -1 : 1);
+        if (j < 0 || j >= order.length) return;
+        [order[i], order[j]] = [order[j], order[i]];
+        saveTabOrder(order).then(() => b.focus());
+      });
+    }
+    bar.addEventListener("dragover", (e) => {
+      if (!dragged) return;
+      e.preventDefault();
+      const over = e.target.closest(".mode-switch > button");
+      if (!over || over === dragged) return;
+      const r = over.getBoundingClientRect();
+      bar.insertBefore(dragged, e.clientX > r.left + r.width / 2 ? over.nextSibling : over);
+    });
+    bar.addEventListener("drop", (e) => {
+      if (!dragged) return;
+      e.preventDefault();
+      saveTabOrder(tabKeys());
+    });
+  }
+  /** Settings → Arrange tabs…: ↑ / ↓ for each tab (works on phones and tablets too), Reset = built-in order. */
+  function openArrangeTabs() {
+    const labels = Object.fromEntries([...(tabBar() ? tabBar().children : [])].filter((b) => b.dataset.tab).map((b) => [b.dataset.tab, b.textContent.trim()]));
+    let order = tabKeys();
+    const list = h("ol", { class: "tab-arrange" });
+    const draw = () => fill(list, order.map((k, i) => h("li", null,
+      h("span", { text: labels[k] || k }),
+      h("span", { class: "tab-arrange-btns" },
+        h("button", { type: "button", class: "btn small", text: "↑", disabled: i === 0, "aria-label": `Move ${labels[k]} earlier`, onclick: () => { [order[i - 1], order[i]] = [order[i], order[i - 1]]; draw(); } }),
+        h("button", { type: "button", class: "btn small", text: "↓", disabled: i === order.length - 1, "aria-label": `Move ${labels[k]} later`, onclick: () => { [order[i + 1], order[i]] = [order[i], order[i + 1]]; draw(); } })))));
+    draw();
+    const dlg = h("dialog", { class: "range-dialog", "aria-label": "Arrange tabs" },
+      h("div", { class: "form" },
+        h("h3", { text: "⇄ Arrange tabs" }),
+        h("p", { class: "muted small", text: "The order of the tabs at the top. On a computer you can also drag a tab left or right." }),
+        list,
+        h("div", { class: "form-actions" },
+          h("button", { type: "button", class: "btn", text: "Reset", title: "Back to the built-in order", onclick: async () => { await saveTabOrder([]); dlg.close(); toast("Tabs back in the built-in order"); } }),
+          h("button", { type: "button", class: "btn", text: "Cancel", onclick: () => dlg.close() }),
+          h("button", { type: "button", class: "btn primary", text: "Save", onclick: async () => { await saveTabOrder(order); dlg.close(); toast("Tab order saved"); } }))));
+    dlg.addEventListener("close", () => dlg.remove());
+    document.body.append(dlg);
+    dlg.showModal();
+  }
+
   function applySettings() {
+    applyTabOrder();
+    setupTabDrag();
     const s = state.settings;
     const root = document.documentElement;
     if (s.theme === "dark" || s.theme === "light") root.dataset.theme = s.theme;
@@ -266,8 +349,6 @@
     side.append(h("div", { class: "side-section" },
       sideItem({ label: "All articles", icon: "≡", count: counts.total, view: { type: "all" } }),
       sideItem({ label: "Unread", icon: "●", count: counts.unread, view: { type: "unread" } }),
-      sideItem({ label: "Reports & guidance", icon: "📑", count: counts.reports_unread || "", view: { type: "reports", id: "all" },
-        title: "Advisories, guidance and threat reports from government agencies, CERTs and security vendors' research teams" }),
       sideItem({ label: "Read", icon: "○", count: Math.max(0, (counts.total || 0) - (counts.unread || 0)) || "", view: { type: "read" } }),
       sideItem({ label: "Starred", icon: "★", count: counts.starred, view: { type: "starred" } }),
       sideItem({ label: "Today", icon: "◷", view: { type: "today" } }),
@@ -298,8 +379,13 @@
       const openKey = `tags-open:${key}`;
       const wrap = h("div", { class: state.collapsed.has(openKey) ? "" : "collapsed" });
       const unread = items.reduce((n, x) => n + (x.t.unread || 0), 0);
-      const head = sideItem({ label: key, count: unread || "", view: { type: "tag", id: items[0].t.id }, title: `${items.length} collections` });
-      const caret = h("span", { class: "caret", text: "▾", title: "Collapse / expand" });
+      const total = items.reduce((n, x) => n + (x.t.total || 0), 0);
+      // The heading opens every article in the folder's collections (filters, sort and dates apply as for any list);
+      // the ▾ caret opens / closes the folder.
+      const head = sideItem({ label: key, count: unread || "", view: { type: "taggroup", id: key, ids: items.map((x) => x.t.id) },
+        title: `${key}: all ${items.length} collections (${total} articles). ▾ shows them one by one` });
+      const caret = h("span", { class: "caret", text: "▾", title: "Show / hide the collections in this folder", role: "button",
+        tabindex: "0", "aria-label": `Show or hide the collections in ${key}` });
       const toggle = (e) => {
         e.stopPropagation(); e.preventDefault();
         wrap.classList.toggle("collapsed");
@@ -307,7 +393,7 @@
         store.set("fw-collapsed", [...state.collapsed]);
       };
       caret.addEventListener("click", toggle);
-      head.addEventListener("click", toggle, true);  // the group heading only opens/closes; pick a collection inside
+      caret.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") toggle(e); });
       head.firstChild.replaceWith(caret);
       const matrixBtn = key === "ATT&CK" || key === "ATLAS" ? h("button", { type: "button", class: "feed-gear matrix-btn", text: "▦",
         title: `${key} technique matrix: every technique by tactic, coloured by how many articles name it`, "aria-label": `${key} technique matrix`,
@@ -479,9 +565,9 @@
       case "feed": return (sb.feeds.find((f) => f.id === v.id) || (sb.media_feeds || []).find((f) => f.id === v.id) || {}).title || "Feed";
       case "folder": return (sb.folders.find((f) => f.id === v.id) || {}).name || "Folder";
       case "tag": return (sb.tags.find((t) => t.id === v.id) || {}).name || "Collection";
+      case "taggroup": return `${v.id} (all collections)`;
       case "ttp": return `${v.id.startsWith("AML.") ? "ATLAS" : "ATT&CK"} technique: ${v.name || ""} (${v.id})`;
       case "entity": return `Mentions: ${v.name || ""}`;
-      case "reports": return `📑 Reports & guidance${v.id && v.id !== "all" ? ` · ${REPORT_FILTERS.find(([k]) => k === v.id)[1]}` : ""}`;
       default: return "";
     }
   }
@@ -511,9 +597,9 @@
     if (v.type === "feed") p.set("feed_id", v.id);
     if (v.type === "folder") p.set("folder_id", v.id);
     if (v.type === "tag") p.set("tag_id", v.id);
+    if (v.type === "taggroup") p.set("tag_ids", v.ids.join(","));
     if (v.type === "ttp") p.set("technique", v.id);
     if (v.type === "entity") p.set("entity_id", v.id);
-    if (v.type === "reports") p.set("publication", v.id || "all");
     if (v.type === "starred") p.set("starred", "true");
     if (v.type === "read") p.set("read", "true");
     else if (v.type === "unread" || hidesRead()) p.set("unread", "true");
@@ -521,6 +607,8 @@
     if (v.type === "today") {
       const start = new Date(); start.setHours(0, 0, 0, 0);
       p.set("since", Math.floor(start.getTime() / 1000));
+    } else if ($("#rangeSelect").value === "custom") {
+      addRangeParams(p, state.range);
     } else if ($("#rangeSelect").value) {
       p.set("since", now - Number($("#rangeSelect").value));
     }
@@ -531,12 +619,31 @@
     return p.toString();
   }
 
+  let listSeq = 0;
+  let listCtl = null;
+  /** Skeleton rows of the same height as articles, for the very first load (later loads keep the old list, dimmed). */
+  function listSkeleton(list) {
+    if (list.querySelector(".article-item, .empty")) return;
+    fill(list, Array.from({ length: 8 }, () => h("div", { class: "skeleton-row", "aria-hidden": "true" },
+      h("span", { class: "sk sk-meta" }), h("span", { class: "sk sk-title" }), h("span", { class: "sk sk-line" }))));
+  }
   async function loadArticles(append = false) {
-    if (state.loading) return;
+    if (append && state.loading) return;            // "Load more" waits; a new view never does
+    const mine = append ? listSeq : ++listSeq;      // switching views cancels the older request instead of dropping the new one
+    if (!append) {
+      if (listCtl) listCtl.abort();
+      listCtl = new AbortController();
+    }
+    const signal = append ? undefined : listCtl.signal;
     state.loading = true;
+    const list = $("#articleList");
+    list.classList.add("is-loading");
+    list.setAttribute("aria-busy", "true");
+    if (!append) listSkeleton(list);
     const offset = append ? state.articles.filter(belongsHere).length : 0;
     try {
-      const data = await api("GET", `/articles?${buildQuery(offset)}`);
+      const data = await api("GET", `/articles?${buildQuery(offset)}`, undefined, { signal });
+      if (mine !== listSeq) return;                 // a newer view or filter won
       state.articles = append ? state.articles.concat(data.items) : data.items;
       state.total = data.total;
       if (!append && state.checked.size) {
@@ -552,9 +659,13 @@
       renderList();
       updateViewTitle();
     } catch (err) {
-      toast(err.message, true);
+      if (err.name !== "AbortError" && mine === listSeq) toast(err.message, true);
     } finally {
-      state.loading = false;
+      if (mine === listSeq) {
+        state.loading = false;
+        list.classList.remove("is-loading");
+        list.removeAttribute("aria-busy");
+      }
     }
   }
 
@@ -701,8 +812,6 @@
       ttps.length > shown.length ? h("span", { class: "chip ttp-more", title: ttps.slice(shown.length).map((t) => `${t.id} ${t.name}`).join("\n"), text: `+${ttps.length - shown.length}` }) : null);
   }
 
-  const REPORT_FILTERS = [["all", "All"], ["government", "🏛 Government & CERTs"], ["vendor", "🔬 Vendor research"], ["advisory", "Advisories"],
-    ["guidance", "Guidance"], ["report", "Reports"]];
 
   /** Above the list of an "ATT&CK: <tactic>" / "ATLAS: <tactic>" collection: that tactic's techniques, most-mentioned first. */
   let ttpStripKey = "";
@@ -714,20 +823,6 @@
     const m = tag ? /^(ATT&CK|ATLAS): (.+)$/.exec(tag.name) : null;
     const key = m ? tag.name : "";
     if (key === ttpStripKey) return;
-    if (v.type === "reports") {  // 📑 filter chips and who publishes
-      ttpStripKey = `reports:${v.id}`;
-      const sum = await api("GET", "/reports/summary").catch(() => null);
-      if (ttpStripKey !== `reports:${v.id}` || !sum) return;
-      const open = store.get("fw-reports-strip", true) !== false;
-      fill(strip, h("details", { open, ontoggle: (e) => store.set("fw-reports-strip", e.currentTarget.open) },
-        h("summary", { text: `${sum.total.toLocaleString()} publications from ${sum.publishers.length} publishers - pick a filter, or a publisher for its list` }),
-        h("div", { class: "chips" }, REPORT_FILTERS.map(([k, label]) => h("button", { type: "button", class: `chip intel-chip${(v.id || "all") === k ? " on" : ""}`,
-          text: `${label} ${k === "all" ? sum.total : sum[k] || 0}`, onclick: () => selectView({ type: "reports", id: k }) }))),
-        h("div", { class: "chips reports-publishers" }, sum.publishers.slice(0, 40).map((pb) => h("span", { class: "chip sub-chip",
-          title: `${pb.kind === "government" ? "Government / CERT" : "Vendor research"} · latest ${relTime(pb.latest)}`, text: `${pb.kind === "government" ? "🏛" : "🔬"} ${pb.publisher} ${pb.n}` })))));
-      strip.hidden = false;
-      return;
-    }
     if (v.type === "ttp" || v.type === "entity") {  // a technique's / entity's own list: its page (and the matrix)
       ttpStripKey = `${v.type}:${v.id}`;
       fill(strip, h("div", { class: "strip-tools" },
@@ -965,7 +1060,7 @@
     state.q = "";
     $("#search").value = "";
     $("#rangeSelect").disabled = view.type === "today";
-    $("#app").classList.remove("show-sidebar", "show-reader");
+    $("#app").classList.remove("show-sidebar", "show-reader"); syncSidebarButton();
     renderSidebar();
     loadArticles();
   }
@@ -1012,11 +1107,17 @@
     updateViewTitle();
   }
 
+  let openSeq = 0;
   async function openArticle(id) {
     pruneLeftArticle(id);
     state.selectedId = id;
     renderList();
+    const mine = ++openSeq;
+    const reader = $("#reader");
+    reader.classList.add("is-loading");
     const article = await guarded(() => api("GET", `/articles/${id}`));
+    if (mine !== openSeq) return;                   // j / k pressed again: a newer article is on its way
+    reader.classList.remove("is-loading");
     if (!article) return;
     state.current = article;
     $("#app").classList.add("show-reader");
@@ -1228,6 +1329,9 @@
   }
 
   let addFeedPicker = null;
+  let addFeedKeep = null;
+  const ADD_KEEP = [["", "Default"], ["30", "Last 30 days"], ["90", "Last 90 days"], ["180", "Last 6 months"], ["365", "Last year"],
+    ["730", "Last 2 years"], ["1825", "Last 5 years"], ["0", "Everything (keep forever)"]];
 
   function openAddFeed() {
     const dlg = $("#addFeedDialog");
@@ -1237,7 +1341,8 @@
     addFeedPicker = refreshPicker(null, true);
     fill($("#addFeedRefresh"), addFeedPicker.el);
     const g = Number(state.settings.retention_days ?? 90);  // what "Default" means right now
-    $("#addFeedKeep").options[0].textContent = `Default (global setting: ${fmtRetention(g, true)})`;
+    addFeedKeep = keepPicker({ choices: ADD_KEEP.map(([v, l]) => [v, v === "" ? `Default (global setting: ${fmtRetention(g, true)})` : l]) });
+    fill($("#addFeedKeep"), addFeedKeep.el);
     dlg.showModal();
   }
 
@@ -1252,7 +1357,8 @@
     const interval = addFeedPicker ? addFeedPicker.value() : null;
     if (Number.isNaN(interval)) { $("#addFeedError").textContent = "Custom interval must be 5–10080 minutes."; return; }
     if (interval !== null) body.refresh_minutes = interval;
-    const keepDays = form.retention_days.value === "" ? null : Number(form.retention_days.value);
+    const keepDays = addFeedKeep ? addFeedKeep.days() : null;
+    if (Number.isNaN(keepDays)) { $("#addFeedError").textContent = "Custom keep time frame must be 1 day to 100 years."; return; }
     if (keepDays !== null) body.retention_days = keepDays;
     const loadOlder = form.load_older.checked;
     const submitBtn = form.querySelector("button[type=submit]");
@@ -1279,7 +1385,7 @@
       const feed = await api("POST", "/feeds", body);
       $("#addFeedDialog").close();
       if (loadOlder && feed && feed.id) {  // older items inside the chosen time frame (in the background)
-        await api("POST", `/feeds/${feed.id}/backfill`, { method: "auto", max_pages: 100, since_days: keepDays || null, keep_forever: keepDays === 0 })
+        await api("POST", `/feeds/${feed.id}/backfill`, { method: "auto", max_pages: 100, ...(keepDays === null ? {} : { keep_days: keepDays }) })
           .then(() => toast("Subscribed — fetching articles, older ones load in the background…"))
           .catch((ex) => toast(`Subscribed. Older articles: ${ex.message}`));
       } else toast("Subscribed — fetching articles…");
@@ -1458,6 +1564,8 @@
           settingRow("Density", selectControl("density", [["comfortable", "Comfortable"], ["compact", "Compact"]])),
           settingRow("Text size", selectControl("font_size", [["small", "Small"], ["medium", "Medium"], ["large", "Large"]])),
           settingRow("Show snippets in list", checkControl("show_snippets")),
+          settingRow("Order of the tabs at the top", h("button", { type: "button", class: "btn small", text: "⇄ Arrange tabs…", onclick: () => openArrangeTabs() }),
+            "Or drag a tab left or right at the top (Alt+Shift+← / → moves the focused tab)."),
           settingRow("Drag feeds between folders in the sidebar", checkControl("sidebar_drag_drop"), "Drag a feed onto a folder to move it. Turn off if it gets in the way — folders can still be changed under Settings → Feeds."))),
       h("div", { class: "panel-section" }, h("h4", { text: "Reading" }),
         h("div", { class: "grid-form" },
@@ -1948,6 +2056,11 @@ curl -X POST -H "Authorization: Bearer $FW_TOKEN" -H "Content-Type: application/
   /** ⟳ refreshes the section you are in: Reader feeds, YouTube channels (Videos) or social accounts (Accounts). */
   async function refreshAll() {
     const mode = currentMode();
+    if (mode === "repos") {  // GitHub sources have their own refresh (paced to GitHub's hourly limit)
+      const r = await guarded(() => api("POST", "/repos/refresh"));
+      if (r) { toast(`Checking ${r.sources} GitHub source(s) in the background…`); if (window.FW.repos) window.FW.repos.watchSoon(); }
+      return;
+    }
     const section = mode === "library" ? "videos" : mode === "accounts" ? "accounts" : mode === "reader" ? "reader" : "all";
     const res = await guarded(() => api("POST", `/feeds/refresh?section=${section}`));
     if (!res) return;
@@ -1965,10 +2078,11 @@ curl -X POST -H "Authorization: Bearer $FW_TOKEN" -H "Content-Type: application/
   async function markAllRead() {
     const v = state.view;
     const body = { before: Math.floor(Date.now() / 1000) };
-    if (v.type === "ttp" || v.type === "entity" || v.type === "reports") { toast("Mark read isn't available in this view: use ☑ Select", true); return; }
+    if (v.type === "ttp" || v.type === "entity") { toast("Mark read isn't available in this view: use ☑ Select", true); return; }
     if (v.type === "feed") body.feed_id = v.id;
     else if (v.type === "folder") body.folder_id = v.id;
     else if (v.type === "tag") body.tag_id = v.id;
+    else if (v.type === "taggroup") body.tag_ids = v.ids;
     else if (v.type === "starred") body.starred = true;
     else body.all = true;
     if (!window.confirm(`Mark everything in “${viewLabel()}” as read?`)) return;
@@ -2097,18 +2211,50 @@ curl -X POST -H "Authorization: Bearer $FW_TOKEN" -H "Content-Type: application/
     return cl.contains("mode-dashboard") ? "dashboard" : cl.contains("mode-library") ? "library" : cl.contains("mode-accounts") ? "accounts" : cl.contains("mode-podcasts") ? "podcasts" : cl.contains("mode-threatmap") ? "threatmap" : "reader";
   }
 
+  // ----------------------------------------------------------------------- sidebar show / hide
+  /** Phones: the sidebar slides over the list. Wider screens: its column collapses and the choice is remembered. */
+  const narrow = () => window.matchMedia("(max-width: 860px)").matches;
+  function sidebarOpen() {
+    const app = $("#app");
+    return narrow() ? app.classList.contains("show-sidebar") : !app.classList.contains("sidebar-collapsed");
+  }
+  function syncSidebarButton() {
+    const open = sidebarOpen();
+    const btn = $("#menuBtn");
+    btn.setAttribute("aria-expanded", String(open));
+    btn.setAttribute("aria-label", open ? "Hide sidebar" : "Show sidebar");
+    btn.title = `${open ? "Hide" : "Show"} sidebar ( [ )`;
+  }
+  function toggleSidebar() {
+    const app = $("#app");
+    if (narrow()) app.classList.toggle("show-sidebar");
+    else {
+      const collapsed = app.classList.toggle("sidebar-collapsed");
+      store.set("fw-sidebar-collapsed", collapsed);
+    }
+    syncSidebarButton();
+  }
+  function restoreSidebar() {
+    $("#app").classList.toggle("sidebar-collapsed", Boolean(store.get("fw-sidebar-collapsed", false)));
+    syncSidebarButton();
+  }
+
   function setMode(mode, persist = true) {
-    if (!["reader", "dashboard", "library", "accounts", "podcasts", "threatmap"].includes(mode)) mode = "reader";
+    if (!["reader", "dashboard", "library", "accounts", "podcasts", "repos", "resources", "threatmap"].includes(mode)) mode = "reader";
     const app = $("#app");
     app.classList.toggle("mode-dashboard", mode === "dashboard");
     app.classList.toggle("mode-library", mode === "library");
     app.classList.toggle("mode-accounts", mode === "accounts");
     app.classList.toggle("mode-podcasts", mode === "podcasts");
+    app.classList.toggle("mode-repos", mode === "repos");
+    app.classList.toggle("mode-resources", mode === "resources");
     app.classList.toggle("mode-threatmap", mode === "threatmap");
     $("#dashboardView").hidden = mode !== "dashboard";
     $("#libraryView").hidden = mode !== "library";
     $("#accountsView").hidden = mode !== "accounts";
     $("#podcastsView").hidden = mode !== "podcasts";
+    $("#reposView").hidden = mode !== "repos";
+    $("#resourcesView").hidden = mode !== "resources";
     $("#threatmapView").hidden = mode !== "threatmap";
     $("#modeThreatmap").setAttribute("aria-pressed", String(mode === "threatmap"));
     const tmap = window.FW && window.FW.threatmap;
@@ -2120,9 +2266,16 @@ curl -X POST -H "Authorization: Bearer $FW_TOKEN" -H "Content-Type: application/
     $("#modePodcasts").setAttribute("aria-pressed", String(mode === "podcasts"));
     const pod = window.FW && window.FW.podcasts;
     if (pod) { if (mode === "podcasts") pod.show(); else pod.hide(); }
+    $("#modeRepos").setAttribute("aria-pressed", String(mode === "repos"));
+    const repos = window.FW && window.FW.repos;
+    if (repos) { if (mode === "repos") repos.show(); else repos.hide(); }
+    $("#modeResources").setAttribute("aria-pressed", String(mode === "resources"));
+    const res = window.FW && window.FW.resources;
+    if (res) { if (mode === "resources") res.show(); else res.hide(); }
     // ＋ (add a feed) belongs to Articles; Videos and Accounts have their own ＋ in their toolbar. ⟳ follows the section.
     $("#addFeedBtn").hidden = mode !== "reader";
-    const refreshTitle = { library: "Check subscribed channels for new videos", accounts: "Check followed accounts for new posts", reader: "Refresh all article feeds (r)" }[mode] || "Refresh everything";
+    const refreshTitle = { library: "Check subscribed channels for new videos", accounts: "Check followed accounts for new posts", reader: "Refresh all article feeds (r)",
+      repos: "Check the GitHub owners, repos and topics you follow" }[mode] || "Refresh everything";
     $("#refreshBtn").title = refreshTitle;
     $("#refreshBtn").setAttribute("aria-label", refreshTitle);
     const acc = window.FW && window.FW.accounts;
@@ -2132,14 +2285,59 @@ curl -X POST -H "Authorization: Bearer $FW_TOKEN" -H "Content-Type: application/
     const board = window.FW && window.FW.dashboard;
     if (board) { if (mode === "dashboard") board.show(); else board.hide(); }
     // a short fade on the view that appears (no flash of an empty page while it refreshes in place)
-    const shown = { dashboard: "#dashboardView", library: "#libraryView", accounts: "#accountsView", podcasts: "#podcastsView", threatmap: "#threatmapView" }[mode];
+    const shown = { dashboard: "#dashboardView", library: "#libraryView", accounts: "#accountsView", podcasts: "#podcastsView", repos: "#reposView", resources: "#resourcesView", threatmap: "#threatmapView" }[mode];
     const fadeEls = shown ? [$(shown)] : [$(".sidebar"), $(".list-pane"), $("#reader")];
     for (const el of fadeEls) { if (!el) continue; el.classList.remove("view-fade"); void el.offsetWidth; el.classList.add("view-fade"); }
     if (persist && state.settings.ui_mode !== mode) {
       state.settings.ui_mode = mode;
       api("PATCH", "/settings", { ui_mode: mode }).catch(() => { /* non-critical */ });
     }
+    requestAnimationFrame(scrollActiveTab);
   }
+
+  /* ---------- all screens: phone top bar height, open tab in view, folding tab filters ---------- */
+  // The top bar can wrap to two rows on phones: slide-over panels start below whatever height it has.
+  (() => {
+    const bar = document.querySelector(".topbar");
+    if (!bar || !window.ResizeObserver) return;
+    new ResizeObserver(() => document.documentElement.style.setProperty("--top-h", `${bar.offsetHeight}px`)).observe(bar);
+  })();
+  /** Keep the open tab visible in the (sideways-scrolling) phone tab bar. */
+  function scrollActiveTab() {
+    const b = document.querySelector('.mode-switch > button[aria-pressed="true"]');
+    if (b && b.parentElement.scrollWidth > b.parentElement.clientWidth) b.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }
+  /** Phones: each tab toolbar (.lib-header) gets a "☰ Filters" button; title, ＋ and search stay, the rest folds away.
+   *  Open / closed is remembered per tab while the page is open, so re-renders keep it. */
+  const filtersOpen = new Set();
+  function foldHeaders() {
+    for (const hd of document.querySelectorAll(".lib-header")) {
+      if (hd.querySelector(":scope > .filters-toggle")) continue;
+      const key = (hd.closest("section[id]") || {}).id || "";
+      const open = filtersOpen.has(key);
+      hd.classList.toggle("filters-open", open);
+      const btn = h("button", { type: "button", class: "btn small filters-toggle", text: "☰ Filters", "aria-expanded": String(open),
+        title: "Show or hide this tab's filters and sorting" });
+      btn.addEventListener("click", () => {
+        const now = !hd.classList.contains("filters-open");
+        hd.classList.toggle("filters-open", now);
+        btn.setAttribute("aria-expanded", String(now));
+        if (now) filtersOpen.add(key); else filtersOpen.delete(key);
+      });
+      const search = hd.querySelector(":scope > input");
+      (search || hd.firstElementChild || hd).after(btn);
+    }
+  }
+  (() => {
+    const app = document.getElementById("app");
+    if (!app || !window.MutationObserver) return;
+    let queued = false;
+    new MutationObserver(() => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(() => { queued = false; foldHeaders(); });
+    }).observe(app, { childList: true, subtree: true });
+  })();
 
   async function openArticleInReader(id) {
     setMode("reader");
@@ -2305,13 +2503,41 @@ curl -X POST -H "Authorization: Bearer $FW_TOKEN" -H "Content-Type: application/
     $("#modeLibrary").addEventListener("click", () => setMode("library"));
     $("#modeAccounts").addEventListener("click", () => setMode("accounts"));
     $("#modePodcasts").addEventListener("click", () => setMode("podcasts"));
+    $("#modeRepos").addEventListener("click", () => setMode("repos"));
+    $("#modeResources").addEventListener("click", () => setMode("resources"));
     $("#modeThreatmap").addEventListener("click", () => setMode("threatmap"));
     $("#search").addEventListener("input", (e) => {
       if (currentMode() !== "reader") setMode("reader");
       clearTimeout(searchTimer);
       searchTimer = setTimeout(() => { state.q = e.target.value.trim().slice(0, 200); loadArticles(); }, 300);
     });
-    $("#rangeSelect").addEventListener("change", () => loadArticles());
+    // Date range: presets, or 📅 Custom range… (from / to). The custom range is remembered.
+    const rangeSel = $("#rangeSelect");
+    const customOpt = rangeSel.querySelector('option[value="custom"]');
+    const showCustom = () => { if (customOpt) customOpt.textContent = state.range ? `📅 ${rangeLabel(state.range)}` : "📅 Custom range…"; };
+    state.range = cleanRange(store.get("fw-art-range", null));
+    if (state.range && customOpt) { rangeSel.value = "custom"; showCustom(); }
+    // a select fires no change when the same entry is picked again: a small ✎ button edits the custom range
+    const editRange = h("button", { type: "button", class: "icon-btn", text: "✎", title: "Change the dates", "aria-label": "Change the custom date range",
+      onclick: () => rangeSel.dispatchEvent(new Event("change")) });
+    const syncEdit = () => { editRange.hidden = rangeSel.value !== "custom"; };
+    rangeSel.after(editRange);
+    syncEdit();
+    let lastRange = rangeSel.value;
+    rangeSel.addEventListener("change", async () => {
+      if (rangeSel.value === "custom") {
+        const r = await pickDateRange(state.range);
+        if (r === undefined) { rangeSel.value = lastRange; syncEdit(); return; }   // cancelled: keep what was there
+        state.range = r;
+        store.set("fw-art-range", r);
+        if (!r) rangeSel.value = "";
+        showCustom();
+      }
+      lastRange = rangeSel.value;
+      syncEdit();
+      loadArticles();
+    });
+
     $("#actorsBtn").addEventListener("click", () => window.FW.intel.actors());
     $("#sortSelect").addEventListener("change", () => loadArticles());
     $("#markAllBtn").addEventListener("click", markAllRead);
@@ -2326,7 +2552,8 @@ curl -X POST -H "Authorization: Bearer $FW_TOKEN" -H "Content-Type: application/
       if (state.view.type === "feed" && window.FW.feeds) window.FW.feeds.openFeedEditor(state.view.id);
     });
     $("#settingsBtn").addEventListener("click", () => openSettings("general"));
-    $("#menuBtn").addEventListener("click", () => $("#app").classList.toggle("show-sidebar"));
+    $("#menuBtn").addEventListener("click", toggleSidebar);
+    window.matchMedia("(max-width: 860px)").addEventListener("change", syncSidebarButton);
     $("#addFeedForm").addEventListener("submit", submitAddFeed);
     for (const btn of document.querySelectorAll("[data-close]")) {
       btn.addEventListener("click", () => btn.closest("dialog").close());
@@ -2345,6 +2572,7 @@ curl -X POST -H "Authorization: Bearer $FW_TOKEN" -H "Content-Type: application/
         return;
       }
       if (e.key === "d") { setMode(currentMode() === "dashboard" ? "reader" : "dashboard"); return; }
+      if (e.key === "[" && currentMode() === "reader") { toggleSidebar(); return; }
       if (currentMode() !== "reader") {
         if (e.key === "Escape" && window.FW.dashboard) window.FW.dashboard.closeDrawer();
         return;
@@ -2370,7 +2598,7 @@ curl -X POST -H "Authorization: Bearer $FW_TOKEN" -H "Content-Type: application/
         }
         case "Escape":
           if (state.selecting) { setSelecting(false); break; }
-          $("#app").classList.remove("show-reader", "show-sidebar");
+          $("#app").classList.remove("show-reader", "show-sidebar"); syncSidebarButton();
           break;
         default: return;
       }
@@ -2387,6 +2615,7 @@ curl -X POST -H "Authorization: Bearer $FW_TOKEN" -H "Content-Type: application/
     CSRF = me.csrf_token;
     bindEvents();
     setupPaneResizers();
+    restoreSidebar();
     if (me.initial_password_pending) {
       // The generated first-run password is still in use (OWASP: change default credentials).
       const bar = h("div", { class: "security-banner", role: "alert" },
@@ -2406,7 +2635,119 @@ curl -X POST -H "Authorization: Bearer $FW_TOKEN" -H "Content-Type: application/
   }
 
   // Shared helpers for charts.js / dashboard.js (same origin, loaded after this file).
+  // ======================================================== custom date range (every tab)
+  /** A range is {from: "YYYY-MM-DD" | "", to: "YYYY-MM-DD" | ""} in local time; either end may be empty (open). */
+  const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
+  function cleanRange(r) {
+    if (!r || typeof r !== "object") return null;
+    const from = ISO_DAY.test(r.from || "") ? r.from : "";
+    const to = ISO_DAY.test(r.to || "") ? r.to : "";
+    return from || to ? { from, to } : null;
+  }
+  const dayStart = (iso) => { const [y, m, d] = iso.split("-").map(Number); return Math.floor(new Date(y, m - 1, d).getTime() / 1000); };
+  /** {since, until} in unix seconds: from the start of "from" up to the end of "to" (local days). */
+  function rangeTimes(r) {
+    const c = cleanRange(r);
+    if (!c) return {};
+    const out = {};
+    if (c.from) out.since = dayStart(c.from);
+    if (c.to) { const [y, m, d] = c.to.split("-").map(Number); out.until = Math.floor(new Date(y, m - 1, d + 1).getTime() / 1000); }
+    return out;
+  }
+  function addRangeParams(p, r) {
+    const t = rangeTimes(r);
+    if (t.since != null) p.set("since", String(t.since));
+    if (t.until != null) p.set("until", String(t.until));
+    return p;
+  }
+  const shortDay = (iso) => { const [y, m, d] = iso.split("-").map(Number); return new Date(y, m - 1, d).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }); };
+  function rangeLabel(r) {
+    const c = cleanRange(r);
+    if (!c) return "Any date";
+    if (c.from && c.to) return c.from === c.to ? shortDay(c.from) : `${shortDay(c.from)} – ${shortDay(c.to)}`;
+    return c.from ? `From ${shortDay(c.from)}` : `Until ${shortDay(c.to)}`;
+  }
+  const isoOf = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  /** Ask for a from / to range. Resolves to the new range, null for "clear", or undefined when cancelled. */
+  function pickDateRange(current, title = "Custom date range") {
+    const c = cleanRange(current) || { from: "", to: "" };
+    return new Promise((resolve) => {
+      const today = isoOf(new Date());
+      const from = h("input", { type: "date", value: c.from, max: today, "aria-label": "From" });
+      const to = h("input", { type: "date", value: c.to, max: today, "aria-label": "To" });
+      const err = h("p", { class: "muted small", role: "alert" });
+      let result;
+      const preset = (days) => { const d = new Date(); d.setDate(d.getDate() - days + 1); from.value = isoOf(d); to.value = today; };
+      const dlg = h("dialog", { class: "dialog range-dialog", "aria-label": title },
+        h("form", { class: "form", method: "dialog" },
+          h("h3", { text: `📅 ${title}` }),
+          h("div", { class: "range-row" }, h("label", {}, "From", from), h("label", {}, "To", to)),
+          h("div", { class: "range-presets" },
+            [[7, "Last 7 days"], [30, "Last 30 days"], [90, "Last 90 days"], [365, "Last year"]].map(([d, l]) =>
+              h("button", { type: "button", class: "btn small", text: l, onclick: () => preset(d) })),
+            h("button", { type: "button", class: "btn small", text: "This year", onclick: () => { from.value = `${new Date().getFullYear()}-01-01`; to.value = today; } })),
+          h("p", { class: "muted small", text: "Leave one end empty for an open range (everything since / until a date)." }),
+          err,
+          h("div", { class: "form-actions" },
+            h("button", { type: "button", class: "btn", text: "Clear dates", onclick: () => { result = null; dlg.close(); } }),
+            h("button", { type: "button", class: "btn", text: "Cancel", onclick: () => dlg.close() }),
+            h("button", { type: "submit", class: "btn primary", text: "Apply", onclick: (e) => {
+              const r = cleanRange({ from: from.value, to: to.value });
+              if (r && r.from && r.to && r.to < r.from) { e.preventDefault(); err.textContent = "The end date is before the start date."; return; }
+              result = r;
+            } }))));
+      dlg.addEventListener("close", () => { dlg.remove(); resolve(result); });
+      document.body.append(dlg);
+      dlg.showModal();
+      from.focus();
+    });
+  }
+  /** A "📅 <range>" button that opens the picker; onChange(range|null) runs when it changes. */
+  function dateRangeButton({ value, onChange, title }) {
+    const c = cleanRange(value);
+    return h("button", { type: "button", class: `btn small date-range-btn ${c ? "on" : ""}`, text: `📅 ${rangeLabel(c)}`,
+      title: title || "Show only items published between two dates", "aria-label": `Date range: ${rangeLabel(c)}`,
+      onclick: async () => { const r = await pickDateRange(c); if (r !== undefined) onChange(r); } });
+  }
+  const dateRange = { clean: cleanRange, times: rangeTimes, addParams: addRangeParams, label: rangeLabel, pick: pickDateRange, button: dateRangeButton };
+
+  /** "Keep (retention)" select for add dialogs: fixed choices plus Custom… (a number + days / weeks / months / years).
+   *  choices: [[value, label]] with "" = the default (null), "0" = keep forever. days(): null = default, 0 = forever,
+   *  N = days, NaN = an invalid custom value. */
+  const KEEP_UNITS = { days: 1, weeks: 7, months: 30, years: 365 };
+  const KEEP_MAX_DAYS = 36500;
+  function keepPicker({ choices, selected = "", label = "Keep (retention)" }) {
+    const select = h("select", { "aria-label": label },
+      choices.map(([v, l]) => h("option", { value: String(v), text: l, selected: String(selected) === String(v) })),
+      h("option", { value: "custom", text: "Custom…" }));
+    const amount = h("input", { type: "number", min: 1, max: KEEP_MAX_DAYS, step: 1, value: 3, class: "custom-minutes", "aria-label": "How many" });
+    const unit = h("select", { "aria-label": "Unit" }, Object.keys(KEEP_UNITS).map((u) => h("option", { value: u, text: u, selected: u === "years" })));
+    const said = h("span", { class: "muted small custom-said" });
+    const custom = h("span", { class: "tf-custom", hidden: true }, amount, unit, said);
+    const days = () => {
+      if (select.value === "") return null;
+      if (select.value !== "custom") return Number(select.value);
+      const n = Number(amount.value), d = n * KEEP_UNITS[unit.value];
+      return Number.isInteger(n) && n >= 1 && d <= KEEP_MAX_DAYS ? d : NaN;
+    };
+    const say = () => {
+      const d = days();
+      said.textContent = Number.isNaN(d) ? "1 day to 100 years" : `= ${fmtRetention(d)}`;
+      said.classList.toggle("error", Number.isNaN(d));
+    };
+    select.addEventListener("change", () => { custom.hidden = select.value !== "custom"; if (!custom.hidden) { say(); amount.focus(); } });
+    amount.addEventListener("input", say);
+    unit.addEventListener("change", say);
+    const describe = () => {
+      const d = days();
+      return select.value === "custom" ? (Number.isNaN(d) ? "an invalid time frame" : `the last ${fmtRetention(d, true)}`)
+        : select.selectedOptions[0].text.toLowerCase();
+    };
+    return { el: h("span", { class: "tf-picker" }, select, custom), select, days, describe };
+  }
+
   window.FW = {
+    dateRange, keepPicker,
     api, h, fill, toast, guarded, safeUrl, safeColor, relTime, fullDate, fmtDate, fmtRetention, store, state,
     openArticleInReader, setMode, openSettings, currentMode, fmtMinutes, makeResizer, enhanceDrawer, buildContent,
     refreshPicker, fillFolderSelect, selectView: (v) => selectView(v), loadArticles: () => loadArticles(),

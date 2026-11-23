@@ -5,6 +5,79 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.3.0] — 2026-11-23
+
+### Added
+- **🔗 Resources tab — your bookmarks, sorted.** Import your browser's bookmark export (Chrome / Edge / Firefox / Brave
+  HTML; you choose which folders come in), or add links one by one. Links file themselves into 18 topic folders
+  (Offensive, Defensive & SOC, DFIR, Threat intel & OSINT, Learn & Practice…), can sit in several topics, and each gets a
+  short "what it's for". Views: **★ Launchpad** (big tiles of favourites and most-opened), 🌳 Folders, 🗺 Map,
+  🧠 Mind map, 🗂 Categories and ☰ All links; ☑ Select for changing many at once; "Find any resource…" jumps to a link.
+  Repos from the Repos tab appear under the matching topics.
+- **⌘ / Ctrl+K launcher from every tab:** type a few letters and press Enter to open that one site.
+- **▶ Videos play inside the app** in YouTube's privacy-enhanced player (sandboxed), with ⏮ / ⏭ through the videos on
+  the page, ↗ YouTube and Esc to close. Ctrl / ⌘-click a title still opens YouTube.
+- **Videos:** ☰ *Sort a channel into its playlists*, ✎ rename playlists and groups, put a single video straight into a
+  group when adding it, instant switching between views.
+- **👥 Socials (was Accounts):** 🗑 delete posts; saved single posts are shown readably (text, links, picture opens big
+  in the app) so you rarely need the original.
+- **📦 Repos:** GitLab projects; inner tabs (📁 Folders … 🚀 Releases) and short filter names like the other tabs; the
+  date range lives in the Sort menu; 🗑 remove a repo from Repos and every folder.
+- **🎙 Podcasts:** a new player bar (↺ 10 · ▶/⏸ · 10 ↻ · time · seek · volume · ⋮ speed / download); filters named like
+  Videos, with the date range in the Sort menu.
+- **One-command updates for Docker installs:** `./deploy/update.sh` fetches the newest version, shows what's new, builds
+  it while the old one keeps running, backs up your data volume to `./backups/` (newest 5 kept), switches over and
+  **rolls back automatically** if the new version doesn't report healthy. `--check` only reports, `-y` skips the question.
+
+### Changed
+- **Works on phones, tablets and desktops, upright or sideways.** Up to 900 px wide the top bar takes two rows (search,
+  ⟳, ⚙ on top; a swipeable tab bar below); below 1600 px the tabs show icons (names in tooltips) so search keeps its
+  width; on phones each tab's filters fold behind **☰ Filters**; on touch screens every control is at least 40 px.
+- **The Accounts tab is now called 👥 Socials.**
+- **No duplicate videos:** a video listed by a channel and its playlists is stored once (existing copies are merged on
+  upgrade; nothing you starred or watched is lost).
+- CSP: one new directive, `frame-src https://www.youtube-nocookie.com`, for the in-app player only. The app-wide
+  `Referrer-Policy: no-referrer` is unchanged; only the player frame sends the app's origin, which YouTube needs.
+
+### Fixed
+- **Phones:** the top bar was wider than the screen, so search, ⟳, ⚙ and the last tabs couldn't be reached.
+- **Laptops / tablets in landscape:** the tab names squeezed the search box to nothing (or pushed it off-screen).
+
+## [1.2.0] — 2026-11-21
+
+### Added
+- **📦 Repos tab (GitHub).** Follow single repos (with their releases), owners, GitHub topics and someone's stars; gists;
+  GitHub Docs pages (titled from the link, never downloaded) and `<name>.github.io` websites. Paste up to 200 links at
+  once — any page inside a repo works (`/blob/…`, `/tree/…`, `/wiki`, `?tab=…`, `#…`); every valid line is saved straight
+  away and checked in the background with live per-line results. Profile links ask first (follow every repo / save the
+  profile as a link / skip). Repo cards with language, stars, licence, archived / fork badges, GitHub tags and your
+  topics; views by topic / owner / language and 🚀 Releases; filters for type, language, stars, last-updated dates,
+  archived, forks and ★. **📁 Folders** of your own (a repo can be in several; folders view, bulk add / remove, file
+  new repos straight into a folder). One GitHub request per repo; lines past GitHub's free hourly limit are saved and
+  finish by themselves after its reset; an optional read-only token (stored encrypted, never returned) raises the limit
+  to 5,000 an hour. API: `/api/v1/repos*`.
+- **📅 Custom date range (from / to) on every tab** — Articles, Videos, Podcasts, Accounts, Dashboards and the Threat Map.
+- **Whole collection folders at once:** click a folder heading in Collections (ATT&CK, ATLAS, AI, CVEs…) to read every
+  article in it with the usual filters.
+- **Podcasts:** ↺ 10 / 10 ↻ skip buttons (and headphone / lock-screen skip), and **older episodes** — the show's whole feed
+  again, its older pages, then Internet Archive copies.
+- **Custom keep time frame** in every add dialog (a number + days / weeks / months / years).
+- **Tabs in your own order:** drag the tabs at the top, or Settings → Appearance → ⇄ Arrange tabs….
+- **Sidebar hide / show button** and smoother tab switching.
+
+### Changed
+- **One history setting per feed:** *Keep & fetch … from* is both how long items are kept and how far back loading older
+  items goes; feed settings adapt to articles, podcast episodes, YouTube videos and account posts. Podcasts and videos
+  are no longer trimmed by the article count cap.
+- **Reports, advisories and guidance are filed into your collections** (Threat advisories, Threat intelligence, Defensive
+  security) instead of a separate sidebar view; alerts work as before.
+- **Threat actors:** catalogue rebuilt from MITRE ATT&CK and ATLAS with every alias (e.g. APT40's full set of names).
+
+### Fixed
+- **Videos → By topic: "Internal server error" in Docker** on big libraries — the image now sets `SQLITE_TMPDIR=/data/tmp`
+  so large sorts use the data volume instead of the 16 MB `/tmp`, and the query only ranks ids.
+- Older GitHub user names ending in a hyphen, podcast history duplicates through archived copies, and smaller fixes.
+
 ## [1.1.0] — 2026-11-18
 
 ### Added (ideas borrowed from FreshRSS extensions)

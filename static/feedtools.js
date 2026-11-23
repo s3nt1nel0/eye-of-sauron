@@ -140,7 +140,7 @@
 
 
   // ===================================================================== keep feeds to a time frame (retention + history)
-  const FEED_TYPES = [["articles", "📰 Article feeds"], ["podcasts", "🎙 Podcasts"], ["videos", "▶ YouTube channels"], ["accounts", "💬 Accounts"]];
+  const FEED_TYPES = [["articles", "📰 Article feeds"], ["podcasts", "🎙 Podcasts"], ["videos", "▶ YouTube channels"], ["accounts", "💬 Socials"]];
   const feedType = (f) => (f.kind === "podcast" ? "podcasts" : f.kind === "youtube" ? "videos" : f.social_platform ? "accounts" : "articles");
   const BACKFILL_KINDS = new Set(["rss", "podcast", "youtube", "hfpapers", "telegram"]);
 
@@ -241,8 +241,7 @@
       FW.loadSidebar(); FW.loadArticles();
       if (fetchOlder.checked) {
         const ids = chosen().filter((f) => BACKFILL_KINDS.has(f.kind || "rss")).map((f) => f.id);
-        const req = { ...bf.body(), keep_forever: false, only_missing: onlyMissing.checked, feed_ids: ids };
-        if (b.days) req.since_days = b.days; else delete req.since_days;
+        const req = { ...bf.body(b.days || 0), only_missing: onlyMissing.checked, feed_ids: ids };
         const s = ids.length ? await guarded(() => api("POST", "/history/backfill-all", req)) : { started: false };
         if (s && s.started) { progress.textContent = `⏳ Fetching older items for ${s.feeds} feed(s)…`; setTimeout(watch, 1200); onDone(true); return; }
         if (s) progress.textContent = "Nothing to fetch: the chosen feeds already reach back that far (or cannot fetch history).";
@@ -285,7 +284,7 @@
     const failing = feeds.filter((f) => f.error_count > 0);
     // what a feed delivers: articles, podcast episodes, videos or account posts - shown apart, one kind at a time
     const typeOf = (f) => (f.kind === "podcast" ? "podcasts" : f.kind === "youtube" ? "videos" : f.social_platform ? "accounts" : "articles");
-    const TYPES = [["articles", "📰 Article feeds"], ["podcasts", "🎙 Podcasts"], ["videos", "▶ YouTube"], ["accounts", "💬 Accounts"]];
+    const TYPES = [["articles", "📰 Article feeds"], ["podcasts", "🎙 Podcasts"], ["videos", "▶ YouTube"], ["accounts", "💬 Socials"]];
     const typeCount = Object.fromEntries(TYPES.map(([t]) => [t, feeds.filter((f) => typeOf(f) === t).length]));
     const remembered = FW.store ? FW.store.get("fw-feed-type", "articles") : "articles";
     const filters = { q: "", status: "all", folder: "any", type: remembered === "all" || typeCount[remembered] ? remembered : "articles" };

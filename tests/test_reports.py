@@ -65,7 +65,12 @@ def test_view_filters_alerts_and_rebuild(authed):
     s = authed.get("/api/v1/reports/summary").json()
     assert (s["total"], s["government"], s["vendor"], s["guidance"], s["report"]) == (2, 1, 1, 1, 1)
     assert {p["publisher"] for p in s["publishers"]} == {"ASD's ACSC", "Unit 42"}
-    assert authed.get("/api/v1/sidebar").json()["counts"]["reports_unread"] == 2
+    assert "reports_unread" not in authed.get("/api/v1/sidebar").json()["counts"]   # no separate view any more
+    # publications are filed into the ordinary collections: guidance -> Defensive security, reports -> Threat intelligence
+    tags = {t["name"]: t["id"] for t in authed.get("/api/v1/sidebar").json()["tags"]}
+    in_tag = lambda name: [x["id"] for x in authed.get(f"/api/v1/articles?tag_id={tags[name]}").json()["items"]]  # noqa: E731
+    assert in_tag("Defensive security") == [g] and in_tag("Threat intelligence") == [v]
+    assert n not in in_tag("Defensive security")                           # a news site writing about guidance is not filed
     # instant alerts: only to the chosen channels, only the chosen kind, never twice
     assert authed.patch("/api/v1/settings", json={"report_alert_channels": [7, 7, 3], "report_alert_kinds": "government"}).status_code == 200
     assert authed.get("/api/v1/settings").json()["report_alert_channels"] == [3, 7]
@@ -97,3 +102,30 @@ def test_digest_includes_reports_and_threat_actors(authed):
         sent = complete.call_args.args[1]
     assert "[R1]" in sent and "[A1]" in sent
     assert json.loads(digests.config_json(cfg))["reports"]["enabled"] is True
+
+
+def test_rule_edits_never_take_publications_out_of_their_collection(authed):
+    from app import rules
+    from app.db import get_db
+
+    gov = feed("https://www.cyber.gov.au/rss/publications", "ASD")
+    a, found = article(gov, "Advisory: actively exploited flaw in VPN appliances")
+    assert found == [a]
+    with get_db() as db:
+        tag = reports.collection_ids(db)["advisory"]
+        db.execute("INSERT INTO rules (name, keywords, tag_id) VALUES ('adv', ?, ?)", ('["zzz-never"]', tag))
+    assert rules.refile_tags([tag]) == 0                                     # no rule matches it, but it stays filed
+    with get_db() as db:
+        assert db.execute("SELECT source FROM article_tags WHERE article_id = ? AND tag_id = ?", (a, tag)).fetchone()[0] == "rule"
+
+
+def test_existing_publications_are_filed_once(authed):
+    from app.db import get_db
+
+    gov = feed("https://www.cyber.gov.au/rss/publications", "ASD")
+    a, _ = article(gov, "Guidance: securing edge devices")
+    with get_db() as db:
+        db.execute("DELETE FROM article_tags")
+    out = reports.file_all()
+    assert out["added"] == 1 and out["per_collection"] == {"Defensive security": 1}
+    assert reports.file_all()["added"] == 0

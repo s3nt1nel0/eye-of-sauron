@@ -50,6 +50,7 @@
   const st = {
     layer: FW.store.get("fw-tm-layer", "threat"),
     days: Number(FW.store.get("fw-tm-days", 30)) || 30,
+    custom: FW.dateRange.clean(FW.store.get("fw-tm-range", null)),  // 📅 from / to range (st.days = its length)
     actor: Number(FW.store.get("fw-tm-actor", 0)) || 0,     // entity id, 0 = whole category
     attack: Number(FW.store.get("fw-tm-attack", 0)) || 0,   // entity id, 0 = any method
     geo: null, lists: null, counts: new Map(), unmapped: [], sectors: [], actors: [], attacks: [], total: 0,
@@ -73,8 +74,18 @@
     return f;
   }
 
+  /** The period of every query: the preset (last n days) or the custom range's length and end. */
+  function period() {
+    if (!st.custom) return { days: st.days };
+    const t = FW.dateRange.times(st.custom);
+    const until = t.until != null ? t.until : Math.floor(Date.now() / 1000) + 1;
+    const since = t.since != null ? t.since : until - 3650 * 86400;
+    return { days: Math.min(3650, Math.max(1, Math.round((until - since) / 86400))), until_ts: until };
+  }
+  const periodText = () => (st.custom ? FW.dateRange.label(st.custom) : `last ${(PERIODS.find(([d]) => d === st.days) || [0, `${st.days} days`])[1].toLowerCase()}`);
+
   const breakdown = (watchlistId, filters, limit = 50) => api("POST", "/analytics/query", {
-    type: "breakdown", days: st.days, group_by: "watchlist", group_watchlist_id: watchlistId, limit, filters,
+    type: "breakdown", ...period(), group_by: "watchlist", group_watchlist_id: watchlistId, limit, filters,
   }).then((r) => r.items || []);
 
   /** Merge breakdowns over several watchlists (e.g. general + OT sectors), de-duplicated by name. */
@@ -101,7 +112,7 @@
       attackList() ? breakdown(attackList(), base, 30) : [],
       countries ? breakdown(countries, filters, 50) : [],
       mergedBreakdown(SECTOR_LISTS, filters, 30),
-      api("POST", "/analytics/query", { type: "kpi", days: st.days, filters }),
+      api("POST", "/analytics/query", { type: "kpi", ...period(), filters }),
     ]);
     if (token !== st.token) return false;   // a newer refresh superseded this one
     st.actors = actors;
@@ -160,7 +171,7 @@
     svg.setAttribute("viewBox", `0 0 ${g.width} ${g.height}`);
     svg.setAttribute("class", "tm-svg");
     svg.setAttribute("role", "img");
-    svg.setAttribute("aria-label", `World map: ${focusLabel()}, last ${st.days} days`);
+    svg.setAttribute("aria-label", `World map: ${focusLabel()}, ${periodText()}`);
     const tip = h("div", { class: "tm-tip", hidden: true });
     for (const c of g.countries) {
       const v = st.counts.get(c.name);
@@ -241,7 +252,7 @@
     fill(box, h("p", { class: "muted small", text: "Loading…" }));
     const filters = threatFilter([entityId]);
     const [res, other] = await Promise.all([
-      api("POST", "/analytics/query", { type: "articles", days: st.days, limit: 15, filters }).catch(() => null),
+      api("POST", "/analytics/query", { type: "articles", ...period(), limit: 15, filters }).catch(() => null),
       mergedBreakdown(otherLists, filters, 12).catch(() => []),
     ]);
     if (token !== st.token) return;
@@ -301,8 +312,16 @@
     h("option", { value: 0, text: "Any attack type", selected: !st.attack }),
     attackOpts.map((a) => h("option", { value: a.key, text: `${a.label} (${a.count})`, selected: a.key === st.attack })));
 
-    const periodSel = h("select", { "aria-label": "Period", onchange: (e) => setAndRefresh("days", Number(e.target.value), "fw-tm-days") },
-      PERIODS.map(([d, l]) => h("option", { value: d, text: l, selected: d === st.days })));
+    const periodSel = h("select", { "aria-label": "Period", onchange: async (e) => {
+      if (e.target.value !== "custom") { st.custom = null; FW.store.set("fw-tm-range", null); await setAndRefresh("days", Number(e.target.value), "fw-tm-days"); return; }
+      const r = await FW.dateRange.pick(st.custom, "Threat map dates");
+      if (r === undefined) { renderAll(); return; }   // cancelled
+      st.custom = r;
+      FW.store.set("fw-tm-range", r);
+      await setAndRefresh("days", st.days, "fw-tm-days");
+    } },
+    PERIODS.map(([d, l]) => h("option", { value: d, text: l, selected: !st.custom && d === st.days })),
+    h("option", { value: "custom", text: st.custom ? `📅 ${FW.dateRange.label(st.custom)}` : "📅 Custom range…", selected: Boolean(st.custom) }));
 
     const reset = (st.actor || st.attack) ? h("button", { type: "button", class: "btn small", text: "Clear focus",
       onclick: async () => { st.actor = 0; FW.store.set("fw-tm-actor", 0); await setAndRefresh("attack", 0, "fw-tm-attack"); } }) : null;
@@ -311,10 +330,9 @@
 
   function summary() {
     const nCountries = st.counts.size + st.unmapped.length;
-    const period = (PERIODS.find(([d]) => d === st.days) || [0, `${st.days} days`])[1].toLowerCase();
     return h("div", { class: "tm-summary" },
       h("strong", { text: focusLabel() }),
-      h("span", { class: "muted", text: ` — ${plural(st.total, "article")} in the last ${period}, mentioning ${nCountries === 1 ? "1 country" : `${nCountries} countries`} and ${plural(st.sectors.length, "sector")}.` }));
+      h("span", { class: "muted", text: ` — ${plural(st.total, "article")} ${st.custom ? `for ${periodText()}` : `in the ${periodText()}`}, mentioning ${nCountries === 1 ? "1 country" : `${nCountries} countries`} and ${plural(st.sectors.length, "sector")}.` }));
   }
 
   function renderAll() {

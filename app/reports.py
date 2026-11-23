@@ -190,7 +190,69 @@ def assign(db: sqlite3.Connection, article_ids: list[int]) -> list[int]:
                 db.execute("INSERT OR IGNORE INTO publications (article_id, publisher, kind, doc_type, created_at) VALUES (?, ?, ?, ?, ?)",
                            (r["id"], pub[0], pub[1], doc, now()))
                 found.append(r["id"])
+    file(db, found)  # straight into their collections
     return found
+
+
+# Publications are filed into the ordinary collections (no separate view): advisories with the threat advisories,
+# threat reports with threat intelligence, guidance with defensive security. Filed as automatic ('rule') filings, so
+# taking one out by hand works like for any other collection; rule edits never take them out (rules.refile_tags).
+COLLECTIONS = {"advisory": "Threat advisories", "report": "Threat intelligence", "guidance": "Defensive security"}
+COLLECTION_COLORS = {"advisory": "#f97316", "report": "#8b5cf6", "guidance": "#10b981"}
+FILE_REV = "1"
+
+
+def collection_ids(db: sqlite3.Connection) -> dict[str, int]:
+    """{doc_type: tag id} - the collections publications go to (created if you deleted or never had them)."""
+    out = {}
+    for doc, name in COLLECTIONS.items():
+        db.execute("INSERT OR IGNORE INTO tags (name, color) VALUES (?, ?)", (name, COLLECTION_COLORS[doc]))
+        out[doc] = db.execute("SELECT id FROM tags WHERE name = ?", (name,)).fetchone()[0]
+    return out
+
+
+def file(db: sqlite3.Connection, article_ids: list[int]) -> int:
+    """Put these publications into their collections. Returns how many filings were added."""
+    if not article_ids:
+        return 0
+    added = 0
+    tags = collection_ids(db)
+    ts = now()
+    for start in range(0, len(article_ids), 500):
+        chunk = article_ids[start:start + 500]
+        for doc, tag_id in tags.items():
+            added += db.execute(
+                "INSERT OR IGNORE INTO article_tags (article_id, tag_id, source, created_at) "  # nosec B608 - placeholders only
+                f"SELECT article_id, ?, 'rule', ? FROM publications WHERE doc_type = ? AND article_id IN ({placeholders(len(chunk))})",
+                [tag_id, ts, doc, *chunk]).rowcount
+    return added
+
+
+def filed_ids(db: sqlite3.Connection, tag_id: int, article_ids: list[int]) -> set[int]:
+    """The articles among these that are in this collection because they are publications (kept by rule edits)."""
+    docs = [doc for doc, tid in collection_ids(db).items() if tid == tag_id]
+    if not docs or not article_ids:
+        return set()
+    return {r[0] for r in db.execute(  # nosec B608 - placeholders only
+        f"SELECT article_id FROM publications WHERE doc_type IN ({placeholders(len(docs))}) AND article_id IN ({placeholders(len(article_ids))})",
+        [*docs, *article_ids])}
+
+
+def file_all() -> dict:
+    """File every stored publication once (per FILE_REV); returns {collection name: publications in it}."""
+    from app.cve_sync import set_state
+
+    with get_db() as db:
+        ids = [r[0] for r in db.execute("SELECT article_id FROM publications ORDER BY article_id")]
+    added = 0
+    for start in range(0, len(ids), 2000):
+        with get_db() as db:
+            added += file(db, ids[start:start + 2000])
+    with get_db() as db:
+        set_state(db, "reports_filed_rev", FILE_REV)
+        per = {COLLECTIONS[r[0]]: r[1] for r in db.execute("SELECT doc_type, COUNT(*) FROM publications GROUP BY doc_type")}
+    log.info("Reports & guidance filed into collections: %d new filings (%s)", added, per)
+    return {"added": added, "per_collection": per}
 
 
 def _json(ids) -> str:
@@ -222,8 +284,11 @@ def ensure_current() -> None:
 
     with get_db() as db:
         stale = get_state(db, "reports_rev", "") != REV
+        unfiled = get_state(db, "reports_filed_rev", "") != FILE_REV
     if stale:
-        threading.Thread(target=rebuild, name="reports", daemon=True).start()
+        threading.Thread(target=rebuild, name="reports", daemon=True).start()   # rebuild files them as it goes
+    elif unfiled:
+        threading.Thread(target=file_all, name="reports-filing", daemon=True).start()
 
 
 def counts(db: sqlite3.Connection) -> dict:

@@ -551,12 +551,18 @@ On Proxmox, `vzdump` snapshots of the CT/VM also work.
 **Test a restore at least once a quarter.**
 
 ### 5.3 Upgrading
+**Docker Compose installs (1.3.0+):** `./deploy/update.sh` from the install folder does all of the steps below - it
+shows the new commits, builds while the old version runs, backs up the data volume to `./backups/`, switches over,
+waits for the health check and rolls back automatically if the new version isn't healthy. `--check` only reports.
+
+By hand:
 1. Read the [CHANGELOG](../CHANGELOG.md).
 2. Back up (§5.2).
 3. `git pull` (or copy the new release), then `docker compose up -d --build`.
 4. Check the logs: `docker compose logs -f eye-of-sauron`. Migrations run automatically on start and are additive.
 
-**Rollback:** stop the container, restore the pre-upgrade backup, and run the previous image tag.
+**Rollback:** stop the container, restore the pre-upgrade backup, and run the previous image tag (`update.sh` does this
+for you when the new version fails its health check).
 
 ### 5.4 Encryption key management
 - **First move off the volume:**

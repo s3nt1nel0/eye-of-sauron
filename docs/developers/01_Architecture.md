@@ -328,3 +328,28 @@ History imports use the same storage path but **never** fire events: no webhooks
 | Site icons | `app/media.py` (`refresh_icons`, `IconWorker`), table `feed_icons`, `GET /feeds/{id}/icon` | Started from the scheduler loop every 6 hours. |
 | Reading time | `read_minutes` in `/articles` and `/articles/{id}` | `ceil(len(text_content) / 1200)`. |
 | Read later | `app/readlater.py`, `app/api/extras.py` (`/readlater`, `/articles/{id}/save`), `PUT /integrations/readlater` | Obsidian / Markdown are built in the browser. |
+
+
+## 1.3.0 additions
+
+| Module | Purpose |
+|---|---|
+| `app/resources.py` | 🔗 Resources: bookmark import (browser HTML / plain lists), URL cleaning (http(s) only, no credentials), topic folders and categories, filing new links into topics, page title / description fetch through the SSRF guard |
+| `app/api/resources.py` | `/resources`: list, search, folders, categories, import, bulk actions, launchpad / recent, ⌘K lookups |
+| `static/resources.js` | The Resources tab (Launchpad, Folders, Map, Mind map, Categories, All links) and the ⌘/Ctrl+K launcher |
+| `app/video_links.py` | One stored copy per YouTube video shared by every channel / playlist that lists it (merges older duplicates) |
+| `static/accounts.css` | Socials (was Accounts) styles |
+| `deploy/update.sh` | Safe in-place update for Docker Compose installs (fast-forward, build, backup, switch, health check, rollback) |
+
+Front-end: an "All screens" block at the end of `static/styles.css` plus `foldHeaders` / `scrollActiveTab` / the
+`--top-h` observer in `static/app.js` make every tab work from 375 px phones to wide screens.
+
+## 1.2.0 additions
+
+| Module | Purpose |
+|---|---|
+| `app/github.py` | 📦 Repos: GitHub sources (repo / owner / topic / stars / gist / doc) through api.github.com and release Atom feeds; strict name validation, plain-text storage, topic filing, per-budget rate limits, background `repo_sync` |
+| `app/api/repos.py` | `/repos`, shelves, releases, meta, sources (single and batch), status, folders, token |
+| `static/repos.js` | The Repos tab |
+
+Outbound: api.github.com and github.com only, through the SSRF guard; every URL is built from validated names. Tables: `repo_sources`, `repos`, `repo_source_links`, `repo_topics`, `repo_releases`, `repo_folders`, `repo_folder_items`.

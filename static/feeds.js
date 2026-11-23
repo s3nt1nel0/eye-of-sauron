@@ -20,27 +20,39 @@
     wayback: "Internet Archive", "youtube-api": "YouTube Data API", "hf-daily": "one day per page",
     "telegram-web": "Telegram web preview", "telegram-account": "Telegram account",
   };
-  const SINCE_CHOICES = [["", "As far back as possible"], [90, "Last 90 days"], [180, "Last 6 months"], [365, "Last year"], [730, "Last 2 years"], [1825, "Last 5 years"]];
+  // ONE history setting: how long a feed keeps items is also how far back older items are fetched (0 = everything).
+  const WINDOW_CHOICES = [["", "Each feed's own “Keep” setting"], [90, "90 days"], [180, "6 months"], [365, "1 year"], [730, "2 years"],
+    [1825, "5 years"], [3650, "10 years"], [0, "Everything (keep forever)"]];
 
-  /** Method / how far back / effort / keep controls, shared by the feed editor and the all-feeds card. */
-  function backfillControls({ pagesDefault = 20, sinceDefault = 365, keepDefault = true, pagesLabel = "pages" } = {}) {
+  /** Where to look / effort (and, for many feeds, the keep & fetch-back window), shared by the feed editor and the
+   *  all-feeds card. body(keepDays) sends keep_days: the feeds keep that window and are fetched back to it. */
+  function backfillControls({ pagesDefault = 20, pagesLabel = "pages", withWindow = false, podcast = false } = {}) {
     const method = h("select", { "aria-label": "Where to look" }, [
-      ["auto", "Automatic (site first, then Internet Archive)"], ["paged", "The site's own older pages only"], ["wayback", "Internet Archive only"],
+      ["auto", podcast ? "Automatic (the show's feed and its older pages, then Internet Archive)" : "Automatic (site first, then Internet Archive)"],
+      ["paged", podcast ? "The show's own feed and older pages only" : "The site's own older pages only"], ["wayback", "Internet Archive only"],
     ].map(([v, l]) => h("option", { value: v, text: l })));
-    const since = h("select", { "aria-label": "How far back" }, SINCE_CHOICES.map(([v, l]) => h("option", { value: v, text: l, selected: v === sinceDefault })));
+    const window_ = withWindow ? h("select", { "aria-label": "Keep and fetch back" }, WINDOW_CHOICES.map(([v, l]) => h("option", { value: v, text: l }))) : null;
     const pages = h("select", { "aria-label": "Effort" }, [[10, `up to 10 ${pagesLabel}`], [20, `up to 20 ${pagesLabel}`], [30, `up to 30 ${pagesLabel}`], [60, `up to 60 ${pagesLabel}`], [100, `up to 100 ${pagesLabel}`], [200, `up to 200 ${pagesLabel}`]]
       .map(([v, l]) => h("option", { value: v, text: l, selected: v === pagesDefault })));
-    const keep = h("input", { type: "checkbox", checked: keepDefault });
     return {
-      method, since, pages, keep,
-      keepEl: h("label", { class: "toggle", title: "Sets the feed to Keep forever and lifts its article limit, so the retention clean-up doesn't delete what was fetched." }, keep, " Keep them (set to keep forever)"),
-      body() {
-        const b = { method: method.value, max_pages: Number(pages.value), keep_forever: keep.checked };
-        if (since.value) b.since_days = Number(since.value);
+      method, pages, window: window_,
+      body(keepDays) {
+        const b = { method: method.value, max_pages: Number(pages.value) };
+        const k = keepDays !== undefined ? keepDays : (window_ && window_.value !== "" ? Number(window_.value) : null);
+        if (k !== null && k !== undefined && Number.isInteger(k) && k >= 0) b.keep_days = k;
         return b;
       },
     };
   }
+
+  /** What a feed holds, in words: articles, podcast episodes, videos or account posts. */
+  function feedNoun(f) {
+    if (f.kind === "podcast") return { one: "episode", many: "episodes", Many: "Episodes", unread: "Unplayed", read: "played", feed: "show", Feed: "Show" };
+    if (f.kind === "youtube") return { one: "video", many: "videos", Many: "Videos", unread: "Unwatched", read: "watched", feed: "channel", Feed: "Channel" };
+    if (f.social_platform) return { one: "post", many: "posts", Many: "Posts", unread: "Unread", read: "read", feed: "account", Feed: "Account" };
+    return { one: "article", many: "articles", Many: "Articles", unread: "Unread", read: "read", feed: "feed", Feed: "Feed" };
+  }
+  const PODCAST_HINT = "Shows usually list their latest 100–300 episodes in their feed. Loading older episodes reads the whole feed again, then the show's own older pages (when its host offers them), then old copies of the feed saved by the Internet Archive (web.archive.org). Each page or saved copy is one request; it runs in the background.";
 
   function describeBackfill(b) {
     const how = b.method ? ` via ${METHOD[b.method] || b.method}` : "";
@@ -98,11 +110,16 @@
       ? `Default interval, adapted to how often this feed posts — currently ${FW.fmtMinutes(f.effective.refresh_minutes).toLowerCase()} (Settings → Appearance & reading → Check quiet feeds less often).`
       : null;
     const isArticles = ["rss", "html", null, undefined].includes(f.kind) && !f.social_platform;
+    const N = feedNoun(f);
+    const media = f.kind === "podcast" || f.kind === "youtube";   // podcasts and videos live in their own tabs
+    const sourceKind = ["youtube", "hfpapers", "x", "telegram"].includes(f.kind || "");
+    const canHistory = !["html", "json", "x"].includes(f.kind || "rss");
     const fullText = isArticles ? h("select", { "aria-label": "Full article text" },
       [["auto", "Automatic — when the feed sends only a summary"], ["always", "Always fetch the article page"], ["never", "Never (show what the feed sends)"]]
         .map(([v, l]) => h("option", { value: v, text: l, selected: (f.full_text || "auto") === v }))) : null;
     const keep = overridePicker(f.retention_days, Number(settings.retention_days ?? 90), RETENTION_CHOICES, "Keep forever", "days", 36500, FW.fmtRetention);
-    const cap = overridePicker(f.max_articles, Number(settings.max_articles_per_feed ?? 0), CAP_CHOICES, "Unlimited", "articles", 1000000);
+    // a count cap only makes sense for article feeds; podcasts and videos are kept by time alone
+    const cap = media ? null : overridePicker(f.max_articles, Number(settings.max_articles_per_feed ?? 0), CAP_CHOICES, "Unlimited", N.many, 1000000);
     const err = h("p", { class: "error" });
     const s = f.stats;
     const scrapeEditor = (f.kind === "html" || f.kind === "json") && f.scrape ? rulesEditor(f.scrape, () => url.value.trim()) : null;
@@ -115,7 +132,7 @@
       err.textContent = "";
       const interval = refresh.value();
       const days = keep.value();
-      const max = cap.value();
+      const max = cap ? cap.value() : (f.max_articles ?? null);
       if (Number.isNaN(interval)) { err.textContent = "Custom refresh interval must be 5–10080 minutes."; return; }
       if (Number.isNaN(days) || Number.isNaN(max)) { err.textContent = "Custom retention values must be whole numbers."; return; }
       const body = { title: title.value.trim(), enabled: enabled.checked };
@@ -123,7 +140,7 @@
       if (fullText) body.full_text = fullText.value;
       if (!sourceEditor && url.value.trim() !== f.url) body.url = url.value.trim();
       if (sourceEditor && sourceEditor.value()) body.source = sourceEditor.value();
-      if (folder.value) body.folder_id = Number(folder.value); else body.clear_folder = true;
+      if (!media) { if (folder.value) body.folder_id = Number(folder.value); else body.clear_folder = true; }
       if (interval === null) body.use_default_refresh = true; else body.refresh_minutes = interval;
       if (scrapeEditor) {
         const rules = scrapeEditor.value();
@@ -133,13 +150,20 @@
       try {
         await api("PATCH", `/feeds/${feedId}`, body);
         await api("PUT", `/feeds/${feedId}/retention`, { retention_days: days, max_articles: max });
-        toast("Feed saved");
+        toast(`${N.Feed} saved`);
         FW.loadSidebar();
+        // one setting: a longer time frame also means "go and get the older items" - offer it right away
+        const before = f.effective.retention_days, after = days === null ? Number(settings.retention_days ?? 0) : days;
+        const longer = canHistory && before !== 0 && (after === 0 || after > before);
+        if (longer && window.confirm(`Keep ${after === 0 ? "everything" : fmtDays(after)} now. Load older ${N.many} back to ${after === 0 ? "the very first one" : "that date"}?`)) {
+          await startBackfill(after);
+          return;
+        }
         reload();
       } catch (ex) { err.textContent = ex.message; }
     };
 
-    const bf = backfillControls({ keepDefault: f.effective.retention_days !== 0 || f.effective.max_articles !== 0 });
+    const bf = backfillControls({ podcast: f.kind === "podcast" });
     const backfillStatus = h("div", { class: "muted small", "aria-live": "polite" });
     const showBackfill = (b) => {
       backfillStatus.textContent = b && b.feed_id === feedId && !b.bulk ? describeBackfill(b)
@@ -153,8 +177,11 @@
       if (st.backfill.state === "running") setTimeout(pollBackfill, 1500);
       else { FW.loadSidebar(); FW.loadArticles(); }
     };
-    const startBackfill = async () => {
-      if (await guarded(() => api("POST", `/feeds/${feedId}/backfill`, bf.body()))) {
+    const startBackfill = async (keepDays) => {
+      // fetch back as far as the Keep setting says (the value in the picker, even before Save)
+      const chosen = Number.isInteger(keepDays) ? keepDays : keep.value();
+      const body = bf.body(Number.isInteger(chosen) ? chosen : undefined);
+      if (await guarded(() => api("POST", `/feeds/${feedId}/backfill`, body))) {
         backfillStatus.textContent = "⏳ Starting…";
         setTimeout(pollBackfill, 800);
       }
@@ -172,39 +199,40 @@
           h("div", { class: "muted small" }, site ? h("a", { href: site, target: "_blank", rel: "noopener noreferrer", text: f.site_url }) : f.url)),
         h("button", { type: "button", class: "icon-btn", "aria-label": "Close", text: "✕", onclick: () => dlg.close() })),
       h("div", { class: "fe-stats" },
-        stat("Articles", s.total.toLocaleString()), stat("Unread", s.unread.toLocaleString()), stat("Starred", s.starred.toLocaleString()),
+        stat(N.Many, s.total.toLocaleString()), stat(N.unread, s.unread.toLocaleString()), stat("Starred", s.starred.toLocaleString()),
         stat("Last 30 days", s.last_30d.toLocaleString()), stat("Oldest", fmtDate(s.oldest)), stat("Newest", fmtDate(s.newest)),
-        stat("Retention", `${fmtDays(f.effective.retention_days)}${f.retention_days === null || f.retention_days === undefined ? " (global)" : ""}`)),
-      h("fieldset", null, h("legend", { text: "Feed" }),
+        stat("Keeps", `${fmtDays(f.effective.retention_days)}${f.retention_days === null || f.retention_days === undefined ? " (global)" : ""}`)),
+      h("fieldset", null, h("legend", { text: N.Feed }),
         h("div", { class: "grid-form" },
           h("label", { text: "Title" }), title,
           h("label", { text: sourceEditor ? "Address" : "Feed URL" }), url,
-          h("label", { text: "Folder" }), folder,
+          media ? null : h("label", { text: "Folder" }), media ? null : folder,
           h("label", { text: "Refresh every" }), refresh.el,
           adaptiveNote ? h("div", { class: "hint", text: adaptiveNote }) : null,
           h("label", { text: "Enabled" }), enabled,
           h("label", { text: "Translate titles" }), translate,
-          h("div", { class: "hint", text: "For feeds in another language (CERT-FR, JPCERT…): titles are translated by your AI provider (Settings → AI, into its language setting). The original title stays visible under the translation. Turning this off puts the original titles back." }),
+          h("div", { class: "hint", text: `For ${N.feed}s in another language (CERT-FR, JPCERT…): ${N.one} titles are translated by your AI provider (Settings → AI, into its language setting). The original title stays visible under the translation. Turning this off puts the original titles back.` }),
           fullText ? h("label", { text: "Full article text" }) : null, fullText,
           fullText ? h("div", { class: "hint", text: "Many sites put only a sentence or two in their feed. The full text is then read from the article page (if the site allows feed readers; some refuse, and those keep the summary)." }) : null)),
       sourceEditor ? sourceEditor.el : null,
       scrapeEditor ? h("fieldset", null, h("legend", { text: `Scraping rules (${f.kind === "json" ? "JSON API" : "web page"})` }),
         h("p", { class: "muted small", text: "This feed is built by scraping. If the site changes its layout and nothing matches, the feed shows an error — adjust the selectors and use ▶ Test rules." }),
         scrapeEditor.el) : null,
-      h("fieldset", null, h("legend", { text: "History & storage" }),
+      h("fieldset", null, h("legend", { text: "History" }),
         h("div", { class: "grid-form" },
-          h("label", { text: "Keep articles" }), keep.el,
-          h("div", { class: "hint", text: `Currently: ${fmtDays(f.effective.retention_days)}. Starred and manually-filed articles are always kept. Older items are skipped when fetching if they fall outside this window.` }),
-          h("label", { text: "Max articles" }), cap.el,
-          h("div", { class: "hint", text: `Currently: ${f.effective.max_articles ? f.effective.max_articles.toLocaleString() : "unlimited"}.` }),
-          h("label", { text: "Older articles" }),
-          h("div", null,
-            h("div", { class: "row-form bf-row" }, bf.method, bf.since, bf.pages),
-            h("div", { class: "row-form" }, bf.keepEl,
-              h("button", { type: "button", class: "btn small", text: "⇣ Fetch older articles", onclick: startBackfill }),
+          h("label", { text: `Keep & fetch ${N.many} from` }), keep.el,
+          h("div", { class: "hint", text: `One setting: ${N.many} older than this are removed, and loading older ${N.many} goes back exactly this far. Currently: ${fmtDays(f.effective.retention_days)}. Starred and hand-filed ${N.many} are always kept.` }),
+          cap ? h("label", { text: `At most` }) : null, cap ? cap.el : null,
+          cap ? h("div", { class: "hint", text: `A count limit on top of the time frame (the newest stay). Currently: ${f.effective.max_articles ? f.effective.max_articles.toLocaleString() : "no limit"}.` }) : null,
+          canHistory ? h("label", { text: `Older ${N.many}` }) : null,
+          canHistory ? h("div", null,
+            h("div", { class: "row-form bf-row" }, sourceKind ? null : bf.method, bf.pages),
+            h("div", { class: "row-form" },
+              h("button", { type: "button", class: "btn small", text: `⇣ Load older ${N.many}`, title: `Back to the Keep setting above (${fmtDays(f.effective.retention_days)} now)`, onclick: () => startBackfill() }),
               h("button", { type: "button", class: "btn small", text: "Stop", onclick: () => api("POST", "/history/cancel", {}) })),
-            backfillStatus),
-          h("div", { class: "hint", text: (FW.sources && FW.sources.BACKFILL_HINT[f.kind]) || "Feeds only list their latest items. Automatic tries the site's own older pages (archive links, WordPress, Blogger, Ghost, ?page=N) and otherwise reads old copies of this feed saved by the Internet Archive (web.archive.org), which reaches back years for most public feeds. Each page or saved copy is one request; it runs in the background." }))),
+            backfillStatus) : null,
+          canHistory ? h("div", { class: "hint", text: f.kind === "podcast" ? PODCAST_HINT : (FW.sources && FW.sources.BACKFILL_HINT[f.kind]) || "Feeds only list their latest items. Automatic tries the site's own older pages (archive links, WordPress, Blogger, Ghost, ?page=N) and otherwise reads old copies of this feed saved by the Internet Archive (web.archive.org), which reaches back years for most public feeds. Each page or saved copy is one request; it runs in the background." })
+            : h("div", { class: "hint", text: "Scraped web pages and X only show what is there now: there are no older pages to load." }))),
       h("fieldset", null, h("legend", { text: "Health" }),
         h("div", { class: "grid-form" },
           h("label", { text: "Last fetched" }), h("span", { text: f.last_fetched ? `${relTime(f.last_fetched)} (${fullDate(f.last_fetched)})` : "never" }),
@@ -213,22 +241,22 @@
             ? h("span", { class: "status-err", text: `⚠ ${f.error_count} consecutive error(s): ${f.last_error || "unknown"}` })
             : h("span", { class: "status-ok", text: "✓ OK" }),
           h("label", { text: "Subscribed" }), h("span", { text: fullDate(f.created_at) }))),
-      h("fieldset", null, h("legend", { text: `Rules that apply (${f.rules.length})` }),
-        f.rules.length ? h("ul", { class: "small fe-rules" }, ruleRows) : h("p", { class: "muted small", text: "No rules apply to this feed." }),
+      media ? null : h("fieldset", null, h("legend", { text: `Rules that apply (${f.rules.length})` }),
+        f.rules.length ? h("ul", { class: "small fe-rules" }, ruleRows) : h("p", { class: "muted small", text: `No rules apply to this ${N.feed}.` }),
         h("button", { type: "button", class: "btn small", text: "Manage rules…", onclick: () => { dlg.close(); FW.openSettings("rules"); } })),
       err,
       h("div", { class: "form-actions fe-foot" },
-        h("button", { type: "button", class: "btn danger", text: "Delete feed", onclick: async () => {
-          if (!window.confirm(`Unsubscribe from “${f.title}” and delete its ${s.total} article(s)?`)) return;
-          if (await guarded(() => api("DELETE", `/feeds/${feedId}`), "Feed deleted")) { dlg.close(); FW.loadSidebar(); FW.selectView({ type: "unread" }); }
+        h("button", { type: "button", class: "btn danger", text: `Delete ${N.feed}`, onclick: async () => {
+          if (!window.confirm(`Unsubscribe from “${f.title}” and delete its ${s.total} ${s.total === 1 ? N.one : N.many}?`)) return;
+          if (await guarded(() => api("DELETE", `/feeds/${feedId}`), `${N.Feed} deleted`)) { dlg.close(); FW.loadSidebar(); if (!media) FW.selectView({ type: "unread" }); }
         } }),
         h("span", { class: "spacer" }),
-        h("button", { type: "button", class: "btn", text: "Mark all read", onclick: async () => {
+        h("button", { type: "button", class: "btn", text: `Mark all ${N.read}`, onclick: async () => {
           if (await guarded(() => api("POST", "/articles/mark-read", { feed_id: feedId }), "Marked read")) { FW.loadSidebar(); FW.loadArticles(); reload(); }
         } }),
         h("button", { type: "button", class: "btn", text: "⟳ Refresh now", onclick: async () => {
           const r = await guarded(() => api("POST", `/feeds/${feedId}/refresh`));
-          if (r) { toast(r.ok ? `${r.new} new article(s)` : `Failed: ${r.error}`, !r.ok); FW.loadSidebar(); FW.loadArticles(); reload(); }
+          if (r) { toast(r.ok ? `${r.new} new ${r.new === 1 ? N.one : N.many}` : `Failed: ${r.error}`, !r.ok); FW.loadSidebar(); FW.loadArticles(); reload(); }
         } }),
         h("button", { type: "submit", class: "btn primary", text: "Save" }))));
     if (f.backfill && f.backfill.state === "running") setTimeout(pollBackfill, 1000);
@@ -240,7 +268,7 @@
 
   // ===================================================================== fetch older articles for all feeds
   function backfillAllCard(folders, onDone) {
-    const bf = backfillControls({ pagesDefault: 30, pagesLabel: "pages per feed" });
+    const bf = backfillControls({ pagesDefault: 30, pagesLabel: "pages per feed", withWindow: true });
     const folder = h("select", { "aria-label": "Which feeds" }, [h("option", { value: "", text: "All feeds" })]
       .concat(folders.map((f) => h("option", { value: f.id, text: `Folder: ${f.name}` }))));
     const missing = h("input", { type: "checkbox", checked: true });
@@ -291,12 +319,12 @@
       h("p", { class: "muted small", text: "Feeds only list their newest items, so history has to be looked up feed by feed: first on the site itself (archive links, WordPress, Blogger, Ghost or ?page=N paging), then in old copies of the feed saved by the Internet Archive (web.archive.org). It runs in the background, one feed after another, with pauses between requests — a full run over many feeds can take an hour or more. Scraped web pages and X feeds are skipped." }),
       h("div", { class: "grid-form" },
         h("label", { text: "Feeds" }), folder,
-        h("label", { text: "How far back" }), bf.since,
+        h("label", { text: "Keep & fetch back" }), bf.window,
+        h("div", { class: "hint", text: "One setting: the feeds keep this time frame and older articles are fetched back to it. “Each feed's own” uses every feed's Keep setting as it is." }),
         h("label", { text: "Where to look" }), bf.method,
         h("label", { text: "Effort" }), bf.pages,
         h("label", { text: "Options" }), h("div", { class: "fe-opts" },
-          h("label", { class: "toggle", title: "Skips feeds whose articles already reach back to the chosen date." }, missing, " Only feeds missing that history"),
-          bf.keepEl)),
+          h("label", { class: "toggle", title: "Skips feeds whose articles already reach back to the chosen date." }, missing, " Only feeds missing that history"))),
       progress, summary,
       h("div", { class: "form-actions" },
         h("button", { type: "button", class: "btn", text: "Stop", onclick: () => api("POST", "/history/cancel", {}) }),

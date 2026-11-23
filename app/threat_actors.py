@@ -87,18 +87,20 @@ def apply_catalog() -> dict:
             seen.add(key)
             shown = name if a.get("match_name") else f"{name} (threat actor)"  # an everyday word: only its other names match
             aliases = json.dumps(attack_sync._aliases([x for x in a.get("aliases") or [] if isinstance(x, str)], 40))
-            meta = (str(a.get("country") or "")[:2], str(a.get("kind") or "")[:20], json.dumps([str(s)[:40] for s in a.get("sources") or []][:6]))
+            meta = (str(a.get("country") or "")[:2], str(a.get("kind") or "")[:20], json.dumps([str(s)[:40] for s in a.get("sources") or []][:8]),
+                    json.dumps([" ".join(str(n).split())[:80] for n in a.get("names") or [] if isinstance(n, str)][:80]),
+                    str(a.get("attack_id") or "")[:10] or None)
             row = current.get(key)
             if row is None:
                 db.execute("DELETE FROM entities WHERE watchlist_id = ? AND name = ?", (wid, shown))
                 eid = int(db.execute("INSERT INTO entities (watchlist_id, name, aliases) VALUES (?, ?, ?)", (wid, shown, aliases)).lastrowid)
-                db.execute("INSERT INTO threat_actor_meta (entity_id, key, country, kind, sources) VALUES (?, ?, ?, ?, ?)", (eid, key, *meta))
+                db.execute("INSERT INTO threat_actor_meta (entity_id, key, country, kind, sources, names, attack_id) VALUES (?, ?, ?, ?, ?, ?, ?)", (eid, key, *meta))
                 changed.append(eid)
             else:
                 if row["name"] != shown or row["aliases"] != aliases:
                     db.execute("UPDATE entities SET name = ?, aliases = ? WHERE id = ?", (shown, aliases, row["entity_id"]))
                     changed.append(int(row["entity_id"]))
-                db.execute("UPDATE threat_actor_meta SET country = ?, kind = ?, sources = ? WHERE entity_id = ?", (*meta, row["entity_id"]))
+                db.execute("UPDATE threat_actor_meta SET country = ?, kind = ?, sources = ?, names = ?, attack_id = ? WHERE entity_id = ?", (*meta, row["entity_id"]))
         for key, row in current.items():
             if key not in seen:
                 db.execute("DELETE FROM entities WHERE id = ?", (row["entity_id"],))
@@ -134,7 +136,7 @@ def _clusters(db: sqlite3.Connection) -> dict:
     rows = db.execute(
         "SELECT e.id, e.name, e.aliases, w.slug FROM entities e JOIN watchlists w ON w.id = e.watchlist_id "
         f"WHERE w.slug IN ({placeholders(len(ACTOR_SLUGS))})", ACTOR_SLUGS).fetchall()  # nosec B608 - placeholders only
-    meta = {r["entity_id"]: r for r in db.execute("SELECT entity_id, country, kind, sources FROM threat_actor_meta")}
+    meta = {r["entity_id"]: r for r in db.execute("SELECT entity_id, country, kind, sources, names FROM threat_actor_meta")}
     main: dict[int, str] = {}
     names: dict[int, set[str]] = {}
     for r in rows:
@@ -195,8 +197,17 @@ def _clusters(db: sqlite3.Connection) -> dict:
         country = max(countries, key=lambda cc: (len(countries[cc]), any(main[i] and (main[i] in main[pid] or main[pid] in main[i]) for i in countries[cc])),
                       default="")
         aliases = [a for i in ids for a in json.loads(by_id[i]["aliases"] or "[]") if isinstance(a, str)]
+        shown = [a for i in ids if meta.get(i) for a in json.loads(meta[i]["names"] or "[]") if isinstance(a, str)]
+        seen_names = {_key(PAREN.sub("", by_id[pid]["name"]) or by_id[pid]["name"])}
+        also: list[str] = []
+        for a in other_names + aliases + shown:  # every name, once (APT40 / Gadolinium / GADOLINIUM -> one)
+            k = _key(a)
+            if k and k not in seen_names:
+                seen_names.add(k)
+                also.append(a)
+        matched = list(dict.fromkeys(a for a in aliases if _key(a)))
         info[pid] = {"id": pid, "name": by_id[pid]["name"], "country": country, "kind": kind, "sources": sources,
-                     "also": list(dict.fromkeys(other_names + aliases))[:60]}
+                     "also": also[:120], "matched": matched[:160]}
     out = {"primary": primary, "members": members, "info": info}
     with _lock:
         _cache = (sig, out)
@@ -240,6 +251,6 @@ def listing(db: sqlite3.Connection, q: str = "", days: int = 0, limit: int = 200
             continue
         if needle and needle not in _key(inf["name"]) and not any(needle in _key(a) for a in inf["also"]):
             continue
-        items.append({**inf, **n, "also": inf["also"][:12]})
+        items.append({**{k: v for k, v in inf.items() if k != "matched"}, **n, "also": inf["also"][:12]})
     items.sort(key=lambda a: (-(a["articles"] + a["videos"] + a["podcasts"]), a["name"].lower()))
     return {"total": len(items), "tracked": len(c["info"]), "days": days, "items": items[:limit]}

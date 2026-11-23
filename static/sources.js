@@ -31,14 +31,31 @@
   const isVideoInPlaylist = (text) => VIDEO_RE.test(text.trim()) && isPlaylistLink(text);
 
   /** A link to one video: add just that video (default) or subscribe to its whole channel. */
-  function chooseVideoOrChannel(input, base) {
+  async function chooseVideoOrChannel(input, base) {
     const dlg = $("#sourceDialog");
+    // 📁 optionally straight into one of your groups (or a new one)
+    const groupList = await api("GET", "/library/groups").then((r) => r.groups.filter((g) => String(g.id).startsWith("g:"))).catch(() => []);
+    const groupSel = h("select", { "aria-label": "Put the video in a group" }, h("option", { value: "", text: "No group" }),
+      groupList.map((g) => h("option", { value: g.id, text: g.name })), h("option", { value: "new", text: "＋ New group…" }));
+    const groupName = h("input", { type: "text", maxlength: 100, placeholder: "New group name", "aria-label": "New group name", hidden: true });
+    groupSel.addEventListener("change", () => { groupName.hidden = groupSel.value !== "new"; if (!groupName.hidden) groupName.focus(); });
     const addVideo = async () => {
+      let group = groupSel.value || null, groupLabel = "";
+      if (group === "new") {
+        if (!groupName.value.trim()) { groupName.focus(); toast("Type a name for the new group", true); return; }
+        try { const g = await api("POST", "/library/groups", { name: groupName.value.trim() }); group = g.id; groupLabel = groupName.value.trim(); }
+        catch (ex) { toast(ex.message, true); return; }
+      } else if (group) groupLabel = (groupList.find((g) => g.id === group) || {}).name || "";
       fill(dlg, h("p", { class: "muted", text: "Adding the video…" }));
       try {
         const r = await api("POST", "/library/videos", { url: input });
+        let inGroup = "";
+        if (group && r.article_id) {
+          const g = await api("POST", `/library/groups/${encodeURIComponent(group)}/videos`, { article_ids: [r.article_id] }).catch(() => null);
+          if (g) inGroup = ` · in ${groupLabel}`;
+        }
         dlg.close();
-        toast(r.already ? `Already in your library: ${r.title}` : `Added to the library: ${r.title}`);
+        toast((r.already ? `Already in your library: ${r.title}` : `Added to the library: ${r.title}`) + inGroup);
         FW.loadSidebar();
         if (FW.currentMode() === "library") { await library.loadMeta(); library.renderShell(); library.reload(); }
       } catch (err) {
@@ -50,6 +67,7 @@
       h("div", { class: "sd-head" }, h("h3", null, h("span", { class: "src-badge k-youtube", text: "▶" }), " YouTube video"),
         h("button", { type: "button", class: "icon-btn", "aria-label": "Close", text: "✕", onclick: () => dlg.close() })),
       h("p", { class: "muted", text: "This is a link to a single video. Add only this video to your library, or follow the whole channel it belongs to?" }),
+      h("div", { class: "grid-form" }, h("label", { text: "Put the video in group" }), h("span", { class: "tf-picker" }, groupSel, groupName)),
       h("div", { class: "choice-cards" },
         h("button", { type: "button", class: "choice-card primary", onclick: addVideo },
           h("strong", { text: "▶ Add just this video" }), h("span", { class: "muted small", text: "It goes into “Saved YouTube videos” and is sorted into topics like the rest." })),
@@ -191,6 +209,12 @@
       chanPlaylists: tick("The channel's playlists", hasKey ? "all of its public playlists" : "needs a free YouTube API key (Settings → Integrations)", !hasKey),
     };
     const frame = timeFramePicker({ label: "Retention", selected: hasKey ? 365 : "latest", everythingText: "Everything (whole history)", latest: true });
+    // 📁 put the added videos / playlists straight into one of your groups (or a new one)
+    const groupList = await api("GET", "/library/groups").then((r) => r.groups.filter((g) => String(g.id).startsWith("g:"))).catch(() => []);
+    const groupSel = h("select", { "aria-label": "Put them in a group" }, h("option", { value: "", text: "No group" }),
+      groupList.map((g) => h("option", { value: g.id, text: g.name })), h("option", { value: "new", text: "＋ New group…" }));
+    const groupName = h("input", { type: "text", maxlength: 100, placeholder: "New group name", "aria-label": "New group name", hidden: true });
+    groupSel.addEventListener("change", () => { groupName.hidden = groupSel.value !== "new"; if (!groupName.hidden) groupName.focus(); });
     const err = h("p", { class: "error" });
     const lines = () => [...new Set(box.value.split(/\r?\n/).map((l) => l.trim()).filter(Boolean))];
     const refresh = () => {
@@ -216,7 +240,14 @@
       if (Number.isNaN(days)) { err.textContent = "Custom time frame: enter a whole number from 1 to 100."; return; }
       const o = Object.fromEntries(Object.entries(opt).map(([k, v]) => [k, v.input.checked && !v.row.hidden && !v.input.disabled]));
       if (!Object.values(o).some(Boolean)) { err.textContent = "Tick at least one thing to add."; return; }
-      const opts = { ...o, days, hasKey };
+      let group = groupSel.value || null;
+      if (group === "new") {
+        const name = groupName.value.trim();
+        if (!name) { err.textContent = "Type a name for the new group."; return; }
+        try { group = (await api("POST", "/library/groups", { name })).id; }
+        catch (ex) { err.textContent = ex.message; return; }
+      }
+      const opts = { ...o, days, hasKey, group, groupLabel: group ? (groupList.find((g) => g.id === group) || { name: groupName.value.trim() }).name : "" };
       if (ls.length === 1 && o.chanPlaylists && lineKind(ls[0]) === "channel") {
         const picked = await pickPlaylists(ls[0], opts);  // choose which playlists of this one channel
         if (picked === null) return;
@@ -230,9 +261,11 @@
         h("button", { type: "button", class: "icon-btn", "aria-label": "Close", text: "✕", onclick: () => dlg.close() })),
       box, detected,
       h("div", { class: "add-opts" }, h("div", { class: "muted small", text: "Add:" }), Object.values(opt).map((o) => o.row)),
-      h("div", { class: "grid-form" }, h("label", { text: "Retention (how far back)" }), frame.el),
+      h("div", { class: "grid-form" }, h("label", { text: "Retention (how far back)" }), frame.el,
+        h("label", { text: "Put in group" }), h("span", { class: "tf-picker" }, groupSel, groupName)),
       h("ul", { class: "small src-notes" },
         h("li", { text: "The retention applies to the channel's videos: older ones are skipped and drop off as they age. Playlists are always added whole. Change it later with 🗓️ Retention in the channels menu." }),
+        h("li", { text: "Put in group: single videos are added to the group, and a playlist moves into it whole. A followed channel isn't a group item - its videos stay under the channel." }),
         h("li", { text: "“The video” alone adds only that video: no channel, no other videos." }),
         hasKey ? null : h("li", { text: "Without a YouTube API key only the latest 15 videos of a channel or playlist exist — add a free key in Settings → Integrations." })),
       err,
@@ -324,11 +357,20 @@
         let title = "";
         if (kind.startsWith("video") && opts.video) {  // just this video
           const v = await call("POST", "/library/videos", { url: r.line });
-          parts.push("video added"); title = v.title || "";
+          parts.push(v.already ? "video already there" : "video added"); title = v.title || "";
+          if (opts.group && v.article_id) {
+            const g = await call("POST", `/library/groups/${encodeURIComponent(opts.group)}/videos`, { article_ids: [v.article_id] }).catch(() => null);
+            if (g) parts.push(`in ${opts.groupLabel}`);
+          }
         }
         if ((kind === "playlist" || kind === "video+playlist") && opts.playlist) {
           const res = await call("POST", "/sources/resolve", { input: kind === "playlist" ? r.line : `https://www.youtube.com/playlist?list=${new URL(r.line).searchParams.get("list")}`, kind: "youtube" });
+          const before = added.length;
           parts.push(`playlist ${await subscribeFill(res.source, res.title, true)}`); title = title || res.title || "";
+          if (opts.group && added.length > before) {
+            const g = await call("POST", `/library/groups/${encodeURIComponent(opts.group)}/videos`, { from_ref: `p:${added[added.length - 1]}` }).catch(() => null);
+            if (g) parts.push(`moved into ${opts.groupLabel}`);
+          }
         }
         if (opts.follow || opts.chanVideos || opts.chanPlaylists) {
           let channel;  // the channel itself, or the one the video / playlist belongs to
@@ -476,6 +518,89 @@
     } catch (err) {
       toast(/running/.test(err.message) ? "Another history job is running — use “⇣ Load whole channel” in Videos once it finishes." : err.message, true);
     }
+  }
+
+  /** ☰ Sort a followed channel's videos into its playlists: list the channel's playlists (all ticked, the ones
+   *  already followed marked), follow the ticked ones, and read each playlist whole. Videos the library already has
+   *  are linked to the playlist in YouTube's order (never copied); only videos missing from the library are added.
+   *  Optionally the playlists go into one group named after the channel. Needs a YouTube Data API key. */
+  async function sortIntoPlaylists(channel, onDone) {
+    const dlg = $("#sourceDialog");
+    if (!(await ytKeySet())) {
+      toast("Listing a channel's playlists needs a free YouTube Data API key — add one in Settings → Integrations.", true);
+      return;
+    }
+    fill(dlg, h("p", { class: "muted", text: `Looking up the playlists of ${channel.title}…` }));
+    if (!dlg.open) dlg.showModal();
+    let list;
+    try { list = (await api("GET", `/library/youtube/playlists?channel_id=${encodeURIComponent(channel.key)}`)).playlists; }
+    catch (err) { dlg.close(); toast(err.message, true); return; }
+    if (!list.length) { dlg.close(); toast(`${channel.title} has no public playlists`); return; }
+    const followed = new Map(channel.feeds.filter((fd) => fd.playlist_id).map((fd) => [fd.playlist_id, fd]));
+    const boxes = list.map((p) => ({ p, box: h("input", { type: "checkbox", checked: true, "aria-label": p.title }) }));
+    const all = h("input", { type: "checkbox", checked: true, "aria-label": "All playlists" });
+    all.addEventListener("change", () => boxes.forEach((b) => { b.box.checked = all.checked; }));
+    const grouped = h("input", { type: "checkbox", checked: true });
+    const status = h("p", { class: "small", "aria-live": "polite" });
+    const go = h("button", { type: "submit", class: "btn primary", text: "Sort into playlists" });
+    const run = async (e) => {
+      e.preventDefault();
+      const picked = boxes.filter((b) => b.box.checked).map((b) => b.p);
+      if (!picked.length) { toast("Tick at least one playlist", true); return; }
+      go.disabled = true;
+      const feedIds = [];
+      const added = [];
+      let n = 0;
+      for (const p of picked) {
+        status.textContent = `Following playlists ${++n}/${picked.length}…`;
+        const have = followed.get(p.playlist_id);
+        if (have) { feedIds.push(have.id); continue; }
+        try {
+          const feed = await api("POST", "/feeds", { url: "https://www.youtube.com/", source: { kind: "youtube", playlist_id: p.playlist_id }, title: p.title, refresh_minutes: 60 });
+          feedIds.push(feed.id); added.push(feed.id);
+        } catch (err) { if (!/already/i.test(err.message)) toast(`${p.title}: ${err.message}`, true); }
+      }
+      // playlists are kept whole (never trimmed by age)
+      if (added.length) await api("POST", "/library/keep", { feed_ids: added, days: 0, load: false }).catch(() => {});
+      if (grouped.checked && feedIds.length) {
+        status.textContent = `Putting them in the group “${channel.title}”…`;
+        try {
+          const groups = (await api("GET", "/library/groups")).groups;
+          let g = groups.find((x) => String(x.id).startsWith("g:") && x.name.toLowerCase() === channel.title.toLowerCase());
+          if (!g) g = await api("POST", "/library/groups", { name: channel.title.slice(0, 100) });
+          const loose = new Set(groups.filter((x) => x.type === "playlist").map((x) => x.id));  // not in a group yet
+          for (const fid of feedIds) {
+            if (added.includes(fid) || loose.has(`p:${fid}`)) {
+              await api("POST", `/library/groups/${encodeURIComponent(g.id)}/videos`, { from_ref: `p:${fid}` }).catch(() => {});
+            }
+          }
+        } catch (err) { toast(`Group: ${err.message}`, true); }
+      }
+      let note = "";
+      try {
+        await api("POST", "/history/backfill-all", { feed_ids: feedIds, max_pages: 1000, only_missing: false, keep_forever: true,
+          since_days: null, whole_playlists: true });
+        note = "Each playlist is being read in the background: videos you already have are sorted into it in YouTube's order, missing ones are added.";
+      } catch (err) {
+        note = /running/.test(err.message) ? "Another history job is running — the playlists fill in at their next refresh (or run this again once it finishes)."
+          : `Loading: ${err.message}`;
+      }
+      status.textContent = `${feedIds.length} playlist${feedIds.length === 1 ? "" : "s"} (${added.length} newly followed). ${note}`;
+      go.textContent = "Done"; go.disabled = false; go.type = "button"; go.onclick = () => dlg.close();
+      if (onDone) setTimeout(onDone, 3000);
+    };
+    fill(dlg, h("form", { class: "form source-wizard", onsubmit: run },
+      h("div", { class: "sd-head" }, h("h3", { text: `Sort ${channel.title} into its playlists (${list.length})` })),
+      h("p", { class: "muted small", text: "Videos you already have are put into their playlists, in the channel's order. Nothing is copied: a video in several playlists is stored once and shown in each. Only videos you don't have yet are added." }),
+      h("label", { class: "tp-item tp-all" }, all, h("span", { text: "All playlists" })),
+      h("div", { class: "tp-list pl-pick" }, boxes.map(({ p, box }) => h("label", { class: "tp-item" }, box,
+        h("span", { class: "tp-name", text: p.title }),
+        followed.has(p.playlist_id) ? h("span", { class: "muted small", text: "followed" }) : null,
+        h("span", { class: "count", text: String(p.videos) })))),
+      h("label", { class: "tp-item" }, grouped, h("span", { text: `Put them in a group named “${channel.title}”` })),
+      status,
+      h("div", { class: "form-actions" },
+        h("button", { type: "button", class: "btn", text: "Close", onclick: () => dlg.close() }), go)));
   }
 
   // ======================================================================= feed editor: source settings
@@ -748,13 +873,13 @@
   }
 
   /** Dropdown of tick boxes. opts: {items: [{id, name, color?, count?, hint?}], selected: [ids], noun: "topic",
-   *  allLabel: "All topics", match?: "any"|"all" (shows the any/all switch), search?: true, dataAttr?: "topic",
+   *  allLabel: "All topics", buttonLabel?: "Topics" (title when nothing is picked), match?: "any"|"all" (shows the any/all switch), search?: true, dataAttr?: "topic",
    *  onChange(selected, match)} */
   function multiPicker(opts) {
     const selected = new Set(opts.selected.map(String));
     let match = opts.match === "all" ? "all" : "any";
     const label = () => {
-      if (!selected.size) return opts.allLabel;
+      if (!selected.size) return opts.buttonLabel || opts.allLabel;  // the closed dropdown's title
       const names = opts.items.filter((t) => selected.has(String(t.id))).map((t) => t.name);
       if (selected.size === 1) return names[0] || `1 ${opts.noun}`;
       return `${selected.size} ${opts.noun}s${opts.match !== undefined ? ` (${match})` : ""}`;
@@ -854,7 +979,7 @@
 
   /** Multi-topic filter: ticking several shows items from any of them. opts: {topics, selected, onChange, editAll?} */
   function topicPicker(opts) {
-    return multiPicker({ items: opts.topics, selected: opts.selected, noun: "topic", allLabel: "All topics",
+    return multiPicker({ items: opts.topics, selected: opts.selected, noun: "topic", allLabel: "All topics", buttonLabel: opts.buttonLabel,
       dataAttr: "topic", search: true, onChange: (ids) => opts.onChange(ids, "any"), itemMenu: opts.itemMenu, onAdd: opts.onAdd, star: opts.star,
       addTitle: opts.addTitle, bulkActions: opts.bulkActions, editAll: opts.editAll, editAllLabel: "✎ Edit all" });
   }
@@ -877,10 +1002,13 @@
         f.layout = "grid";
         f.v = 3;
       }
-      if (!["all", "topics", "groups", "starred", "watched"].includes(f.view)) f.view = "all";
+      if (f.view === "starred" || f.view === "watched") { f.state = f.view; f.view = "all"; }  // those tabs became drop-down choices
+      if (!["all", "topics", "groups"].includes(f.view)) f.view = "all";
+      if (!["all", "topics"].includes(f.prev_view)) f.prev_view = "all";  // where switching a view off returns to
       if (!["grid", "list"].includes(f.layout)) f.layout = "grid";
       f.topic_match = "any";  // the any/all switch was removed: several topics = videos from any of them
       if (f.sort === "topic") f.sort = "added";  // Sort: Topic (shelves) was removed 2026-11-15
+      f.dates = FW.dateRange.clean(f.dates);       // 📅 custom from / to range (null = any date)
       return f;
     })(),
     items: [], total: 0, meta: null, loading: false,
@@ -944,11 +1072,11 @@
     /** Open Videos on one video (from an entity page): the filters are replaced by its title, the card is outlined. */
     async goTo(v) {
       const find = () => { const g = $("#libGrid"); return g ? g.querySelector(`[data-video="${Number(v.id)}"]`) : null; };
-      const views = v.is_read ? ["watched", "all"] : ["all", "watched"];  // watched videos wait in their own tab
+      const states = v.is_read ? ["watched", "all"] : ["all", "watched"];  // watched videos are hidden from "All" by default
       let card = null;
-      for (const view of views) {
+      for (const state of states) {
         this.mention = null;
-        Object.assign(this.filters, { channels: [], topic_ids: [], q: String(v.title || "").slice(0, 200), length: "any", state: "all", sort: "added", view });
+        Object.assign(this.filters, { channels: [], topic_ids: [], q: String(v.title || "").slice(0, 200), length: "any", state, sort: "added", view: "all" });
         this.save();
         if (FW.currentMode() !== "library") FW.setMode("library");
         await this.show();        // joins the load the tab switch started
@@ -1004,8 +1132,7 @@
       }
       return [
         channel.feed_id ? h("button", { type: "button", class: "btn small", text: "⇣ Load whole channel",
-          title: "Fetch every video this channel has published (needs a YouTube Data API key)", onclick: () => loadWholeChannel(channel.feed_id, false) }) : null,
-        channel.feeds.some((fd) => fd.type !== "saved") ? h("button", { type: "button", class: "btn small", text: "🗓️ Keep…",
+          title: "Fetch every video this channel has published (needs a YouTube Data API key)", onclick: () => loadWholeChannel(channel.feed_id, false) }) : null,        channel.feeds.some((fd) => fd.type !== "saved") ? h("button", { type: "button", class: "btn small", text: "🗓️ Keep…",
           title: "Keep only videos from a time frame (last week, 3 months, a year…)",
           onclick: () => openKeepDialog(channel.title, channel.feeds.filter((fd) => fd.type !== "saved"), async () => { await this.loadMeta(); this.renderShell(); this.reload(); }) }) : null,
         h("button", { type: "button", class: "btn small danger", text: channel.saved ? "🗑️ Remove saved videos" : "🗑️ Remove channel",
@@ -1049,6 +1176,7 @@
     },
 
     renderShell() {
+      this.countsKey = null;  // a new toolbar needs its topic numbers filled in again
       const view = $("#libraryView");
       const f = this.filters;
       const m = this.meta;
@@ -1061,15 +1189,44 @@
       let timer = null;
       search.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(() => { f.q = search.value.trim(); this.save(); this.reload(); }, 300); });
       const select = (key, label, options) => h("select", { "aria-label": label, onchange: set(key) }, options.map(([v, l]) => h("option", { value: v, text: l, selected: String(f[key]) === String(v) })));
-      const viewBtn = (v, label, title) => h("button", { type: "button", class: `btn small${f.view === v ? " primary" : ""}`, "aria-pressed": String(f.view === v), title, text: label,
-        onclick: () => { if (v === "topics") f.topic_ids = []; f.view = v; this.openGroup = null; this.save(); this.renderShell(); this.reload(); } });
+      // By topic / Playlists & groups switch on and off: clicking the one that is on goes back to the view you were in
+      const viewBtn = (v, label, title) => h("button", { type: "button", class: `btn small${f.view === v ? " primary" : ""}`, "aria-pressed": String(f.view === v),
+        title: f.view === v ? "Click again to go back" : title, text: label, "data-view": v, "data-hint": title,
+        onclick: () => {
+          if (f.view === v) { this.setView(f.prev_view && f.prev_view !== v ? f.prev_view : "all"); return; }  // off: back to the view you came from
+          f.prev_view = f.view;
+          if (v === "topics" && f.topic_ids.length) {  // By topic shows every topic: the Topics ▾ choice is cleared, so its label changes
+            f.topic_ids = []; f.view = v; this.openGroup = null; this.save(); this.renderShell(); this.reload({ fromCache: true }); return;
+          }
+          this.setView(v);
+        } });
+      // 🏷️ Tags: only this button and the cards change
+      let tagsEl = null;
+      const tagsBtn = () => (tagsEl = FW.tagsToggle("videos", () => { tagsEl.replaceWith(tagsBtn()); this.redrawTags(); }));
       // Sort and View (Grid / List); choosing one leaves Playlists & groups
       const sortSel = h("select", { "aria-label": "Sort", title: "Sort" },
         [["added", "📅 Sort: Date added — newest"], ["added_oldest", "📅 Sort: Date added — oldest"],
           ["newest", "📅 Sort: Published — newest"], ["oldest", "📅 Sort: Published — oldest"],
           ["views", "Sort: Most viewed"], ["longest", "Sort: Longest"], ["shortest", "Sort: Shortest"]]
-          .map(([v, l]) => h("option", { value: v, text: l, selected: f.sort === v })));
-      sortSel.addEventListener("change", () => { f.sort = sortSel.value; if (f.view === "groups") f.view = "all"; this.openGroup = null; this.save(); this.renderShell(); this.reload(); });
+          .map(([v, l]) => h("option", { value: v, text: l, selected: f.sort === v })),
+        // a date filter, not a sort: picking it opens the from / to picker and the sort stays as it was
+        h("hr"),
+        h("option", { value: "custom-range", text: f.dates ? `📅 Custom range: ${FW.dateRange.label(f.dates)}…` : "📅 Custom range…" }),
+        f.dates ? h("option", { value: "clear-range", text: "✕ Clear custom range" }) : null);
+      sortSel.addEventListener("change", async () => {
+        const pick = sortSel.value;
+        if (pick === "custom-range" || pick === "clear-range") {
+          sortSel.value = f.sort;
+          const r = pick === "clear-range" ? null : await FW.dateRange.pick(f.dates);
+          if (r === undefined) return;  // cancelled
+          f.dates = r;
+        } else {
+          f.sort = pick;
+        }
+        if (f.view === "groups") f.view = "all";
+        this.openGroup = null; this.save(); this.renderShell(); this.reload();
+      });
+      if (f.dates) { sortSel.classList.add("on"); sortSel.title = `Sort - showing only videos published ${FW.dateRange.label(f.dates)}`; }
       const layoutSel = h("select", { "aria-label": "View", title: "How videos are laid out" },
         [["grid", "▦ View: Grid"], ["list", "☰ View: List"]].map(([v, l]) => h("option", { value: v, text: l, selected: f.layout === v })));
       layoutSel.addEventListener("change", () => { f.layout = layoutSel.value; if (f.view === "groups") f.view = "all"; this.openGroup = null; this.save(); this.renderShell(); this.reload(); });
@@ -1090,7 +1247,7 @@
                 hint: `Channel group: ${g.channels.map((k) => (chanOf(k) || { title: k }).title).join(", ") || "no channels yet"}` })),
               ...m.channels.map((c) => ({ id: c.key, name: c.title, count: c.videos,
                 hint: c.feeds.map((fd) => `${fd.title} (${fd.type})`).join(", ") }))],
-            selected: f.channels, noun: "channel", allLabel: `All channels (${m.channels.length})`, search: true,
+            selected: f.channels, noun: "channel", allLabel: `All channels (${m.channels.length})`, buttonLabel: "Channels", search: true,
             onAdd: () => openAddChannels(), addTitle: "Add channels or a video",
             star: { isOn: (item) => { const c = chanOf(item.id); return c ? c.favorite : null; },
               toggle: (item, on) => this.setFavorite([item.id], on) },
@@ -1113,6 +1270,7 @@
                 ["🗂️ Add to group…", () => this.groupChannels([c], refreshAll)],
                 own.length ? [`🗓️ Retention… (${keepLabel(c.retention_days)})`, () => openKeepDialog(c.title, own, refreshAll)] : null,
                 c.feed_id ? ["⇣ Load whole channel", () => loadWholeChannel(c.feed_id, false)] : null,
+                /^UC/.test(c.key) ? ["☰ Sort into its playlists…", () => sortIntoPlaylists(c, refreshAll)] : null,
                 [c.saved ? "🗑️ Remove saved videos" : "🗑️ Remove channel", () => this.removeChannel(c), true],
               ].filter(Boolean);
             },
@@ -1135,7 +1293,7 @@
           topicPicker({ topics: [
               { id: "fav", name: `★ Favourite topics (${m.topics.filter((t) => t.favorite).length})`,
                 hint: "Videos from any of the topics you starred (☆ beside a topic)" },
-              ...m.topics.map((t) => ({ ...t, count: t.videos, name: t.enabled ? t.name : `${t.name} (off)` }))], selected: f.topic_ids, match: f.topic_match,
+              ...m.topics.map((t) => ({ ...t, count: t.videos, name: t.enabled ? t.name : `${t.name} (off)` }))], selected: f.topic_ids, match: f.topic_match, buttonLabel: "Topics",
             onAdd: () => openTopicEditor(null, refreshAll), addTitle: "Add a topic", editAll: () => openTopics(),
             star: { isOn: (item) => { const t = m.topics.find((x) => String(x.id) === String(item.id)); return t ? t.favorite : null; },
               toggle: (item, on) => this.setFavoriteTopics([Number(item.id)], on) },
@@ -1158,17 +1316,23 @@
               return picked.length >= 2 ? [...fav, ["🗑️ Delete these topics", () => deleteTopics(picked, refreshAll), true]] : fav;
             },
             onChange: (ids, match) => { f.topic_ids = ids; f.topic_match = match; this.save(); this.syncChips(); this.reload(); } }),
-          select("length", "Length", [["any", "Any length"], ["short", "Shorts (≤3 min)"], ["medium", "3–20 min"], ["long", "Over 20 min"]]),
-          (() => { const s = select("state", "Watched", [["all", "All"], ["unwatched", "Unwatched"], ["watched", "Watched"], ["starred", "★ Starred"]]);
-            if (f.view === "starred" || f.view === "watched") { s.value = f.view; s.disabled = true; s.title = `The ${f.view === "starred" ? "★ Starred" : "✓ Watched"} tab shows these videos`; } return s; })(),
+          select("length", "Length", [["any", "Length"], ["short", "Shorts (≤3 min)"], ["medium", "3–20 min"], ["long", "Over 20 min"]]),
+          (() => {
+            const s = h("select", { "aria-label": "Status", class: "lib-state", title: "Status: all, unwatched, watched or starred videos" },
+              [["all", "Status"], ["unwatched", "Unwatched"], ["watched", "✓ Watched"], ["starred", "★ Starred"]]
+                .map(([v, l]) => h("option", { value: v, text: l, selected: f.state === v })));
+            s.addEventListener("change", () => {
+              f.state = s.value;
+              if (f.view === "groups") { f.view = "all"; this.openGroup = null; this.save(); this.renderShell(); this.reload(); return; }
+              this.save(); this.reload();
+            });
+            return s;
+          })(),
           sortSel, layoutSel,
           h("span", { class: "lib-view", role: "group", "aria-label": "Show" },
-            viewBtn("all", "📺 All videos", "Your whole library (with the Sort and View you picked)"),
             viewBtn("topics", "🏷️ By topic", "Your videos sorted into a shelf per topic (the channel, length and watched filters apply)"),
-            viewBtn("groups", "🗂️ Playlists & groups", "Playlists and your own groups, as cards"),
-            viewBtn("starred", "★ Starred", "Videos you starred (☆ on any video card)"),
-            viewBtn("watched", "✓ Watched", "Videos you have watched (they leave the other views); mark one unwatched to bring it back")),
-          FW.tagsToggle("videos", () => { this.renderShell(); this.reload(); }),
+            viewBtn("groups", "🗂️ Playlists & groups", "Playlists and your own groups, as cards")),
+          tagsBtn(),
           h("span", { class: "spacer" })),
         // topics are picked in Topics ▾ (the row of topic buttons is gone)
         m.reclassifying ? h("div", { class: "muted small lib-pad", text: "⏳ Tagging videos with your topics…" }) : null,
@@ -1184,19 +1348,18 @@
     },
 
     async refreshStarCount() {
-      for (const [state, mark, label] of [["starred", "★", "★ Starred"], ["watched", "✓", "✓ Watched"]]) {
+      for (const [state, label] of [["starred", "★ Starred"], ["watched", "✓ Watched"]]) {
         const res = await api("GET", `/library/videos?state=${state}&limit=1`).catch(() => null);
-        const btn = [...document.querySelectorAll("#libraryView .lib-view button")].find((b) => b.textContent.startsWith(mark));
-        if (btn && res) btn.textContent = `${label} (${res.total.toLocaleString()})`;
+        const opt = document.querySelector(`#libraryView select.lib-state option[value="${state}"]`);
+        if (opt && res) opt.textContent = `${label} (${res.total.toLocaleString()})`;
       }
     },
 
-    /** The ★ Starred tab is the grid limited to starred videos. */
+    /** The Watched drop-down's choice; "All" hides watched videos unless Settings says otherwise. */
     stateNow() {
       const f = this.filters;
-      if (f.view === "starred" || f.view === "watched") return f.view;
       if (f.state !== "all") return f.state;
-      // watched videos wait in the Watched tab (Settings: Hide watched videos); a search still finds them
+      // watched videos wait under Watched ▾ → ✓ Watched (Settings: Hide watched videos); a search still finds them
       return FW.state.settings.hide_watched !== false && !f.q && !this.mention ? "unwatched" : "all";
     },
     hidesWatched() { return this.stateNow() === "unwatched" && this.filters.state === "all"; },
@@ -1237,19 +1400,23 @@
       if (f.channels.length) p.set("channels", this.channelKeys().join(","));
       if (f.topic_ids.length) { p.set("topic_ids", this.topicIds().join(",")); p.set("topic_match", f.topic_ids.includes("fav") ? "any" : f.topic_match); }
       if (f.q) p.set("q", f.q);
+      FW.dateRange.addParams(p, f.dates);
       if (this.mention && this.mention.article) p.set("related_to", String(this.mention.article));
       else if (this.mention) { p.set("entity_id", String(this.mention.id)); p.set("days", String(this.mention.days || 0)); }
       return `/library/videos?${p}`;
     },
 
     /** Numbers next to topic names follow the channel / length / watched / search filters. */
-    async refreshCounts() {
+    async refreshCounts(onlyIfChanged = false) {
       const f = this.filters;
       const p = new URLSearchParams({ length: f.length, state: this.stateNow() });
       if (f.channels.length) p.set("channels", this.channelKeys().join(","));
       if (f.q) p.set("q", f.q);
+      FW.dateRange.addParams(p, f.dates);
       if (this.mention && this.mention.article) p.set("related_to", String(this.mention.article));
       else if (this.mention) { p.set("entity_id", String(this.mention.id)); p.set("days", String(this.mention.days || 0)); }
+      if (onlyIfChanged && this.countsKey === String(p)) return;  // a view switch: same filters, same numbers
+      this.countsKey = String(p);
       const res = await api("GET", `/library/topic-counts?${p}`).catch(() => null);
       if (!res) return;
       for (const el of document.querySelectorAll("#libraryView .topic-chip[data-topic], #libraryView .tp-item[data-topic]")) {
@@ -1262,25 +1429,96 @@
       }
     },
 
-    async reload() {
+    // ------------------------------------------------------------------ smooth switching
+    // Each view's answer is kept in memory (by its URL), so switching By topic / Playlists & groups / back, or turning
+    // 🏷️ Tags on and off, draws at once from memory; the server is asked again in the background and the page only
+    // redraws if something changed. The other views are fetched ahead of time once the current one is on screen.
+    cache: new Map(),   // url -> {data, text}
+
+    shelvesUrl() {
+      const p = new URLSearchParams(this.query(0).split("?")[1]);
+      ["limit", "offset", "topic_ids", "topic_match"].forEach((k) => p.delete(k));
+      p.set("per", "12");
+      return `/library/shelves?${p}`;
+    },
+    remember(url, data) {
+      const text = JSON.stringify(data);
+      const hit = this.cache.get(url);
+      this.cache.delete(url);
+      this.cache.set(url, { data, text });
+      while (this.cache.size > 24) this.cache.delete(this.cache.keys().next().value);  // oldest first
+      return !hit || hit.text !== text;  // true = new or changed
+    },
+    /** Draw from memory when allowed, then from the server (only if it differs from what is drawn). */
+    async swr(url, { fromCache, revalidate = true, isCurrent, draw }) {
+      const grid = $("#libGrid");
+      const hit = fromCache ? this.cache.get(url) : null;
+      if (hit) draw(hit.data, false);
+      if (hit && !revalidate) return;
+      if (!hit && grid && grid.children.length) grid.classList.add("is-loading");  // keep the old view, dimmed, until the new one is in
+      const res = await guarded(() => api("GET", url));
+      if (grid) grid.classList.remove("is-loading");
+      if (!res) return;
+      const changed = this.remember(url, res);
+      if (!isCurrent()) return;                      // you switched again meanwhile: keep it for later, don't draw
+      if (!hit || changed) draw(res, Boolean(hit));
+    },
+    /** Fetch the views you aren't on yet, quietly, so the first switch to them is instant too. */
+    prefetch() {
+      clearTimeout(this.prefetchTimer);
+      this.prefetchTimer = setTimeout(() => {
+        if (!$("#libGrid") || this.mention) return;
+        const urls = [this.query(0), "/library/groups"];
+        if (!this.filters.topic_ids.length) urls.push(this.shelvesUrl());
+        for (const url of urls) {
+          if (!this.cache.has(url)) api("GET", url).then((res) => this.remember(url, res)).catch(() => {});
+        }
+      }, 800);
+    },
+    /** By topic / Playlists & groups on or off: no toolbar rebuild, the content swaps in place. */
+    setView(v) {
+      this.filters.view = v;
+      this.openGroup = null;
+      this.save();
+      for (const b of document.querySelectorAll("#libraryView .lib-view button[data-view]")) {
+        const on = b.dataset.view === v;
+        b.classList.toggle("primary", on);
+        b.setAttribute("aria-pressed", String(on));
+        b.title = on ? "Click again to go back" : b.dataset.hint;
+      }
+      this.reload({ fromCache: true });
+    },
+    /** 🏷️ Tags on / off: redraw what is on screen from memory, no server call. */
+    redrawTags() {
+      const y = window.scrollY;
+      if (this.filters.view === "groups") this.reload({ fromCache: true });
+      else if (this.shelfMode() && this.lastShelves) this.renderShelves(this.lastShelves);
+      else this.renderGrid();
+      window.scrollTo(0, y);
+    },
+
+    async reload({ fromCache = false } = {}) {
       if (!$("#libGrid")) return;
-      if (this.filters.view === "groups") { await this.renderGroups(); return; }
-      this.refreshCounts();
-      this.items = [];
+      if (this.filters.view === "groups") { await this.renderGroups(fromCache); this.prefetch(); return; }
+      this.refreshCounts(fromCache);
+      const grid0 = $("#libGrid");
+      if (grid0 && !grid0.children.length) fill(grid0, Array.from({ length: 8 }, () => h("div", { class: "skeleton-card", "aria-hidden": "true" })));  // first load: placeholders, not a blank page
       if (this.shelfMode()) {
-        const p = new URLSearchParams(this.query(0).split("?")[1]);
-        ["limit", "offset", "topic_ids", "topic_match"].forEach((k) => p.delete(k));
-        p.set("per", "12");
-        const res = await guarded(() => api("GET", `/library/shelves?${p}`));
-        if (res && this.shelfMode() && this.filters.view === "topics") this.renderShelves(res);  // still on this tab
+        const url = this.shelvesUrl();
+        await this.swr(url, { fromCache, isCurrent: () => this.shelfMode() && this.filters.view === "topics" && this.shelvesUrl() === url,
+          draw: (res) => this.renderShelves(res) });
+        this.prefetch();
         return;
       }
       const q = this.query(0);
-      const res = await guarded(() => api("GET", q));
-      if (!res || this.filters.view === "groups" || this.query(0) !== q) return;  // a newer view or filter won
-      this.items = res.items;
-      this.total = res.total;
-      this.renderGrid();
+      await this.swr(q, { fromCache, isCurrent: () => this.filters.view !== "groups" && !this.shelfMode() && this.query(0) === q,
+        draw: (res, again) => {
+          if (again && this.items.length > res.items.length) return;  // you loaded more meanwhile: keep those
+          this.items = res.items;
+          this.total = res.total;
+          this.renderGrid();
+        } });
+      this.prefetch();
     },
 
     async loadMore() {
@@ -1294,6 +1532,8 @@
     renderShelves(res) {
       const grid = $("#libGrid");
       if (!grid) return;
+      this.lastShelves = res;  // 🏷️ Tags redraws from this
+      grid.className = `lib-grid${this.filters.layout === "list" ? " layout-list" : ""}`;  // coming back from Playlists & groups
       const topicsById = Object.fromEntries((this.meta.topics || []).map((t) => [t.id, t]));
       const showImages = FW.state.settings.load_images !== false;
       const shelves = res.shelves.concat(res.other.total ? [{ id: null, name: "Other (no topic matched)", color: "#8a8f98", total: res.other.total, items: res.other.items }] : []);
@@ -1320,18 +1560,17 @@
       const f = this.filters;
       return [f.channels.length ? `${f.channels.length} channel${f.channels.length === 1 ? "" : "s"}` : null,
         f.topic_ids.length ? `${f.topic_ids.length} topic${f.topic_ids.length === 1 ? "" : "s"}` : null,
-        f.length !== "any" ? "length" : null, this.stateNow() !== "all" ? (this.stateNow() === "starred" ? "starred only" : this.stateNow()) : null].filter(Boolean);
+        f.length !== "any" ? "length" : null, f.dates ? `dates: ${FW.dateRange.label(f.dates)}` : null, this.stateNow() !== "all" ? (this.stateNow() === "starred" ? "starred only" : this.stateNow()) : null].filter(Boolean);
     },
 
     noMatches() {
       const active = this.activeFilters();
-      if (this.filters.view === "watched" && !this.filters.q) return h("p", { class: "muted lib-pad", text: "No watched videos yet. Press ✓ on a video (or play it) and it moves here." });
+      if (this.filters.state === "watched" && !this.filters.q) return h("p", { class: "muted lib-pad", text: "No watched videos yet. Press ✓ on a video (or play it) and it shows here." });
       if (!active.length) return h("p", { class: "muted lib-pad", text: this.filters.q ? `No videos mention “${this.filters.q}” in their title, channel or description.` : "No videos." });
       return h("p", { class: "muted lib-pad" }, `Nothing matches with these filters on (${active.join(", ")}). `,
         h("button", { type: "button", class: "btn small", text: "Clear filters and search all videos", onclick: () => {
           const f = this.filters;
-          f.channels = []; f.topic_ids = []; f.length = "any"; f.state = "all";
-          if (f.view === "starred" || f.view === "watched") f.view = "all";
+          f.channels = []; f.topic_ids = []; f.length = "any"; f.state = "all"; f.dates = null;
           this.save(); this.renderShell(); this.reload();
         } }));
     },
@@ -1339,7 +1578,7 @@
     renderGrid() {
       const grid = $("#libGrid");
       if (!grid) return;
-      grid.classList.remove("shelves");
+      grid.className = `lib-grid${this.filters.layout === "list" ? " layout-list" : ""}`;  // no shelves / group-card styles left over
       const topicsById = Object.fromEntries((this.meta.topics || []).map((t) => [t.id, t]));
       const showImages = FW.state.settings.load_images !== false;
       fill($("#libCount"), `${this.total.toLocaleString()} video${this.total === 1 ? "" : "s"}${this.filters.q ? ` matching “${this.filters.q}”` : ""} `, this.mentionChip());
@@ -1350,13 +1589,16 @@
     // ------------------------------------------------------------------ playlists & groups
     openGroup: null,  // "p:<feed id>" or "g:<id>" while one group is open
 
-    async renderGroups() {
-      const grid = $("#libGrid");
+    async renderGroups(fromCache = false) {
       $("#libMore").hidden = true;
-      grid.classList.remove("shelves");
       if (this.openGroup) { await this.renderGroup(this.openGroup); return; }
-      const res = await guarded(() => api("GET", "/library/groups"));
-      if (!res || this.openGroup || this.filters.view !== "groups") return;  // you opened something else meanwhile
+      await this.swr("/library/groups", { fromCache, isCurrent: () => !this.openGroup && this.filters.view === "groups",  // you opened something else meanwhile
+        draw: (res) => this.drawGroups(res) });
+    },
+
+    drawGroups(res) {
+      const grid = $("#libGrid");
+      if (!grid) return;
       const showImages = FW.state.settings.load_images !== false;
       $("#libCount").textContent = `${res.groups.length} playlist${res.groups.length === 1 ? "" : "s"} & groups · drag a playlist onto a group to move it there · the channel and topic filters don't apply here`;
       const newBtn = h("button", { type: "button", class: "lib-group-card lib-group-new", onclick: () => this.newGroup() },
@@ -1408,7 +1650,7 @@
           title: g.type === "playlist" ? "Drag onto one of your groups to move it there" : null, onclick: open,
           onkeydown: (e) => { if ((e.key === "Enter" || e.key === " ") && e.target === card) { e.preventDefault(); open(); } } },
           h("span", { class: `lib-mosaic n${Math.max(1, tiles.length)}` }, tiles.length ? tiles : h("span", { class: "lib-noimg", text: "🗂️" })),
-          box, plus,
+          box, plus, h("span", { class: "lib-card-edit" }, this.renameBtn(g.id, g.name)),
           h("span", { class: `lib-group-kind k-${g.type}`, text: g.type === "playlist" ? "▶ Playlist" : "🗂️ Group" }),
           h("strong", { class: "lib-group-name", text: g.name }),
           h("span", { class: "muted small", text: [g.playlists ? `${g.playlists} playlist${g.playlists === 1 ? "" : "s"}` : null, `${g.videos} video${g.videos === 1 ? "" : "s"}`, g.watched ? `${g.watched} watched` : null, g.channels.join(", ")].filter(Boolean).join(" · ") }));
@@ -1550,7 +1792,7 @@
         title: `Take this playlist out of “${parent.name}” and back to the main page`,
         onclick: () => this.movePlaylistOut(parent, { id: ref, name: res.name }, ref) }) : null;
       const actions = feedId ? [
-        moveOut, addAll,
+        moveOut, addAll, this.renameBtn(ref, res.name, "btn small"),
         h("button", { type: "button", class: "btn small", text: "⇣ Load whole playlist",
           title: "Fetch every video in this playlist (YouTube's feed only lists the latest 15; needs a free YouTube Data API key)",
           onclick: () => loadWholeChannel(feedId, false) }),
@@ -1562,10 +1804,7 @@
           if (r) { toast(`Deleted “${res.name}” (${r.videos_removed} videos)`); this.openGroup = null; await this.loadMeta(); this.reload(); }
         } })] : mine ? [
         addAll,
-        h("button", { type: "button", class: "btn small", text: "Rename", onclick: async () => {
-          const name = (window.prompt("Group name", res.name) || "").trim();
-          if (name && name !== res.name && await guarded(() => api("PATCH", `/library/groups/${ref}`, { name }), "Renamed")) this.reload();
-        } }),
+        this.renameBtn(ref, res.name, "btn small"),
         h("button", { type: "button", class: "btn small danger", text: "Delete group", onclick: async () => {
           if (window.confirm(`Delete the group “${res.name}”? Its videos stay in your library.`)
             && await guarded(() => api("DELETE", `/library/groups/${ref}`), "Group deleted")) { this.openGroup = null; this.reload(); }
@@ -1630,6 +1869,30 @@
     },
 
     /** A playlist card inside a group: opens the playlist; ↩ takes it back out to the main page. */
+    /** ✎ Rename a playlist ("p:<feed>") or one of your groups ("g:<id>"). A playlist keeps your name when YouTube's
+     *  feed refreshes (the feed's custom title); an empty name goes back to the name YouTube gives it. */
+    async renameRef(ref, current) {
+      const playlist = ref.startsWith("p:");
+      const asked = window.prompt(playlist ? "Playlist name (leave empty to use YouTube's name again)" : "Group name", current);
+      if (asked === null) return false;                 // cancelled
+      const name = asked.trim().slice(0, playlist ? 300 : 100);
+      if (name === current || (!name && !playlist)) return false;
+      const ok = playlist
+        ? await guarded(() => api("PATCH", `/feeds/${Number(ref.slice(2))}`, { title: name }), name ? "Renamed" : "YouTube's name comes back with the next refresh")
+        : await guarded(() => api("PATCH", `/library/groups/${ref}`, { name }), "Renamed");
+      if (!ok) return false;
+      if (playlist && !name) await api("POST", `/feeds/${Number(ref.slice(2))}/refresh`).catch(() => null);  // fetch YouTube's name now
+      this.cache.clear();                               // names are in the remembered views
+      await this.loadMeta();                            // and in the Channels ▾ list
+      this.reload();
+      return true;
+    },
+    renameBtn(ref, name, cls = "icon-btn") {
+      return h("button", { type: "button", class: cls, text: cls === "icon-btn" ? "✎" : "✎ Rename",
+        title: ref.startsWith("p:") ? "Rename this playlist (your name stays when it refreshes)" : "Rename this group",
+        "aria-label": `Rename ${name}`, onclick: (e) => { e.stopPropagation(); this.renameRef(ref, name); } });
+    },
+
     nestedPlaylistCard(pl, group, showImages, order) {
       const tiles = pl.thumbs.map((t) => {
         const src = safeUrl(t.thumbnail) || (t.video_id ? `https://i.ytimg.com/vi/${encodeURIComponent(t.video_id)}/mqdefault.jpg` : null);
@@ -1640,6 +1903,7 @@
         draggable: "true", title: "Drag to reorder the playlists in this group",
         onkeydown: (e) => { if ((e.key === "Enter" || e.key === " ") && e.target === e.currentTarget) { e.preventDefault(); open(); } } },
         h("span", { class: `lib-mosaic n${Math.max(1, tiles.length)}` }, tiles.length ? tiles : h("span", { class: "lib-noimg", text: "▶" })),
+        h("span", { class: "lib-card-edit solo" }, this.renameBtn(pl.id, pl.name)),
         h("span", { class: "lib-group-kind k-playlist", text: "▶ Playlist" }),
         h("strong", { class: "lib-group-name", text: pl.name }),
         h("span", { class: "muted small", text: [`${pl.videos} video${pl.videos === 1 ? "" : "s"}`, pl.watched ? `${pl.watched} watched` : null].filter(Boolean).join(" · ") }),
@@ -1828,17 +2092,17 @@
     card(v, topicsById, showImages, opts = {}) {
       const url = safeUrl(v.url);
       const thumb = safeUrl(v.thumbnail) || (v.video_id ? `https://i.ytimg.com/vi/${encodeURIComponent(v.video_id)}/hqdefault.jpg` : null);
-      const open = async () => {
-        if (url) window.open(url, "_blank", "noopener,noreferrer");
+      const open = async () => {  // plays in the app; YouTube in a new tab only if the video can't be embedded
+        if (!playVideo(v, card) && url) window.open(url, "_blank", "noopener,noreferrer");
         if (!v.is_read) { v.is_read = true; card.classList.add("watched"); api("PATCH", `/articles/${v.id}`, { is_read: true }).catch(() => {}); }
       };
       const star = h("button", { type: "button", class: `icon-btn${v.is_starred ? " on" : ""}`, title: "Star", "aria-label": "Star", text: v.is_starred ? "★" : "☆", onclick: async () => {
         const r = await guarded(() => api("PATCH", `/articles/${v.id}`, { is_starred: !v.is_starred }));
         if (r) { v.is_starred = Boolean(r.is_starred); star.textContent = v.is_starred ? "★" : "☆"; star.classList.toggle("on", v.is_starred); }
       } });
-      const inWatchedTab = this.filters.view === "watched";
+      const inWatchedTab = this.filters.state === "watched";
       const watched = h("button", { type: "button", class: `icon-btn${v.is_read ? " on" : ""}`, text: v.is_read ? "↩" : "✓",
-        title: v.is_read ? "Mark unwatched (back to your library)" : "Mark watched (moves it to the ✓ Watched tab)",
+        title: v.is_read ? "Mark unwatched (back to your library)" : "Mark watched (then it is under Status ▾ → ✓ Watched)",
         "aria-label": v.is_read ? "Mark unwatched" : "Mark watched", onclick: async () => {
           const r = await guarded(() => api("PATCH", `/articles/${v.id}`, { is_read: !v.is_read }));
           if (!r) return;
@@ -1864,7 +2128,8 @@
           v.duration_s != null ? h("span", { class: "lib-dur", text: fmtDuration(v.duration_s) }) : null,
           opts.number ? h("span", { class: "lib-num", text: String(opts.number) }) : null),
         h("div", { class: "lib-body" },
-          h("a", { class: "lib-title", href: url || "#", target: "_blank", rel: "noopener noreferrer", text: v.title, onclick: (e) => { e.preventDefault(); open(); } }),
+          h("a", { class: "lib-title", href: url || "#", target: "_blank", rel: "noopener noreferrer", text: v.title,
+            onclick: (e) => { if (e.ctrlKey || e.metaKey || e.shiftKey) return; e.preventDefault(); open(); } }),  // Ctrl/⌘-click: YouTube tab
           h("div", { class: "muted small" }, this.channelLink(v), [relTime(v.published), fmtViews(v.views)].filter(Boolean).map((t) => ` · ${t}`).join("")),
           groupsRow,
           (() => {
@@ -1890,9 +2155,56 @@
             opts.inGroup ? h("button", { type: "button", class: "icon-btn", title: "Remove from this group", "aria-label": "Remove from this group", text: "✕",
               onclick: async () => { if (await guarded(() => api("DELETE", `/library/groups/${opts.inGroup}/videos/${v.id}`), "Removed from the group")) card.remove(); } }) : null,
             h("button", { type: "button", class: "btn small", text: "Open in Articles", onclick: () => FW.openArticleInReader(v.id) }))));
+      card._play = open;  // the player's ⏮ / ⏭ step through the cards on the page
       return card;
     },
   };
+
+  // ======================================================================= in-app video player
+  const YT_VIDEO_ID = /^[A-Za-z0-9_-]{11}$/;
+
+  /** Play a library video inside the app: YouTube's privacy-enhanced player (youtube-nocookie.com) in a sandboxed
+   *  frame - the CSP allows frames from that one host only. ⏮ / ⏭ step through the videos shown on the page
+   *  (a playlist plays in its own order). Returns false when the video can't be embedded (the caller opens YouTube). */
+  function playVideo(v, card) {
+    if (!YT_VIDEO_ID.test(v.video_id || "")) return false;
+    let dlg = document.getElementById("videoPlayerDialog");
+    if (!dlg) {
+      dlg = h("dialog", { id: "videoPlayerDialog", class: "dialog video-player-dialog", "aria-label": "Video player" });
+      dlg.addEventListener("close", () => fill(dlg));                       // removing the frame stops playback
+      dlg.addEventListener("click", (e) => { if (e.target === dlg) dlg.close(); });  // a click on the backdrop closes it
+      document.body.append(dlg);
+    }
+    const sibling = (dir) => {  // the next / previous video card on the page
+      let el = card;
+      do { el = dir > 0 ? el.nextElementSibling : el.previousElementSibling; } while (el && !el._play);
+      return el;
+    };
+    const prev = sibling(-1);
+    const next = sibling(1);
+    const src = `https://www.youtube-nocookie.com/embed/${v.video_id}?autoplay=1&rel=0&playsinline=1`;
+    const watch = `https://www.youtube.com/watch?v=${v.video_id}`;
+    fill(dlg,
+      h("div", { class: "vp-head" },
+        h("div", { class: "vp-title" }, h("strong", { text: v.title || v.video_id }),
+          v.channel_title ? h("span", { class: "muted small", text: ` · ${v.channel_title}` }) : null),
+        h("div", { class: "vp-actions" },
+          h("button", { type: "button", class: "btn small", text: "⏮", title: "Previous video", "aria-label": "Previous video", disabled: !prev,
+            onclick: () => prev && prev._play() }),
+          h("button", { type: "button", class: "btn small", text: "⏭", title: "Next video", "aria-label": "Next video", disabled: !next,
+            onclick: () => next && next._play() }),
+          h("a", { class: "btn small", href: watch, target: "_blank", rel: "noopener noreferrer", text: "↗ YouTube", title: "Open on YouTube in a new tab",
+            onclick: () => dlg.close() }),
+          h("button", { type: "button", class: "btn small", text: "✕", title: "Close (Esc)", "aria-label": "Close player", onclick: () => dlg.close() }))),
+      h("div", { class: "vp-frame" },
+        // sandbox + allow list first, src last. YouTube's player needs to know which site embeds it: this frame alone
+        // sends the app's origin (never the page path) - everything else keeps the app-wide no-referrer policy.
+        h("iframe", { sandbox: "allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox",
+          allow: "autoplay; encrypted-media; picture-in-picture; fullscreen", allowfullscreen: true,
+          referrerpolicy: "strict-origin", title: v.title || "YouTube video", src })));
+    if (!dlg.open) dlg.showModal();
+    return true;
+  }
 
   // ======================================================================= topics editor
   /** Wait for the background re-tag after a topic change, then refresh (new topics appear once tagged). */
