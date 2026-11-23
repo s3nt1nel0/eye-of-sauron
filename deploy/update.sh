@@ -72,6 +72,13 @@ fi
 OLD_IMAGE="$(docker compose images -q "$SERVICE" 2>/dev/null | head -n1 || true)"
 git merge --ff-only --quiet "origin/$BRANCH" || die "Your copy has its own commits or edits that clash; nothing was changed. See git status."
 
+abort() {   # before the new version started: put the code back and restart the old container, then stop
+  warn "$*"
+  git reset --quiet --hard "$OLD_COMMIT"
+  docker compose start "$SERVICE" >/dev/null 2>&1 || docker compose up -d --no-build "$SERVICE" >/dev/null 2>&1 || true
+  die "Nothing was changed: your previous version is running again."
+}
+
 rollback() {
   warn "Rolling back to $(git log -1 --format='%h' "$OLD_COMMIT")…"
   git reset --quiet --hard "$OLD_COMMIT"
@@ -82,7 +89,7 @@ rollback() {
   warn "The previous version is running again."
   if [ -n "${BACKUP_FILE:-}" ]; then
     warn "If its data looks wrong (the new version may have changed the database), restore the backup taken just before:"
-    warn "  docker compose stop && docker run --rm --user 0 --entrypoint sh -v ${VOLUME:-<volume>}:/data -v \"$PWD/backups\":/in \\"
+    warn "  docker compose stop && docker run --rm --user 0 --entrypoint sh -v ${VOLUME:-<volume>}:/data -v \"${HOST_DIR:-$PWD}/backups\":/in \\"
     warn "    $(docker compose config --images | head -n1) -c 'rm -rf /data/* && tar -xzf /in/$(basename "$BACKUP_FILE") -C /data' && docker compose start"
   fi
   exit 1
@@ -98,15 +105,17 @@ VOLUME="$(docker volume ls -q --filter "label=com.docker.compose.volume=$VOLUME_
 say "Stopping the app for the switch…"
 docker compose stop "$SERVICE"
 if [ "$BACKUP" = 1 ]; then
-  [ -n "$VOLUME" ] || die "Couldn't find the data volume ($VOLUME_KEY). Nothing was changed; start the app with: docker compose up -d"
+  [ -n "$VOLUME" ] || abort "Couldn't find the data volume ($VOLUME_KEY)."
   mkdir -p backups
+  HOST_DIR="$(pwd -W 2>/dev/null || pwd)"   # pwd -W: the Windows form under Git Bash; plain pwd everywhere else
   BACKUP_FILE="backups/eos-data-$(date +%Y%m%d-%H%M%S)-$(git rev-parse --short "$OLD_COMMIT").tgz"
   say "Backing up your data to $BACKUP_FILE…"
-  docker run --rm --user 0 --entrypoint tar -v "$VOLUME":/data:ro -v "$PWD/backups":/out "$IMAGE" \
-    -czf "/out/$(basename "$BACKUP_FILE")" -C /data . || { docker compose start "$SERVICE"; die "Backup failed; the old version was started again."; }
+  docker run --rm --user 0 --entrypoint tar -v "$VOLUME":/data:ro -v "$HOST_DIR/backups":/out "$IMAGE" \
+    -czf "/out/$(basename "$BACKUP_FILE")" -C /data . || true
+  [ -s "$BACKUP_FILE" ] || abort "The backup didn't work ($BACKUP_FILE is missing or empty)."
   chmod 600 "$BACKUP_FILE" 2>/dev/null || true
   # keep only the newest backups
-  ls -1t backups/eos-data-*.tgz 2>/dev/null | tail -n +$((KEEP_BACKUPS + 1)) | xargs -r rm -f --
+  { ls -1t backups/eos-data-*.tgz 2>/dev/null || true; } | tail -n +$((KEEP_BACKUPS + 1)) | xargs -r rm -f --
 fi
 
 # --- 4. start the new version and wait for its health check ----------------------------------------------------------
