@@ -686,3 +686,91 @@ def test_repo_topic_tuning(authed):
     assert names(bare) == {"Blue team & DFIR"}
     assert all("Blue team & DFIR" in names(i) for i in ezs)
     _ = _now
+
+
+def test_gitlab_projects(authed):
+    calls = []
+
+    def fake(method, url, **kw):
+        calls.append(url)
+        parts = urlsplit(url)
+        assert parts.hostname == "gitlab.com", url
+        if parts.path == "/api/v4/projects/gitlab-org%2Fsecurity-products%2Fanalyzers%2Fsemgrep":
+            body = {"id": 77, "path_with_namespace": "gitlab-org/security-products/analyzers/semgrep", "description": "SAST <b>analyzer</b>",
+                    "star_count": 42, "forks_count": 3, "topics": ["SAST", "security"], "license": {"key": "mit"},
+                    "last_activity_at": "2026-11-01T00:00:00Z", "created_at": "2020-01-01T00:00:00Z", "archived": False}
+        elif parts.path == "/api/v4/projects/77/releases":
+            body = [{"tag_name": "v5.1.0", "name": "v5.1.0", "released_at": "2026-10-30T00:00:00Z", "description": "New rules"}]
+        else:
+            return netguard.SafeResponse(404, httpx.Headers({}), b"{}", url)
+        return netguard.SafeResponse(200, httpx.Headers({"content-type": "application/json"}), json.dumps(body).encode(), url)
+
+    for bad in ("https://gitlab.com/gitlab-org", "https://gitlab.com/explore/projects", "https://gitlab.com/a/b%00c"):
+        with pytest.raises(github.GitHubError):
+            github.parse_input(bad)
+    assert tuple(github.parse_input("https://gitlab.com/gitlab-org/security-products/analyzers/semgrep/-/blob/main/README.md")) == \
+        ("gitlab", "gitlab-org/security-products/analyzers/semgrep")
+    with mock.patch("app.github.netguard.request", side_effect=fake), mock.patch("app.github.time.sleep"):
+        with mock.patch.object(github.repo_sync, "maybe_start", return_value=False):
+            res = authed.post("/api/v1/repos/sources/batch", json={"lines": [
+                "https://gitlab.com/gitlab-org/security-products/analyzers/semgrep/-/tree/main", "https://gitlab.com/nobody/missing"]}).json()["results"]
+        assert [r["kind"] for r in res] == ["gitlab", "gitlab"]
+        github.repo_sync.maybe_start()
+        github.repo_sync.thread.join(10)
+    item = authed.get("/api/v1/repos?q=semgrep").json()["items"][0]
+    assert item["url"] == "https://gitlab.com/gitlab-org/security-products/analyzers/semgrep"
+    assert item["stars"] == 42 and item["license"] == "MIT" and "<" not in item["description"] and item["gh_topics"] == ["sast", "security"]
+    rel = authed.get("/api/v1/repos/releases").json()["items"][0]
+    assert rel["url"] == "https://gitlab.com/gitlab-org/security-products/analyzers/semgrep/-/releases/v5.1.0"
+    st = {x["value"]: x for x in authed.get("/api/v1/repos/sources/status?ids=" + ",".join(str(r["id"]) for r in res)).json()["items"]}
+    assert st["nobody/missing"]["state"] == "error" and "No public GitLab project" in st["nobody/missing"]["error"]
+    assert not any("api.github.com" in u for u in calls)                         # GitLab never uses the GitHub budget
+
+
+def test_remove_a_repo_from_repos(authed):
+    calls = []
+    follow(authed, "https://github.com/OJ/gobuster", calls)                    # pasted on its own
+    with mock.patch("app.github.netguard.request", side_effect=fake_github(calls)), mock.patch("app.github.time.sleep"):
+        authed.post("/api/v1/repos/sources/batch", json={"lines": ["https://github.com/acme"], "owner_mode": "follow"})
+        github.repo_sync.thread.join(10)
+    ids = _ids(authed)
+    fid = authed.post("/api/v1/repos/folders", json={"name": "F"}).json()["id"]
+    authed.post(f"/api/v1/repos/folders/{fid}/items", json={"repo_ids": [ids["OJ/gobuster"], ids["acme/old-tool"]]})
+    # a repo you pasted: it and its link go
+    r = authed.delete(f"/api/v1/repos/{ids['OJ/gobuster']}").json()
+    assert r == {"ok": True, "sources_removed": 1, "hidden": False, "lists": []}
+    assert "OJ/gobuster" not in _ids(authed)
+    assert not [s for s in authed.get("/api/v1/repos/meta").json()["sources"] if s["value"] == "OJ/gobuster"]
+    # a repo an owner list brings in: removed and remembered, so the next check doesn't bring it back
+    r = authed.delete(f"/api/v1/repos/{ids['acme/old-tool']}").json()
+    assert r["hidden"] is True and r["lists"] == ["owner:acme"]
+    with get_db() as db:
+        db.execute("UPDATE repo_sources SET next_fetch = 0, etag = NULL")
+    with mock.patch("app.github.netguard.request", side_effect=fake_github(calls)), mock.patch("app.github.time.sleep"):
+        github.repo_sync.maybe_start()
+        github.repo_sync.thread.join(10)
+    assert "acme/old-tool" not in _ids(authed) and "acme/proxmox-scripts" in _ids(authed)
+    assert authed.get("/api/v1/repos/folders").json()["folders"][0]["repos"] == 0
+    # pasting it again un-hides it
+    with mock.patch("app.github.netguard.request", side_effect=fake_github(calls)), mock.patch("app.github.time.sleep"):
+        KNOWN["/repos/acme/old-tool"] = "acme/old-tool"
+        try:
+            assert authed.post("/api/v1/repos/sources", json={"input": "https://github.com/acme/old-tool"}).status_code == 200
+        finally:
+            KNOWN.pop("/repos/acme/old-tool")
+    with get_db() as db:
+        assert db.execute("SELECT COUNT(*) FROM repo_hidden").fetchone()[0] == 0
+    assert authed.delete("/api/v1/repos/999999").status_code == 404
+    read = {"Authorization": "Bearer " + authed.post("/api/v1/tokens", json={"name": "r", "scope": "read"}).json()["token"]}
+    csrf = authed.headers.pop("X-CSRF-Token")
+    cookies = dict(authed.cookies)
+    authed.cookies.clear()
+    try:
+        assert authed.delete(f"/api/v1/repos/{_ids_any(read, authed)}", headers=read).status_code == 403
+    finally:
+        authed.headers["X-CSRF-Token"] = csrf
+        authed.cookies.update(cookies)
+
+
+def _ids_any(headers, client):
+    return client.get("/api/v1/repos?limit=1", headers=headers).json()["items"][0]["id"]

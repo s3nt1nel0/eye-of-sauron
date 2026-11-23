@@ -39,7 +39,7 @@ def _row(r, topic_map: dict[int, list[int]], folder_map: dict[int, list[int]] | 
     except ValueError:
         d["gh_topics"] = []
     d["archived"], d["is_fork"], d["starred"] = bool(d["archived"]), bool(d["is_fork"]), bool(d["starred"])
-    d["url"] = d["url"] if d.get("kind") in ("gist", "doc") and str(d.get("url") or "").startswith("https://") else f"{github.WEB}/{d['full_name']}"
+    d["url"] = d["url"] if str(d.get("url") or "").startswith("https://") else f"{github.WEB}/{d['full_name']}"
     d["topics"] = topic_map.get(d["id"], [])
     d["folders"] = (folder_map or {}).get(d["id"], [])
     return d
@@ -232,6 +232,27 @@ def meta(_: Principal = Depends(require_read)) -> dict:
 
 class StarIn(StrictModel):
     starred: bool
+
+
+@router.delete("/{repo_id}", dependencies=[Depends(rate_limit("repos_write", 120))])
+def remove_repo(repo_id: int, principal: Principal = Depends(require_write)) -> dict:
+    """Remove one repo (or gist / doc / website link) from Repos: out of every folder; a link you pasted for just this
+    item goes too; if a list (owner / topic / stars) also brings it in, it's remembered as removed so it doesn't come back."""
+    with get_db() as db:
+        row = db.execute("SELECT id, full_name FROM repos WHERE id = ?", (repo_id,)).fetchone()
+        if row is None:
+            raise not_found("Repo")
+        sources = db.execute("SELECT s.id, s.kind, s.value FROM repo_source_links l JOIN repo_sources s ON s.id = l.source_id "
+                             "WHERE l.repo_id = ?", (repo_id,)).fetchall()
+        single = [s for s in sources if s["kind"] in ("repo", "gitlab", "gist", "doc")]
+        lists = [s for s in sources if s["kind"] not in ("repo", "gitlab", "gist", "doc")]
+        for s in single:
+            db.execute("DELETE FROM repo_sources WHERE id = ?", (s["id"],))
+        if lists:
+            db.execute("INSERT OR REPLACE INTO repo_hidden (full_name, hidden_at) VALUES (?, ?)", (row["full_name"], now()))
+        db.execute("DELETE FROM repos WHERE id = ?", (repo_id,))
+    audit("repo_removed", principal, full_name=row["full_name"], sources_removed=len(single), hidden=bool(lists))
+    return {"ok": True, "sources_removed": len(single), "hidden": bool(lists), "lists": [f"{s['kind']}:{s['value']}" for s in lists]}
 
 
 @router.patch("/{repo_id}", dependencies=[Depends(rate_limit("repos_write", 120))])

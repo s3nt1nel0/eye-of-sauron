@@ -29,7 +29,7 @@ def _boolean(value: Any) -> bool:
     return value
 
 
-TAB_KEYS = ("reader", "dashboard", "library", "accounts", "podcasts", "repos", "threatmap")
+TAB_KEYS = ("reader", "dashboard", "library", "accounts", "podcasts", "repos", "resources", "threatmap")
 
 
 def _tab_order(value: Any) -> list[str]:
@@ -106,7 +106,7 @@ SCHEMA: dict[str, tuple[Any, Callable[[Any], Any]]] = {
     "hide_watched": (True, _boolean),  # watched videos leave the Videos views and wait in the Watched tab  # read articles leave feeds/folders/collections and stay in the Read view
     "show_snippets": (True, _boolean),
     "font_size": ("medium", _choice("small", "medium", "large")),
-    "ui_mode": ("reader", _choice("reader", "dashboard", "library", "accounts", "podcasts", "repos", "threatmap")),
+    "ui_mode": ("reader", _choice("reader", "dashboard", "library", "accounts", "podcasts", "repos", "resources", "threatmap")),
     "sidebar_drag_drop": (True, _boolean),
     "tab_order": ([], _tab_order),   # the order of the tabs at the top; [] = built-in
     "default_dashboard_id": (0, _int_range(1, 2**31 - 1, allow_zero=True)),

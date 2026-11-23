@@ -241,6 +241,18 @@ CREATE TABLE IF NOT EXISTS dashboards (
 
 
 
+-- Accounts tab: who wrote a single saved post and what it shows (read from the platform's public / official endpoint)
+CREATE TABLE IF NOT EXISTS social_post_meta (
+    article_id   INTEGER PRIMARY KEY REFERENCES articles(id) ON DELETE CASCADE,
+    handle       TEXT,                        -- "@karpathy", "in/jane-doe", "u/someone" (display only)
+    profile_url  TEXT,                        -- the author's profile on the same platform (the Follow button)
+    avatar_url   TEXT,
+    image_url    TEXT,                        -- the post's picture / video thumbnail
+    source       TEXT NOT NULL DEFAULT '',    -- where the text came from: oembed, api, jsonld, og, bridge, public, pasted, unavailable
+    truncated    INTEGER NOT NULL DEFAULT 0,  -- 1 = the platform only handed over the start of the text
+    fetched_at   INTEGER NOT NULL
+);
+
 -- CVE tracking: records from the NVD CVE API 2.0, enriched with CISA KEV and MITRE CWE.
 CREATE TABLE IF NOT EXISTS cves (
     id             TEXT PRIMARY KEY,            -- CVE-YYYY-NNNN
@@ -363,7 +375,23 @@ CREATE TABLE IF NOT EXISTS videos (
     views         INTEGER,
     published     INTEGER
 );
-CREATE INDEX IF NOT EXISTS idx_videos_video ON videos(video_id);
+-- videos.video_id is UNIQUE (idx_videos_video_unique, made by the migration once old duplicates are merged):
+-- one stored copy per video. A video that is also in other followed playlists / channels is linked to them here
+-- instead of being copied; `position` = its place in a playlist (from YouTube), for the playlist's own order.
+CREATE TABLE IF NOT EXISTS video_links (
+    feed_id    INTEGER NOT NULL REFERENCES feeds(id) ON DELETE CASCADE,
+    article_id INTEGER NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
+    position   INTEGER,
+    added_at   INTEGER NOT NULL,
+    PRIMARY KEY (feed_id, article_id)
+);
+CREATE INDEX IF NOT EXISTS idx_video_links_article ON video_links(article_id);
+-- Unfollowing a playlist or channel deletes its videos - except those still in another followed feed: they move there.
+CREATE TRIGGER IF NOT EXISTS feeds_keep_linked_videos BEFORE DELETE ON feeds BEGIN
+    UPDATE OR IGNORE articles SET feed_id = (SELECT l.feed_id FROM video_links l WHERE l.article_id = articles.id
+                                             AND l.feed_id != OLD.id ORDER BY l.added_at, l.feed_id LIMIT 1)
+    WHERE feed_id = OLD.id AND EXISTS (SELECT 1 FROM video_links l WHERE l.article_id = articles.id AND l.feed_id != OLD.id);
+END;
 
 -- Keyword topics across all sources (YouTube library now, topic hub later).
 CREATE TABLE IF NOT EXISTS topics (
@@ -644,7 +672,7 @@ CREATE TABLE IF NOT EXISTS feed_icons (
 -- 📦 Repos tab: GitHub sources you follow (an owner's repos, one repo, a GitHub topic, a user's stars) and the repos they list
 CREATE TABLE IF NOT EXISTS repo_sources (
     id          INTEGER PRIMARY KEY,
-    kind        TEXT NOT NULL CHECK (kind IN ('owner', 'repo', 'topic', 'stars', 'gist', 'doc')),
+    kind        TEXT NOT NULL CHECK (kind IN ('owner', 'repo', 'topic', 'stars', 'gist', 'doc', 'gitlab')),
     value       TEXT NOT NULL COLLATE NOCASE,  -- login, owner/name, topic, login, gist id or a normalised doc / website URL
     title       TEXT NOT NULL DEFAULT '',
     avatar_url  TEXT,
@@ -711,6 +739,11 @@ CREATE TABLE IF NOT EXISTS repo_releases (
     UNIQUE (repo_id, tag)
 );
 CREATE INDEX IF NOT EXISTS idx_repo_releases_time ON repo_releases(published_ts);
+-- repos you removed by hand: a list source (owner / topic / stars) doesn't bring them back; pasting one again un-hides it
+CREATE TABLE IF NOT EXISTS repo_hidden (
+    full_name TEXT PRIMARY KEY COLLATE NOCASE,
+    hidden_at INTEGER NOT NULL
+);
 -- 📁 your own repo folders (a repo can be in several); separate from GitHub sources: a repo in a folder is kept
 -- even when the source that brought it in is removed
 CREATE TABLE IF NOT EXISTS repo_folders (
@@ -728,6 +761,78 @@ CREATE TABLE IF NOT EXISTS repo_folder_items (
     PRIMARY KEY (folder_id, repo_id)
 );
 CREATE INDEX IF NOT EXISTS idx_repo_folder_items_repo ON repo_folder_items(repo_id);
+-- 🔗 Resources: websites, training, labs, cheat sheets, tools, docs you keep; sorted into your categories (never fetched)
+CREATE TABLE IF NOT EXISTS resources (
+    id            INTEGER PRIMARY KEY,
+    url           TEXT NOT NULL UNIQUE,          -- http(s) only, normalised
+    title         TEXT NOT NULL,
+    host          TEXT NOT NULL DEFAULT '',
+    kind          TEXT NOT NULL DEFAULT 'site',  -- course | labs | ctf | platform | cheatsheet | tool | docs | blog | video | repo | community | site
+    trail         TEXT NOT NULL DEFAULT '',      -- the bookmark folders it came from ("Training / Red team")
+    notes         TEXT NOT NULL DEFAULT '',
+    summary       TEXT NOT NULL DEFAULT '',      -- what it's for and what you get out of it (short, editable)
+    status        TEXT,                          -- todo | doing | done
+    favourite     INTEGER NOT NULL DEFAULT 0,
+    manual        INTEGER NOT NULL DEFAULT 0,    -- categories set by you: automatic sorting leaves them alone
+    open_count    INTEGER NOT NULL DEFAULT 0,
+    last_opened   INTEGER,
+    bookmarked_at INTEGER,
+    added_at      INTEGER NOT NULL,
+    updated_at    INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_resources_kind ON resources(kind);
+CREATE TABLE IF NOT EXISTS resource_categories (
+    id         INTEGER PRIMARY KEY,
+    key        TEXT UNIQUE,                      -- built-in starter category (NULL for your own)
+    name       TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    emoji      TEXT NOT NULL DEFAULT '🔗',
+    color      TEXT NOT NULL DEFAULT '#64748b',
+    position   INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS resource_category_items (
+    category_id INTEGER NOT NULL REFERENCES resource_categories(id) ON DELETE CASCADE,
+    resource_id INTEGER NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
+    PRIMARY KEY (category_id, resource_id)
+);
+CREATE INDEX IF NOT EXISTS idx_resource_category_items_res ON resource_category_items(resource_id);
+-- 🌳 your own folder tree (from your bookmark folders, or made here); a link can sit in several folders
+CREATE TABLE IF NOT EXISTS resource_folders (
+    id         INTEGER PRIMARY KEY,
+    parent_id  INTEGER REFERENCES resource_folders(id) ON DELETE CASCADE,
+    name       TEXT NOT NULL,
+    position   INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_resource_folders_parent ON resource_folders(parent_id, position);
+CREATE TABLE IF NOT EXISTS resource_folder_items (
+    folder_id   INTEGER NOT NULL REFERENCES resource_folders(id) ON DELETE CASCADE,
+    resource_id INTEGER NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
+    position    INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (folder_id, resource_id)
+);
+CREATE INDEX IF NOT EXISTS idx_resource_folder_items_res ON resource_folder_items(resource_id);
+-- 🧠 mind map: "goes well with" between two folders (topics), with a note on why; a < b, one per pair
+CREATE TABLE IF NOT EXISTS resource_folder_links (
+    id         INTEGER PRIMARY KEY,
+    a          INTEGER NOT NULL REFERENCES resource_folders(id) ON DELETE CASCADE,
+    b          INTEGER NOT NULL REFERENCES resource_folders(id) ON DELETE CASCADE,
+    note       TEXT NOT NULL DEFAULT '',
+    created_at INTEGER NOT NULL,
+    CHECK (a < b),
+    UNIQUE (a, b)
+);
+CREATE INDEX IF NOT EXISTS idx_resource_folder_links_b ON resource_folder_links(b);
+-- 📦 repos (from the Repos tab) linked to a Resources folder / topic, by full_name (stable: repo ids change when a repo is
+-- removed and added back). No foreign key into the Repos tables on purpose; links to repos not there right now are skipped
+-- when read and come back when the repo does.
+CREATE TABLE IF NOT EXISTS resource_folder_repos (
+    folder_id INTEGER NOT NULL REFERENCES resource_folders(id) ON DELETE CASCADE,
+    full_name TEXT NOT NULL COLLATE NOCASE,
+    added_at  INTEGER NOT NULL,
+    PRIMARY KEY (folder_id, full_name)
+);
+CREATE INDEX IF NOT EXISTS idx_resource_folder_repos_name ON resource_folder_repos(full_name);
 """
 
 _db_path: Path | None = None
@@ -839,14 +944,14 @@ def _migrate(conn: sqlite3.Connection) -> None:
     if repo_columns and "url" not in repo_columns:
         conn.execute("ALTER TABLE repos ADD COLUMN url TEXT")
     ddl = conn.execute("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'repo_sources'").fetchone()
-    if ddl and "'gist'" not in ddl[0]:  # widen the allowed source kinds: SQLite can't change a CHECK, so copy the table once
+    if ddl and "'gitlab'" not in ddl[0]:  # widen the allowed source kinds: SQLite can't change a CHECK, so copy the table once
         conn.commit()
         conn.execute("PRAGMA foreign_keys = OFF")
         try:
             conn.execute("DROP TABLE IF EXISTS repo_sources_new")
             conn.execute("""CREATE TABLE repo_sources_new (
     id          INTEGER PRIMARY KEY,
-    kind        TEXT NOT NULL CHECK (kind IN ('owner', 'repo', 'topic', 'stars', 'gist', 'doc')),
+    kind        TEXT NOT NULL CHECK (kind IN ('owner', 'repo', 'topic', 'stars', 'gist', 'doc', 'gitlab')),
     value       TEXT NOT NULL COLLATE NOCASE,
     title       TEXT NOT NULL DEFAULT '',
     avatar_url  TEXT,
@@ -879,6 +984,15 @@ def _migrate(conn: sqlite3.Connection) -> None:
                         ("cve_category", "TEXT")):  # v9: richer collection rules (fixed names, not user input)
         if column not in rule_columns:
             conn.execute(f"ALTER TABLE rules ADD COLUMN {column} {ddl}")
+    resource_columns = {row[1] for row in conn.execute("PRAGMA table_info(resources)")}
+    if resource_columns and "summary" not in resource_columns:  # Resources: what it's for + what you get out of it
+        conn.execute("ALTER TABLE resources ADD COLUMN summary TEXT NOT NULL DEFAULT ''")
+    from app import video_links  # one stored copy per video: fold old duplicates, then videos.video_id is UNIQUE
+
+    merged = video_links.ensure_unique(conn)
+    if merged and merged["removed"]:
+        logging.getLogger("eos.db").info("Merged %d duplicate video copies (%d videos) into one copy each",
+                                         merged["removed"], merged["sets"])
 
 
 @contextmanager

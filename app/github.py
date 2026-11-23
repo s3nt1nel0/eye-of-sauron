@@ -147,6 +147,8 @@ def parse_input(raw: str) -> Parsed:
             # /<name>/…: usually a project site built from "<owner>/<name>"; if there's no such repo, it's a page of the main site
             return Parsed(*_checked("repo", f"{owner}/{segs[0]}"), via="pages", pages=f"{host}/{segs[0]}", note=PROJECT_NOTE,
                           alt=_checked("repo", site_repo)[1])
+        if host in ("gitlab.com", "www.gitlab.com"):
+            return Parsed("gitlab", gitlab_path(segs), via="gitlab")
         if host not in ("github.com", "www.github.com"):
             raise NotRepoLink(f"{host} isn't GitHub: only github.com links (repos, owners, topics, stars) can be added.")
         return _from_path(segs, parts.query)
@@ -255,6 +257,84 @@ def clean_gist(g: Any, gist_id: str) -> dict[str, Any] | None:
             "kind": "gist", "url": f"https://gist.github.com/{quote(login)}/{quote(gist_id)}" if login != "anonymous" else f"https://gist.github.com/{quote(gist_id)}"}
 
 
+GITLAB = "https://gitlab.com"
+GITLAB_API = "https://gitlab.com/api/v4"
+GL_SEG = re.compile(r"^[A-Za-z0-9_.][A-Za-z0-9_.-]{0,99}$")
+GL_RESERVED = {"explore", "users", "groups", "dashboard", "help", "api", "search", "projects", "admin", "-", "snippets", "uploads"}
+
+
+def gitlab_path(segs: list[str]) -> str:
+    """gitlab.com/<group>/<subgroups…>/<project>[/-/blob/…] → "group/…/project" (validated). Groups alone aren't followed."""
+    if "-" in segs:
+        segs = segs[:segs.index("-")]
+    segs = [_strip_git(x) for x in segs]
+    if len(segs) < 2:
+        raise NotRepoLink("GitLab groups and users aren't supported yet: paste a GitLab project link (gitlab.com/<group>/<project>).")
+    if len(segs) > 20 or segs[0].lower() in GL_RESERVED or not all(GL_SEG.match(x) and x not in (".", "..") for x in segs):
+        raise GitHubError("That isn't a valid GitLab project link.")
+    return "/".join(segs)
+
+
+def gl_get(path: str, params: dict[str, Any] | None = None) -> Any:
+    """GET GitLab's public REST API (``path`` built here from a validated project path). Unauthenticated, read-only."""
+    url = GITLAB_API + path + (f"?{urlencode(params)}" if params else "")
+    try:
+        resp = netguard.request("GET", url, headers={"User-Agent": get_settings().user_agent, "Accept": "application/json"},
+                                max_bytes=MAX_JSON_BYTES, timeout=20.0, max_redirects=2)
+    except (netguard.FetchError, netguard.UnsafeURLError) as exc:
+        raise GitHubError(f"GitLab couldn't be reached: {str(exc)[:150]}") from None
+    if resp.status_code == 404:
+        raise NotFound("Not found on GitLab: it doesn't exist or is private.")
+    if resp.status_code == 429:
+        raise GitHubError("GitLab asked to slow down - it is tried again later.")
+    if resp.status_code != 200:
+        raise GitHubError(f"GitLab answered {resp.status_code}.")
+    try:
+        return json.loads(resp.content)
+    except ValueError:
+        raise GitHubError("GitLab sent something that isn't JSON.") from None
+
+
+def clean_gitlab(p: Any, path: str) -> dict[str, Any] | None:
+    """One GitLab project → a Repos item (plain text; its address is built from the validated path)."""
+    if not isinstance(p, dict):
+        return None
+    full = p.get("path_with_namespace") if isinstance(p.get("path_with_namespace"), str) else path
+    try:
+        full = gitlab_path(full.split("/"))
+    except GitHubError:
+        full = path
+    top = full.split("/")[0]
+    tags = [t.lower().replace(" ", "-") for t in (p.get("topics") or p.get("tag_list") or []) if isinstance(t, str)]
+    tags = [t for t in tags if TOPIC.match(t)][:20]
+    lic = p.get("license") if isinstance(p.get("license"), dict) else {}
+    key = lic.get("key") if isinstance(lic.get("key"), str) else None
+    num = lambda k: int(p.get(k)) if isinstance(p.get(k), int) and p.get(k) >= 0 else 0  # noqa: E731
+    return {"gh_id": None, "full_name": f"gitlab.com/{full}", "owner": top if OWNER.match(top) else "gitlab",
+            "name": full.split("/")[-1], "description": to_text(p.get("description") if isinstance(p.get("description"), str) else "", 500),
+            "language": None, "stars": num("star_count"), "forks": num("forks_count"), "open_issues": num("open_issues_count"),
+            "gh_topics": json.dumps(tags), "license": key.upper()[:50] if key and LICENSE.match(key) else None,
+            "homepage": None, "archived": 1 if p.get("archived") is True else 0, "is_fork": 1 if isinstance(p.get("forked_from_project"), dict) else 0,
+            "owner_avatar": None, "created_ts": _ts(p.get("created_at")), "pushed_ts": _ts(p.get("last_activity_at")),
+            "kind": "repo", "url": f"{GITLAB}/{'/'.join(quote(x) for x in full.split('/'))}"}
+
+
+def gitlab_releases(project_id: int, web: str) -> list[dict[str, Any]]:
+    try:
+        rel = gl_get(f"/projects/{int(project_id)}/releases", {"per_page": MAX_RELEASES})
+    except GitHubError:
+        return []
+    out = []
+    for r in rel if isinstance(rel, list) else []:
+        tag = r.get("tag_name") if isinstance(r, dict) and isinstance(r.get("tag_name"), str) else None
+        ts = _ts(r.get("released_at") or r.get("created_at")) if isinstance(r, dict) else None
+        if not tag or not ts:
+            continue
+        out.append({"tag": tag[:200], "title": to_text(r.get("name") or tag, 300), "url": f"{web}/-/releases/{quote(tag, safe='')}",
+                    "published_ts": ts, "summary": to_text(r.get("description") or "", 600)})
+    return out
+
+
 def _strip_git(name: str) -> str:
     return name[:-4] if name.lower().endswith(".git") else name
 
@@ -295,6 +375,8 @@ def _checked(kind: str, value: str) -> tuple[str, str]:
 
 def source_url(kind: str, value: str) -> str:
     """The page on github.com for a source (built from validated names only)."""
+    if kind == "gitlab":
+        return f"{GITLAB}/{'/'.join(quote(x) for x in value.split('/'))}"
     if kind == "gist":
         return f"https://gist.github.com/{quote(value)}"
     if kind == "doc":
@@ -684,6 +766,13 @@ def fetch_source(kind: str, value: str, token: str | None, etag: str | None = No
     elif kind == "doc":
         item = clean_doc(value)
         return {"title": item["name"]}, [item], None
+    elif kind == "gitlab":
+        proj = gl_get(f"/projects/{quote(value, safe='')}", {"license": "true"})
+        item = clean_gitlab(proj, value)
+        if item is None:
+            raise GitHubError("GitLab's answer for that project couldn't be read.")
+        pid = proj.get("id") if isinstance(proj, dict) and isinstance(proj.get("id"), int) else None
+        return {"title": item["full_name"], "releases": gitlab_releases(pid, item["url"]) if pid else []}, [item], None
     elif kind == "repo":
         owner, _, name = value.partition("/")
         one, new_etag = api_get_cond(f"/repos/{quote(owner)}/{quote(name)}", token=token, etag=etag)
@@ -755,13 +844,15 @@ def verify(kind: str, value: str, token: str | None) -> tuple[dict[str, Any], li
         return {"title": r["full_name"]}, [r], etag
     if kind in ("owner", "stars"):
         return _profile_info(api_get(f"/users/{quote(value)}", token=token), value), None, None
-    if kind in ("gist", "doc"):
+    if kind in ("gist", "doc", "gitlab"):
         info, items, etag = fetch_source(kind, value, token)
         return info, items, etag
     return {}, None, None
 
 
 def not_found_text(kind: str, value: str, note: str | None = None, origin: str | None = None) -> str:
+    if kind == "gitlab":
+        return f"No public GitLab project {value[:120]}: it doesn't exist, was moved, or is private."
     if kind == "gist":
         return f"No public gist {value[:40]} on GitHub: it was deleted, or the id is wrong."
     if kind == "repo" and note in (SITE_NOTE, POST_NOTE, PROJECT_NOTE):
@@ -850,10 +941,17 @@ def refresh_source(source_id: int, prefetched: tuple[dict[str, Any], list[dict[s
             db.execute("UPDATE repo_sources SET last_fetch = ?, next_fetch = ?, last_error = NULL WHERE id = ?",
                        (now(), now() + REFRESH_SECONDS, source_id))
             return {"ok": True, "repos": src["repo_count"], "unchanged": True}
+        if src["kind"] in ("repo", "gitlab", "gist", "doc"):   # you asked for this one: it isn't hidden any more
+            db.executemany("DELETE FROM repo_hidden WHERE full_name = ?", [(r["full_name"],) for r in repos])
+        else:                                                   # lists skip the repos you removed by hand
+            hidden = {r[0].lower() for r in db.execute("SELECT full_name FROM repo_hidden")}
+            repos = [r for r in repos if r["full_name"].lower() not in hidden]
         ids = [store_repo(db, r) for r in repos]
         db.execute("DELETE FROM repo_source_links WHERE source_id = ?", (source_id,))
         db.executemany("INSERT OR IGNORE INTO repo_source_links (source_id, repo_id) VALUES (?, ?)", [(source_id, i) for i in ids])
         file_into_folder(db, source_id, ids)
+        if src["kind"] == "gitlab" and ids:
+            store_releases(db, ids[0], info.get("releases") or [])
         if src["kind"] == "repo" and ids:
             store_releases(db, ids[0], releases)
             if full and full != src["value"] and not db.execute(  # GitHub's spelling / a renamed repo's new name
@@ -893,7 +991,7 @@ class RepoSync:
     def due(self) -> list[int]:
         with get_db() as db:
             return [r[0] for r in db.execute("SELECT id FROM repo_sources WHERE next_fetch IS NULL OR next_fetch <= ? "
-                                             "ORDER BY kind != 'doc', next_fetch IS NOT NULL, next_fetch LIMIT 50", (now(),))]  # links first: no request
+                                             "ORDER BY kind NOT IN ('doc', 'gitlab'), next_fetch IS NOT NULL, next_fetch LIMIT 50", (now(),))]  # links first: no request
 
     def maybe_start(self) -> bool:
         if not self.due() or not self._lock.acquire(blocking=False):
@@ -911,7 +1009,7 @@ class RepoSync:
             except RateLimited as exc:
                 log.info("GitHub rate limit reached; repos continue after %s", time.strftime("%H:%M", time.localtime(exc.reset)))
                 with get_db() as db:   # nothing else is tried before the reset
-                    db.execute("UPDATE repo_sources SET next_fetch = MAX(COALESCE(next_fetch, 0), ?) WHERE kind != 'doc' AND (next_fetch IS NULL OR next_fetch <= ?)",
+                    db.execute("UPDATE repo_sources SET next_fetch = MAX(COALESCE(next_fetch, 0), ?) WHERE kind NOT IN ('doc', 'gitlab') AND (next_fetch IS NULL OR next_fetch <= ?)",
                                (exc.reset + 30, now()))
             except Exception:  # noqa: BLE001
                 log.exception("Repos: background refresh failed")

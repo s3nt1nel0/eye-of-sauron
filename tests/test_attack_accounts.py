@@ -650,10 +650,13 @@ def test_playlists_and_groups_keep_the_dragged_order(authed):
                            _json.dumps({"kind": "youtube", "playlist_id": f"PLorder{n}xxxxxxxxxxxx"}))).lastrowid for n in range(3)]
     g = authed.post("/api/v1/library/groups", json={"name": "Shelf"}).json()
     ids = lambda: [x["id"] for x in authed.get("/api/v1/library/groups").json()["groups"]]
-    assert ids() == [f"p:{pls[0]}", f"p:{pls[1]}", f"p:{pls[2]}", g["id"]]          # default: oldest first, new ones last
+    assert ids() == [g["id"], f"p:{pls[0]}", f"p:{pls[1]}", f"p:{pls[2]}"]          # groups first, then playlists oldest first
     want = [g["id"], f"p:{pls[2]}", f"p:{pls[0]}", f"p:{pls[1]}"]
     assert authed.put("/api/v1/library/groups/order", json={"refs": want}).json()["ok"]
     assert ids() == want                                                              # fixed until you drag again
+    authed.put("/api/v1/library/groups/order", json={"refs": [f"p:{pls[2]}", g["id"], f"p:{pls[0]}", f"p:{pls[1]}"]})
+    assert ids()[0] == g["id"]                                                        # a playlist never goes above the groups
+    assert authed.put("/api/v1/library/groups/order", json={"refs": want}).json()["ok"]
     assert authed.put("/api/v1/library/groups/order", json={"refs": ["x:1"]}).status_code == 422
     # inside a group: the playlists keep their own order too
     for p in (pls[0], pls[1]):

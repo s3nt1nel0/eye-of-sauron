@@ -117,7 +117,7 @@ input[type=color] { width: 38px; height: 30px; padding: 0 2px; border: 1px solid
   .app.sidebar-collapsed.layout-list { grid-template-columns: 0 1fr; }
 }
 .app.mode-dashboard .sidebar-toggle, .app.mode-studio .sidebar-toggle, .app.mode-library .sidebar-toggle, .app.mode-accounts .sidebar-toggle,
-.app.mode-books .sidebar-toggle, .app.mode-podcasts .sidebar-toggle, .app.mode-repos .sidebar-toggle, .app.mode-threatmap .sidebar-toggle { visibility: hidden; }
+.app.mode-books .sidebar-toggle, .app.mode-podcasts .sidebar-toggle, .app.mode-repos .sidebar-toggle, .app.mode-resources .sidebar-toggle, .app.mode-threatmap .sidebar-toggle { visibility: hidden; }
 @media (prefers-reduced-motion: no-preference) { .app { transition: grid-template-columns .18s ease; } }
 
 /* ---------- sidebar ---------- */
@@ -335,7 +335,7 @@ kbd { border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 
   .brand span { display: none; }
   .search { margin-left: 0; }
   #addFeedBtn { padding: 6px 9px; }
-  .sidebar { position: fixed; top: 54px; bottom: 0; left: 0; width: min(300px, 85vw); z-index: 20; transform: translateX(-100%); transition: transform .2s; box-shadow: var(--shadow); }
+  .sidebar { position: fixed; top: var(--top-h, 54px); bottom: 0; left: 0; width: min(300px, 85vw); z-index: 20; transform: translateX(-100%); transition: transform .2s; box-shadow: var(--shadow); }
   .app.show-sidebar .sidebar { transform: none; }
   .reader { display: none; grid-area: list; }
   .app.show-reader .list-pane { display: none; }
@@ -428,3 +428,53 @@ mark.hl { background: color-mix(in srgb, #facc15 45%, transparent); color: inher
 .tab-arrange { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 4px; }
 .tab-arrange li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 8px; }
 .tab-arrange-btns { display: inline-flex; gap: 4px; }
+
+/* ===== All screens (2026-11-21): phone top bar, folding tab filters, touch-size targets ===== */
+/* Phones and small tablets: the top bar takes two rows - menu, logo, search and buttons on top; the tab bar below,
+   swipeable sideways (one row squeezed the search box to nothing below ~900 px). */
+@media (max-width: 900px) {
+  .app { grid-template-rows: auto 1fr; }
+  .topbar { flex-wrap: wrap; row-gap: 6px; column-gap: 8px; min-height: 54px; padding: 6px 10px; }
+  .topbar .mode-switch { order: 10; flex: 1 0 100%; margin-left: 0; overflow-x: auto; overscroll-behavior-x: contain;
+    scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .topbar .mode-switch::-webkit-scrollbar { display: none; }
+  .topbar .mode-switch button { flex: 1 0 auto; }
+  .topbar .search { flex: 1 1 100px; min-width: 0; }
+  .topbar .top-actions { margin-left: 0; }
+}
+/* Tab names need ~930 px for ten tabs: below 1600 px the tabs show their icons only (the name is in each tooltip),
+   so the search box keeps a usable width on laptops and tablets in landscape. */
+@media (max-width: 1600px) { .mode-switch span { display: none; } }
+@media (min-width: 901px) { .topbar .search { min-width: 220px; } }
+/* Tab toolbars (Videos, Podcasts, Accounts, Repos, Resources, Books): on phones (portrait, or landscape with a short
+   screen) the filters fold behind one button. */
+.lib-header > .filters-toggle.btn { display: none; }
+@media (max-width: 700px), (max-height: 500px) {
+  .lib-header > .filters-toggle.btn { display: inline-flex; align-items: center; }
+  .lib-header:not(.filters-open) > :not(h2):not(.primary):not(input):not(.filters-toggle):not(.spacer) { display: none; }
+  .lib-header > input { flex: 1 1 120px; min-width: 0; }
+  .lib-header.filters-open .filters-toggle { background: var(--selected); color: var(--accent); }
+  /* the extra filter row under some toolbars folds too; navigation buttons in it (← All folders, ☑ Select…) stay */
+  .lib-header:not(.filters-open) ~ .repo-filters > :is(select, label, .date-range-btn) { display: none; }
+  .lib-header:not(.filters-open) ~ .repo-filters:not(:has(> button:not(.date-range-btn))) { display: none; }
+}
+/* Touch screens and small windows: everything you tap is at least ~40 px. */
+@media (pointer: coarse), (max-width: 860px) {
+  .btn, a.btn, select, input[type=search], input[type=text], input[type=url], input[type=number], input[type=date],
+  input[type=email], input[type=password] { min-height: 40px; }
+  .icon-btn, .sidebar-toggle, .lib-add-plus { min-width: 40px; min-height: 40px; }
+  .mode-switch button { min-height: 40px; min-width: 44px; }
+  input[type=checkbox], input[type=radio] { width: 20px; height: 20px; }
+  .tp-gear, .tp-star, .tp-add, .feed-gear, .res-node-focus, .rate, .caret { min-width: 36px; min-height: 36px;
+    display: inline-flex; align-items: center; justify-content: center; }
+  .side-item { min-height: 40px; }
+  .tag-fold-btn, .repo-tag, .repo-topic, .repo-fchip, .topic-tag, .legend-item, .repo-owner-btn, .link-btn { min-height: 32px; }
+  .tm-bar-btn, .widget-range { min-height: 36px; }
+  .studio-tabs button { min-height: 40px; }
+  .repo-folder-open { min-height: 40px; }
+  /* tab toolbars: sources.css fixes these at 34 px (loaded later); on touch screens they follow the 40 px rule */
+  #app .lib-header > select, #app .lib-header > input[type=search], #app .lib-header > .btn, #app .lib-header .lib-view > .btn,
+  #app .lib-header .lib-chan-btns > .btn, #app .lib-header .topic-picker > summary { height: 40px; min-height: 40px; }
+  .lib-group-badge { min-height: 32px; }
+  .studio-tabs { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+}

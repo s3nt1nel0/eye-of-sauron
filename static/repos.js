@@ -9,13 +9,14 @@
   const $ = (sel) => document.querySelector(sel);
   const DEFAULTS = { view: "folders", folder_id: "", kind: "", q: "", topic_ids: [], language: "", owner: "", source_id: "", gh_topic: "", min_stars: 0,
     starred: false, hide_archived: false, hide_forks: false, sort: "stars", dates: null };
-  const VIEWS = [["folders", "📁 View: Folders"], ["grid", "▦ View: All repos"], ["topic", "🏷️ View: By topic"], ["owner", "👤 View: By owner"],
-    ["language", "💻 View: By language"], ["releases", "🚀 View: Releases"]];
-  const SORTS = [["stars", "★ Most stars"], ["pushed", "🕒 Recently updated"], ["created", "🆕 Newest on GitHub"],
-    ["added", "📥 Recently added here"], ["name", "A–Z"]];
-  const STARS = [[0, "Any stars"], [10, "10+ stars"], [100, "100+ stars"], [1000, "1k+ stars"], [10000, "10k+ stars"]];
-  const KIND = { owner: "👤 Owner", repo: "📦 Repo", topic: "# Topic", stars: "★ Stars", gist: "🧾 Gist", doc: "📄 Doc / site" };
-  const TYPES = [["", "All types"], ["repo", "📦 Repos"], ["gist", "🧾 Gists"], ["doc", "📄 Docs & websites"]];
+  // the inner tabs (like Podcasts' 🎧 Episodes / 🗂️ Shows)
+  const VIEWS = [["folders", "📁 Folders"], ["grid", "▦ All repos"], ["topic", "🏷️ By topic"], ["owner", "👤 By owner"],
+    ["language", "💻 By language"], ["releases", "🚀 Releases"]];
+  const SORTS = [["stars", "★ Sort: Most stars"], ["pushed", "🕒 Sort: Recently updated"], ["created", "🆕 Sort: Newest on GitHub"],
+    ["added", "📥 Sort: Recently added here"], ["name", "Sort: A–Z"]];
+  const STARS = [[0, "Stars"], [10, "10+ stars"], [100, "100+ stars"], [1000, "1k+ stars"], [10000, "10k+ stars"]];
+  const KIND = { owner: "👤 Owner", repo: "📦 Repo", topic: "# Topic", stars: "★ Stars", gist: "🧾 Gist", doc: "📄 Doc / site", gitlab: "🦊 GitLab" };
+  const TYPES = [["", "Type"], ["repo", "📦 Repos"], ["gist", "🧾 Gists"], ["doc", "📄 Docs & websites"]];
   const PAGE = 60;
   const fmtNum = (n) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${(n / 1e3).toFixed(n >= 1e4 ? 0 : 1)}k` : String(n || 0));
 
@@ -113,9 +114,27 @@
         h("input", { type: "checkbox", checked: Boolean(f[key]), onchange: (e) => this.set({ [key]: e.target.checked }, false) }), ` ${label}`);
       const topicPicker = FW.sources && FW.sources.topicPicker ? FW.sources.topicPicker({
         topics: [...m.topics.filter((t) => t.enabled).map((t) => ({ ...t, count: t.repos })), { id: 0, name: "No topic", color: "#6b7280", count: m.untagged }],
-        selected: f.topic_ids, onChange: (ids) => this.set({ topic_ids: ids }, false) }) : null;
-      const dates = FW.dateRange ? FW.dateRange.button({ value: f.dates, title: "Show only repos last updated between two dates",
-        onChange: (r) => this.set({ dates: r }) }) : null;
+        selected: f.topic_ids, buttonLabel: "Topics", onChange: (ids) => this.set({ topic_ids: ids }, false) }) : null;
+      // Sort, with 📅 Custom range… at the bottom (like Videos / Podcasts): a date filter, not a sort - the sort stays as it was
+      const sortSel = h("select", { "aria-label": "Sort", title: "Sort" },
+        SORTS.map(([v, l]) => h("option", { value: v, text: l, selected: f.sort === v })),
+        FW.dateRange ? [h("hr"),
+          h("option", { value: "custom-range", text: f.dates ? `📅 Custom range: ${FW.dateRange.label(f.dates)}…` : "📅 Custom range…" }),
+          f.dates ? h("option", { value: "clear-range", text: "✕ Clear custom range" }) : null] : null);
+      sortSel.addEventListener("change", async () => {
+        const pick = sortSel.value;
+        if (pick === "custom-range" || pick === "clear-range") {
+          sortSel.value = f.sort;
+          const r = pick === "clear-range" ? null : await FW.dateRange.pick(f.dates);
+          if (r === undefined) return;  // cancelled
+          this.set({ dates: r });
+        } else {
+          this.set({ sort: pick }, false);
+        }
+      });
+      if (f.dates) { sortSel.classList.add("on"); sortSel.title = `Sort - showing only repos last updated ${FW.dateRange.label(f.dates)}`; }
+      const tab = (v, label) => h("button", { type: "button", class: `btn small${f.view === v ? " primary" : ""}`, "aria-pressed": String(f.view === v), text: label,
+        onclick: () => { if (f.view !== v) this.set({ view: v }); } });
       const chips = [];
       const chip = (text, clear) => chips.push(h("button", { type: "button", class: "btn small repo-chip-on", text: `${text} ✕`, title: "Remove this filter", onclick: clear }));
       if (f.folder_id !== "") chip(`📁 ${this.folderName(f.folder_id).replace(/^\S+\s/, "")}`, () => this.set({ folder_id: "" }));
@@ -132,15 +151,14 @@
           h("h2", { text: "📦 Repos" }),
           h("button", { type: "button", class: "btn small primary lib-add-plus", text: "＋", title: "Add GitHub repos (or owners, topics, stars)", "aria-label": "Add GitHub repos", onclick: () => this.openAdd() }),
           search, topicPicker,
-          select("Language", [["", "All languages"], ...m.languages.map((l) => [l.name, `${l.name} (${l.count})`])], f.language, (v) => this.set({ language: v }, false)),
-          select("Sort", SORTS, f.sort, (v) => this.set({ sort: v }, false)),
-          select("View", VIEWS, f.view, (v) => this.set({ view: v })),
-          h("button", { type: "button", class: `btn small${errors ? " repo-warn" : ""}`, text: `⚙ Sources (${m.sources.length}${errors ? `, ⚠ ${errors}` : ""})`,
-            title: "What you added, check now, and the optional GitHub token", onclick: () => this.openSources() })),
+          select("Language", [["", "Language"], ...m.languages.map((l) => [l.name, `${l.name} (${l.count})`])], f.language, (v) => this.set({ language: v }, false)),
+          sortSel,
+          h("button", { type: "button", class: `btn small${errors ? " repo-warn" : ""}`, text: `⚙ Sources${errors ? ` ⚠ ${errors}` : ""}`,
+            title: `What you added (${m.sources.length}${errors ? `, ${errors} with a problem` : ""}), check now, and the optional GitHub token`, onclick: () => this.openSources() }),
+          h("span", { class: "lib-view repo-views", role: "group", "aria-label": "View" }, VIEWS.map(([v, l]) => tab(v, l)))),
         f.view === "releases" ? null : h("div", { class: "repo-filters lib-pad" },
           select("Type", TYPES.map(([v, l]) => [v, v && this.meta.kinds ? `${l} (${(this.meta.kinds[v] || 0).toLocaleString()})` : l]), f.kind, (v) => this.set({ kind: v }, false)),
           select("Minimum stars", STARS, f.min_stars, (v) => this.set({ min_stars: Number(v) }, false)),
-          dates,
           tick("★ Starred", "starred", "Only repos you starred here"),
           tick("Hide archived", "hide_archived", "Hide read-only (archived) repos"),
           tick("Hide forks", "hide_forks", "Hide copies of other repos"),
@@ -234,6 +252,7 @@
       const isRepo = !r.kind || r.kind === "repo";
       const facts = [
         r.kind === "gist" ? h("span", { class: "repo-badge repo-kind", text: "🧾 Gist" }) : null,
+        /^https:\/\/gitlab\.com\//.test(r.url || "") ? h("span", { class: "repo-badge repo-kind", text: "🦊 GitLab" }) : null,
         r.kind === "doc" ? h("span", { class: "repo-badge repo-kind", text: r.owner === "github-docs" ? "📄 GitHub Docs" : /^https:\/\/github\.com\//.test(r.url || "") ? "👤 Profile" : "🌐 Website" }) : null,
         r.language ? h("span", { class: "repo-fact", text: `💻 ${r.language}` }) : null,
         isRepo ? h("span", { class: "repo-fact", title: `${(r.stars || 0).toLocaleString()} stars on GitHub`, text: `★ ${fmtNum(r.stars)}` }) : null,
@@ -251,6 +270,15 @@
       const home = safeUrl(r.homepage);
       const folderInfo = new Map((this.folders ? this.folders.folders : []).map((x) => [x.id, x]));
       const inFolders = (r.folders || []).map((id) => folderInfo.get(id)).filter(Boolean);
+      const del = h("button", { type: "button", class: "icon-btn repo-del", text: "🗑", title: "Remove from Repos", "aria-label": `Remove ${r.full_name} from Repos`,
+        onclick: async () => {
+          const what = !r.kind || r.kind === "repo" ? "repo" : r.kind === "gist" ? "gist" : "link";
+          if (!window.confirm(`Remove the ${what} “${r.name}” from Repos?\n\nIt's taken out of every folder. If an owner, topic or stars list also brings it in, it won't come back from there (paste it again any time to re-add it).`)) return;
+          const res = await guarded(() => api("DELETE", `/repos/${r.id}`));
+          if (!res) return;
+          toast(`Removed ${r.name}${res.hidden ? " - it won't come back from your lists" : ""}`);
+          await this.refreshAll();
+        } });
       const fbtn = h("button", { type: "button", class: `icon-btn repo-fbtn${inFolders.length ? " on" : ""}`, text: "📁",
         title: inFolders.length ? `In ${inFolders.map((x) => x.name).join(", ")} - change folders` : "Put in a folder",
         "aria-label": `Folders for ${r.full_name}`, onclick: () => this.openFolderPicker(r) });
@@ -259,11 +287,11 @@
       return h("article", { class: `repo-card${r.archived ? " archived" : ""}${this.selecting && this.selected.has(r.id) ? " picked" : ""}` },
         h("div", { class: "repo-head" }, tickBox, avatar,
           h("div", { class: "repo-title" },
-            isRepo ? h("a", { href: safeUrl(r.url), target: "_blank", rel: "noopener noreferrer", class: "repo-name", title: `Open ${r.full_name} on GitHub` },
+            isRepo ? h("a", { href: safeUrl(r.url), target: "_blank", rel: "noopener noreferrer", class: "repo-name", title: `Open ${r.full_name}` },
               h("span", { class: "muted", text: `${r.owner}/` }), h("strong", { text: r.name }))
               : h("a", { href: safeUrl(r.url), target: "_blank", rel: "noopener noreferrer", class: "repo-name", title: r.url }, h("strong", { text: r.name })),
             h("button", { type: "button", class: "repo-owner-btn muted small", text: `👤 ${r.owner}`, title: `Show only ${r.owner}'s repos`, onclick: () => this.set({ owner: r.owner, view: "grid" }) })),
-          fbtn, star),
+          fbtn, star, del),
         inFolders.length ? h("div", { class: "repo-fchips" }, inFolders.map((x) => h("button", { type: "button", class: "repo-fchip", style: `--c:${safeColor(x.color)}`,
           text: `${x.emoji} ${x.name}`, title: `Open the ${x.name} folder`, onclick: () => this.set({ view: "folders", folder_id: String(x.id) }) }))) : null,
         r.description ? h("p", { class: "repo-desc", text: r.description }) : h("p", { class: "repo-desc muted", text: "No description." }),
@@ -476,7 +504,7 @@
       const progress = h("p", { class: "small", "aria-live": "polite" });
       const log = h("ol", { class: "batch-list small" });
       const err = h("p", { class: "error" });
-      const NOUN = { repo: "repo", owner: "owner", topic: "topic", stars: "stars list", gist: "gist", doc: "link" };
+      const NOUN = { repo: "repo", owner: "owner", topic: "topic", stars: "stars list", gist: "gist", doc: "link", gitlab: "GitLab project" };
       const hhmm = (ts) => new Date(ts * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
       const linesOf = () => [...new Set(box.value.split(/\r?\n/).map((l) => l.trim()).filter(Boolean))];
       box.addEventListener("input", () => {
@@ -487,7 +515,8 @@
       const rows = new Map();   // source id → {status element, row data}
       const label = (r) => r.kind === "repo" ? `repo ${r.value}${r.note ? ` (${r.note})` : ""}` : r.kind === "owner" ? `owner ${r.value}`
         : r.kind === "topic" ? `topic ${r.value}` : r.kind === "gist" ? `gist ${r.value.slice(0, 12)}…`
-          : r.kind === "doc" ? `link ${r.value.replace(/^https:\/\//, "").slice(0, 70)}${r.note ? ` (${r.note})` : ""}` : `${r.value}'s stars`;
+          : r.kind === "doc" ? `link ${r.value.replace(/^https:\/\//, "").slice(0, 70)}${r.note ? ` (${r.note})` : ""}`
+            : r.kind === "gitlab" ? `GitLab project ${r.value}` : `${r.value}'s stars`;
       const show = (el, cls, text) => { el.className = cls; el.textContent = text; };
       const stateText = (row, st) => {
         const r = row.data;
@@ -599,7 +628,7 @@
         h("ul", { class: "small src-notes" },
           h("li", { text: "Up to 200 lines at a time. Everything is saved straight away and checked with GitHub in the background - you can close this window." }),
           h("li", { text: "A repo link (any page inside it - a file, a folder, the README, the wiki) adds just that repo, and its new versions show in 🚀 Releases. A <name>.github.io website adds the repo it is built from." }),
-          h("li", { text: "Gists (gist.github.com/…) and GitHub Docs pages (docs.github.com/…) are saved too, as gist and doc cards. A <name>.github.io website with no public repo behind it is saved as a website link." }),
+          h("li", { text: "Gists (gist.github.com/…), GitHub Docs pages (docs.github.com/…) and GitLab projects (gitlab.com/<group>/<project>) are saved too. A <name>.github.io website with no public repo behind it is saved as a website link." }),
           h("li", { text: "A profile link (github.com/<name>): you're asked each time whether to follow every repo they publish (up to 500) or just save the profile as a link. topic:<name> adds the 100 most-starred repos with that GitHub topic; stars:<user> adds what they starred." }),
           h("li", { text: "Without a GitHub token GitHub allows 60 requests an hour (each new repo uses one); lines past that wait and finish by themselves after GitHub's reset. A free read-only token (⚙ Sources) allows 5,000." })),
         progress, askAll, log, err,

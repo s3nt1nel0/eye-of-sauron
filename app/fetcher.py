@@ -221,10 +221,11 @@ PODCAST_MAX_FEED_BYTES = 60 * 1024 * 1024  # ...and long-running daily shows pub
 
 
 def store_entries(db, feed_id: int, entries, cutoff: int | None, ts_now: int, on_new=None,
-                  podcast: bool = False, page: bool = False) -> list[int]:
+                  podcast: bool = False, page: bool = False, video_of=None) -> list[int]:
     """Store parsed feedparser entries; returns new article ids. ``on_new(db, entry, id, published)``
     runs for each inserted entry (e.g. to store YouTube video metadata). ``podcast``: episodes are matched by
-    their id only, and up to PODCAST_MAX_ENTRIES are stored."""
+    their id only, and up to PODCAST_MAX_ENTRIES are stored. ``video_of(entry)`` -> the entry's video metadata:
+    a video already in the library (from another playlist / channel) is linked to this feed, not copied."""
     new_ids: list[int] = []
     for entry in entries[:PODCAST_MAX_ENTRIES if podcast else MAX_ENTRIES_PER_FETCH]:
         title = to_text(entry.get("title"), 1000) or "(untitled)"
@@ -233,15 +234,19 @@ def store_entries(db, feed_id: int, entries, cutoff: int | None, ts_now: int, on
             published = ts_now  # clamp bogus future dates
         if cutoff is not None and published is not None and published < cutoff:
             continue
+        if video_of is not None and sources.link_existing_video(db, feed_id, video_of(entry)):
+            continue  # one copy per video: already stored, now also listed under this feed
         new_id = insert_article(
             db, feed_id, guid=_guid(entry, title, published), url=_safe_link(entry.get("link")), title=title,
             author=to_text(entry.get("author"), 300) or None, raw_html=_entry_html(entry), published=published,
             fetched_at=ts_now, match_url=not podcast, any_feed=page,
         )
         if new_id is not None:
-            new_ids.append(new_id)
             if on_new is not None:
                 on_new(db, entry, new_id, published)
+                if video_of is not None and db.execute("SELECT 1 FROM articles WHERE id = ?", (new_id,)).fetchone() is None:
+                    continue  # store_video folded it into the copy that already existed
+            new_ids.append(new_id)
     return new_ids
 
 
@@ -375,7 +380,8 @@ def _fetch_source(feed, prefs: dict, refresh: int) -> dict:
         if meta:
             sources.store_video(db, article_id, meta, published)
 
-    result = _store(feed, prefs, refresh, got.entries, got.title, _safe_link(got.site_url), None, None, on_new=on_new)
+    result = _store(feed, prefs, refresh, got.entries, got.title, _safe_link(got.site_url), None, None, on_new=on_new,
+                    video_of=(lambda e: got.videos.get(e.get("id"))) if got.videos else None)
     with get_db() as db:
         for key, value in got.state.items():
             sources.set_state(db, key, value)
@@ -385,7 +391,7 @@ def _fetch_source(feed, prefs: dict, refresh: int) -> dict:
 
 
 def _store(feed, prefs: dict, refresh: int, entries, meta_title: str | None, site_url: str | None,
-           etag: str | None, last_modified: str | None, on_new=None) -> dict:
+           etag: str | None, last_modified: str | None, on_new=None, video_of=None) -> dict:
     feed_id = feed["id"]
     ts_now = now()
     retention_days, _cap = effective_retention(feed, prefs)
@@ -394,7 +400,7 @@ def _store(feed, prefs: dict, refresh: int, entries, meta_title: str | None, sit
     published: list[int] = []
     with get_db() as db:
         new_ids = store_entries(db, feed_id, entries, cutoff, ts_now, on_new=on_new, podcast=feed["kind"] == "podcast",
-                                page=feed["kind"] == "html")
+                                page=feed["kind"] == "html", video_of=video_of)
         title = feed["title"]
         if not feed["custom_title"]:
             title = meta_title or title or feed["url"]
@@ -442,10 +448,11 @@ def run_retention() -> None:
     with get_db() as db:
         prefs = app_settings.get_all(db)
         ts = now()
-        keep = (  # never pruned: starred, filed by hand, or in one of your video groups
+        keep = (  # never pruned: starred, filed by hand, in one of your video groups, or a video another feed also lists
             "is_starred = 0 AND id NOT IN "
             "(SELECT article_id FROM article_tags WHERE source = 'manual') "
-            "AND id NOT IN (SELECT article_id FROM video_group_items)"
+            "AND id NOT IN (SELECT article_id FROM video_group_items) "
+            "AND NOT EXISTS (SELECT 1 FROM video_links l WHERE l.article_id = articles.id AND l.feed_id != articles.feed_id)"
         )
         g_days, g_cap = int(prefs["retention_days"] or 0), int(prefs["max_articles_per_feed"] or 0)
         # Per feed: feeds.retention_days / max_articles override the globals (NULL = global, 0 = keep forever).

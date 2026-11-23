@@ -38,9 +38,17 @@
         dock = h("div", { id: "podDock", class: "pod-dock", role: "region", "aria-label": "Podcast player" });
         document.body.append(dock);
       }
+      if (this.podMenuClose) this.podMenuClose(false);
       const old = dock.querySelector("audio");
       if (old) { old.pause(); old.removeAttribute("src"); old.load(); }
-      const audio = h("audio", { controls: true, preload: "metadata", src: audioUrl });
+      // no native controls: the app draws its own bar below (the browser's can't hold the 10-second buttons)
+      const audio = h("audio", { preload: "metadata", src: audioUrl });
+      try {
+        const rate = Number(localStorage.getItem("fw-pod-rate"));
+        if (rate >= 0.5 && rate <= 3) { audio.defaultPlaybackRate = rate; audio.playbackRate = rate; }
+        const v = localStorage.getItem("fw-pod-volume");
+        if (v !== null && Number(v) >= 0 && Number(v) <= 1) audio.volume = Number(v);
+      } catch { /* storage off */ }
       let saved = 0;
       try { saved = Number(localStorage.getItem(posKey(e.id)) || 0); } catch { /* storage off */ }
       audio.addEventListener("loadedmetadata", () => { if (saved > 5 && saved < (audio.duration || 1e9) - 10) audio.currentTime = saved; });
@@ -53,13 +61,16 @@
         try { localStorage.removeItem(posKey(e.id)); } catch { /* storage off */ }
         if (onEnded) onEnded();
       });
-      const close = () => { audio.pause(); if (this.dockSize) this.dockSize.disconnect(); dock.remove(); document.body.classList.remove("has-pod-dock"); };
+      const close = () => {
+        if (this.podMenuClose) this.podMenuClose(false);
+        audio.pause(); if (this.dockSize) this.dockSize.disconnect(); dock.remove(); document.body.classList.remove("has-pod-dock");
+      };
       // ⏪ / ⏩ 10 seconds: replay a part you missed, or skip ahead (also from headphones / the lock screen)
       const skip = (secs) => {
         const end = Number.isFinite(audio.duration) ? audio.duration : Infinity;
         audio.currentTime = Math.min(Math.max(0, (audio.currentTime || 0) + secs), Math.max(0, end - 0.5));
       };
-      const skipBtn = (secs) => h("button", { type: "button", class: "icon-btn pod-skip", text: secs < 0 ? "↺ 10" : "10 ↻",
+      const skipBtn = (secs) => h("button", { type: "button", class: "pod-ctl pod-skip", text: secs < 0 ? "↺ 10" : "10 ↻",
         title: secs < 0 ? "Back 10 seconds" : "Forward 10 seconds", "aria-label": secs < 0 ? "Back 10 seconds" : "Forward 10 seconds",
         onclick: () => skip(secs) });
       if ("mediaSession" in navigator) {
@@ -68,12 +79,13 @@
           navigator.mediaSession.setActionHandler("seekforward", (d) => skip((d && d.seekOffset) || 10));
         } catch { /* not supported by this browser */ }
       }
+      const bar = this.controlBar(audio, audioUrl, skipBtn);
       fill(dock,
         safeUrl(e.image) ? h("img", { class: "pod-dock-art", src: safeUrl(e.image), alt: "", referrerpolicy: "no-referrer" }) : h("span", { class: "pod-dock-art pod-noart", text: "🎙" }),
         h("div", { class: "pod-dock-info" },
           h("button", { type: "button", class: "pod-dock-title", title: `${e.title}\nClick: open this episode in Podcasts`, text: e.title, onclick: () => this.goTo(e) }),
           h("span", { class: "muted small", text: e.show || "" })),
-        h("div", { class: "pod-dock-controls" }, skipBtn(-10), audio, skipBtn(10)),
+        h("div", { class: "pod-dock-controls" }, bar, audio),
         h("button", { type: "button", class: "icon-btn", text: "✕", title: "Stop and close the player", "aria-label": "Stop and close the player", onclick: close }));
       document.body.classList.add("has-pod-dock");
       // the app ends where the player starts, so the player never covers the bottom of a list (its height can wrap on phones)
@@ -82,6 +94,102 @@
       if (this.dockSize) this.dockSize.disconnect();
       if (window.ResizeObserver) { this.dockSize = new ResizeObserver(fit); this.dockSize.observe(dock); }
       audio.play().catch(() => { /* the browser may want a click on the player */ });
+    },
+
+    /** The player's grey control bar: [↺ 10] [▶/⏸] [10 ↻]  time  ──seek──  🔊 volume  ⋮ (speed, download). */
+    controlBar(audio, audioUrl, skipBtn) {
+      const NS = "http://www.w3.org/2000/svg";
+      const ICON = {
+        play: "M8 5v14l11-7z",
+        pause: "M6 19h4V5H6v14zm8-14v14h4V5h-4z",
+        vol: "M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.05A4.5 4.5 0 0 0 16.5 12zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z",
+        mute: "M16.5 12A4.5 4.5 0 0 0 14 7.97v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51A8.8 8.8 0 0 0 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3 3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06a8.99 8.99 0 0 0 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4 9.91 6.09 12 8.18V4z",
+        more: "M12 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm0 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm0 6a2 2 0 1 0 0 4 2 2 0 0 0 0-4z",
+        dl: "M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z",
+      };
+      const icon = (d) => {
+        const s = document.createElementNS(NS, "svg");
+        s.setAttribute("viewBox", "0 0 24 24"); s.setAttribute("aria-hidden", "true"); s.setAttribute("focusable", "false");
+        const p = document.createElementNS(NS, "path"); p.setAttribute("d", d); s.append(p);
+        return s;
+      };
+      const clock = (sec) => {
+        const s = Math.max(0, Math.floor(sec || 0)), hh = Math.floor(s / 3600), mm = Math.floor(s % 3600 / 60), ss = String(s % 60).padStart(2, "0");
+        return hh ? `${hh}:${String(mm).padStart(2, "0")}:${ss}` : `${mm}:${ss}`;
+      };
+      const label = (el, text) => { el.setAttribute("aria-label", text); el.title = text; };
+      const save = (key, val) => { try { localStorage.setItem(key, String(val)); } catch { /* storage off */ } };
+
+      // play / pause
+      const playBtn = h("button", { type: "button", class: "pod-ctl pod-play",
+        onclick: () => (audio.paused ? audio.play().catch(() => { /* blocked */ }) : audio.pause()) });
+      const showPlaying = () => { fill(playBtn, icon(audio.paused ? ICON.play : ICON.pause)); label(playBtn, audio.paused ? "Play" : "Pause"); };
+      ["play", "pause", "ended"].forEach((ev) => audio.addEventListener(ev, showPlaying));
+
+      // time + seek bar
+      const time = h("span", { class: "pod-time" });
+      const seek = h("input", { type: "range", class: "pod-seek", min: "0", max: "0", step: "1", value: "0", "aria-label": "Seek", disabled: true,
+        oninput: () => { audio.currentTime = Number(seek.value); } });
+      const showTime = () => {
+        const d = audio.duration, known = Number.isFinite(d) && d > 0, now = audio.currentTime || 0;
+        seek.disabled = !known;
+        if (known) seek.max = String(Math.floor(d));
+        seek.value = String(Math.floor(now));
+        time.textContent = `${clock(now)} / ${known ? clock(d) : "--:--"}`;
+        seek.setAttribute("aria-valuetext", `${clock(now)} of ${known ? clock(d) : "unknown length"}`);
+      };
+      ["timeupdate", "durationchange", "loadedmetadata", "seeked", "emptied"].forEach((ev) => audio.addEventListener(ev, showTime));
+
+      // mute + volume (the slider hides on narrow screens; phones use their own volume keys)
+      const muteBtn = h("button", { type: "button", class: "pod-ctl", onclick: () => { audio.muted = !audio.muted; } });
+      const vol = h("input", { type: "range", class: "pod-vol", min: "0", max: "1", step: "0.05", "aria-label": "Volume",
+        oninput: () => { audio.volume = Number(vol.value); audio.muted = audio.volume === 0; save("fw-pod-volume", audio.volume); } });
+      const showVol = () => {
+        const off = audio.muted || audio.volume === 0;
+        fill(muteBtn, icon(off ? ICON.mute : ICON.vol)); label(muteBtn, off ? "Unmute" : "Mute");
+        vol.value = String(audio.muted ? 0 : audio.volume);
+      };
+      audio.addEventListener("volumechange", showVol);
+
+      // ⋮ menu: playback speed + download (what the browser's own ⋮ offered)
+      const menuBtn = h("button", { type: "button", class: "pod-ctl", "aria-haspopup": "menu", "aria-expanded": "false" }, icon(ICON.more));
+      label(menuBtn, "More: playback speed, download");
+      const rateItems = [0.75, 1, 1.25, 1.5, 1.75, 2].map((r) => h("button", { type: "button", class: "pod-menu-item", role: "menuitemradio",
+        "aria-checked": "false", dataset: { rate: String(r) }, text: `${r}×`,
+        onclick: () => { audio.defaultPlaybackRate = r; audio.playbackRate = r; save("fw-pod-rate", r); closeMenu(true); } }));
+      const download = h("a", { class: "pod-menu-item pod-menu-link", role: "menuitem", href: audioUrl, target: "_blank",
+        rel: "noopener noreferrer", referrerpolicy: "no-referrer", download: "", onclick: () => closeMenu(false) }, icon(ICON.dl), "Download audio");
+      const menu = h("div", { class: "pod-menu", role: "menu", "aria-label": "Player options", hidden: true },
+        h("div", { class: "pod-menu-head muted small", text: "Speed" }),
+        h("div", { class: "pod-rates", role: "group", "aria-label": "Playback speed" }, rateItems),
+        download);
+      const items = () => [...menu.querySelectorAll(".pod-menu-item")];
+      const onDoc = (ev) => { if (!menu.contains(ev.target) && !menuBtn.contains(ev.target)) closeMenu(false); };
+      const closeMenu = (refocus) => {
+        if (menu.hidden) return;
+        menu.hidden = true; menuBtn.setAttribute("aria-expanded", "false");
+        document.removeEventListener("pointerdown", onDoc, true);
+        if (refocus) menuBtn.focus();
+      };
+      const openMenu = () => {
+        rateItems.forEach((b) => b.setAttribute("aria-checked", String(Number(b.dataset.rate) === audio.playbackRate)));
+        menu.hidden = false; menuBtn.setAttribute("aria-expanded", "true");
+        document.addEventListener("pointerdown", onDoc, true);
+        (menu.querySelector('[aria-checked="true"]') || items()[0]).focus();
+      };
+      this.podMenuClose = closeMenu;
+      menuBtn.addEventListener("click", () => (menu.hidden ? openMenu() : closeMenu(true)));
+      menu.addEventListener("keydown", (ev) => {
+        const list = items(), i = list.indexOf(document.activeElement);
+        if (ev.key === "Escape") { ev.preventDefault(); closeMenu(true); }
+        else if (ev.key === "ArrowDown" || ev.key === "ArrowRight") { ev.preventDefault(); list[(i + 1) % list.length].focus(); }
+        else if (ev.key === "ArrowUp" || ev.key === "ArrowLeft") { ev.preventDefault(); list[(i - 1 + list.length) % list.length].focus(); }
+        else if (ev.key === "Tab") closeMenu(false);
+      });
+
+      showPlaying(); showTime(); showVol();
+      return h("div", { class: "pod-bar", role: "group", "aria-label": "Player controls" },
+        skipBtn(-10), playBtn, skipBtn(10), time, seek, muteBtn, vol, h("div", { class: "pod-more" }, menuBtn, menu));
     },
 
     /** The player's title: open Podcasts on that episode, with its description unfolded. */
@@ -141,19 +249,17 @@
           picker ? picker({
             items: m.shows.map((s) => ({ id: String(s.feed_id), name: s.title, count: s.episodes,
               hint: `${s.unplayed} unplayed · keeps ${FW.fmtRetention ? FW.fmtRetention(s.keeps, true) : s.keeps}${s.error_count ? ` · ⚠ ${s.last_error || "failing"}` : ""}` })),
-            selected: f.feed_ids, noun: "show", allLabel: `All shows (${m.shows.length})`, search: true,
+            selected: f.feed_ids, noun: "show", allLabel: `All shows (${m.shows.length})`, buttonLabel: "Shows", search: true,
             onAdd: () => this.openAdd(), addTitle: "Add podcasts",
             itemMenu: (item) => {
               const s = byId(item.id);
               return [["⚙ Settings…", () => this.openSettings(s)], ["▶ YouTube channel…", () => this.openYouTube(s)], ["🗑️ Remove", () => this.remove(s), true]];
             },
             onChange: (ids) => { f.feed_ids = ids; f.category = ""; this.save(); this.renderShell(); this.reload(); } }) : null,
-          FW.sources && FW.sources.topicPicker ? FW.sources.topicPicker({ topics: this.topics.filter((t) => t.enabled), selected: f.topic_ids,
+          FW.sources && FW.sources.topicPicker ? FW.sources.topicPicker({ topics: this.topics.filter((t) => t.enabled), selected: f.topic_ids, buttonLabel: "Topics",
             onChange: (ids) => { f.topic_ids = ids; this.save(); this.reload(); } }) : null,
-          select("state", "Show", [["all", "All episodes"], ["unplayed", "Unplayed"], ["played", "Played"], ["starred", "★ Starred"]]),
-          select("sort", "Sort", [["newest", "📅 Newest"], ["oldest", "📅 Oldest"], ["longest", "Longest"], ["shortest", "Shortest"]]),
-          FW.dateRange.button({ value: f.dates, title: "Show only episodes published between two dates",
-            onChange: (r) => { f.dates = r; this.save(); this.renderShell(); this.reload(); } }),
+          select("state", "Status", [["all", "Status"], ["unplayed", "Unplayed"], ["played", "Played"], ["starred", "★ Starred"]]),
+          this.sortSelect(),
           (() => {  // how episodes are laid out (more on screen with Compact / Grid)
             const s = h("select", { "aria-label": "View", onchange: (e) => { f.layout = e.target.value; this.save(); this.reload(); } },
               [["comfortable", "☰ View: Comfortable"], ["compact", "≡ View: Compact"], ["grid", "▦ View: Grid"]]
@@ -174,6 +280,31 @@
     },
 
     /** 📂 the shows' own categories (e.g. Darknet Diaries' list) - only shown when the chosen shows have some. */
+    /** Sort, with 📅 Custom range… at the bottom (like Videos): a date filter, not a sort - the sort stays as it was. */
+    sortSelect() {
+      const f = this.filters;
+      const sel = h("select", { "aria-label": "Sort", title: "Sort" },
+        [["newest", "📅 Sort: Newest"], ["oldest", "📅 Sort: Oldest"], ["longest", "Sort: Longest"], ["shortest", "Sort: Shortest"]]
+          .map(([v, l]) => h("option", { value: v, text: l, selected: f.sort === v })),
+        h("hr"),
+        h("option", { value: "custom-range", text: f.dates ? `📅 Custom range: ${FW.dateRange.label(f.dates)}…` : "📅 Custom range…" }),
+        f.dates ? h("option", { value: "clear-range", text: "✕ Clear custom range" }) : null);
+      sel.addEventListener("change", async () => {
+        const pick = sel.value;
+        if (pick === "custom-range" || pick === "clear-range") {
+          sel.value = f.sort;
+          const r = pick === "clear-range" ? null : await FW.dateRange.pick(f.dates);
+          if (r === undefined) return;  // cancelled
+          f.dates = r;
+        } else {
+          f.sort = pick;
+        }
+        this.save(); this.renderShell(); this.reload();
+      });
+      if (f.dates) { sel.classList.add("on"); sel.title = `Sort - showing only episodes published ${FW.dateRange.label(f.dates)}`; }
+      return sel;
+    },
+
     categorySelect() {
       const f = this.filters;
       const sel = h("select", { "aria-label": "Show categories", hidden: true, onchange: (e) => { f.category = e.target.value; this.save(); this.reload(); } });
@@ -182,7 +313,7 @@
       api("GET", `/podcasts/categories?${p}`).then((res) => {
         const cats = res.categories || [];
         if (f.category && !cats.some((c) => c.name === f.category)) cats.unshift({ name: f.category, episodes: 0 });
-        fill(sel, h("option", { value: "", text: `📂 All categories${cats.length ? ` (${cats.length})` : ""}` }),
+        fill(sel, h("option", { value: "", text: "📂 Categories" }),
           cats.map((c) => h("option", { value: c.name, text: `📂 ${c.name} (${c.episodes})`, selected: f.category === c.name })));
         sel.hidden = !cats.length;
       }).catch(() => {});

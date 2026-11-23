@@ -374,12 +374,45 @@ button.acc-post-title:hover, a.acc-post-title:hover { text-decoration: underline
   background: none; border: 0; padding: 0; margin: 0; text-align: left; cursor: pointer; max-width: 100%; }
 .pod-dock-title:hover, .pod-dock-title:focus-visible { text-decoration: underline; color: var(--accent); }
 .pod-ep.pod-ep-focus { outline: 2px solid var(--accent); outline-offset: 2px; }
-.pod-dock audio { flex: 1 1 auto; min-width: 180px; }
-.pod-dock-controls { flex: 1 1 auto; display: flex; align-items: center; gap: 6px; min-width: 0; }
-.pod-skip { flex: none; font-variant-numeric: tabular-nums; white-space: nowrap; padding: 4px 8px; }
+.pod-dock-controls { flex: 1 1 auto; display: flex; align-items: center; min-width: 0; }
+/* the player's own grey bar (the browser's built-in one can't hold extra buttons):
+   [↺ 10] [▶/⏸] [10 ↻]  time  ──seek──  🔊 volume  ⋮ (speed, download) */
+.pod-bar { position: relative; flex: 1 1 auto; min-width: 0; min-height: 46px; display: flex; align-items: center; gap: 2px;
+  padding: 3px 8px; border-radius: 999px; color: var(--text); background: color-mix(in srgb, var(--text) 9%, var(--panel)); }
+.pod-ctl { flex: none; min-width: 40px; height: 40px; padding: 0 6px; border: 0; border-radius: 999px; background: transparent;
+  color: inherit; font: inherit; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap;
+  cursor: pointer; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+.pod-ctl:hover { background: color-mix(in srgb, var(--text) 12%, transparent); }
+.pod-ctl:focus-visible, .pod-seek:focus-visible, .pod-vol:focus-visible, .pod-menu-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.pod-ctl svg { width: 22px; height: 22px; fill: currentColor; }
+.pod-play svg { width: 28px; height: 28px; }
+.pod-time { flex: none; padding: 0 6px; font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pod-seek { flex: 1 1 auto; min-width: 60px; height: 24px; margin: 0 6px; accent-color: var(--accent); cursor: pointer; }
+.pod-seek:disabled { cursor: default; opacity: .5; }
+.pod-vol { flex: 0 0 80px; width: 80px; margin: 0 6px 0 0; accent-color: var(--accent); cursor: pointer; }
+.pod-more { position: relative; flex: none; display: flex; }
+.pod-menu { position: absolute; right: 0; bottom: calc(100% + 10px); z-index: 5; min-width: 200px; padding: 6px;
+  background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); }
+.pod-menu[hidden] { display: none; }
+.pod-menu-head { padding: 2px 8px 4px; }
+.pod-rates { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding-bottom: 6px; margin-bottom: 6px; border-bottom: 1px solid var(--border); }
+.pod-menu-item { min-height: 40px; padding: 0 10px; display: flex; align-items: center; justify-content: center; gap: 8px;
+  border: 0; border-radius: 8px; background: transparent; color: inherit; font: inherit; cursor: pointer; text-decoration: none; }
+.pod-menu-item:hover { background: var(--hover); }
+.pod-menu-item[aria-checked="true"] { background: var(--selected); color: var(--accent); font-weight: 700; }
+.pod-menu-link { justify-content: flex-start; width: 100%; }
+.pod-menu-item svg { width: 20px; height: 20px; fill: currentColor; }
+.pod-dock > .icon-btn { flex: none; width: 40px; height: 40px; }  /* ✕: a 40px tap target */
 /* the whole app (every tab) ends where the player starts, so nothing sits behind it */
 body.has-pod-dock .app { height: calc(100vh - var(--pod-dock-h, 62px)); height: calc(100dvh - var(--pod-dock-h, 62px)); }
-@media (max-width: 700px) { .pod-dock { flex-wrap: wrap; } .pod-dock-info { flex-basis: calc(100% - 100px); } .pod-dock-controls { flex-basis: 100%; } }
+/* tablets / phone landscape: a narrower title and no volume slider leave the seek bar room (🔊 still mutes) */
+@media (max-width: 1000px) { .pod-dock-info { flex-basis: 160px; } .pod-vol { display: none; } }
+/* phones: row 1 = art, title, ✕; row 2 = the grey bar, its seek line on top and the buttons below */
+@media (max-width: 700px) { .pod-dock { flex-wrap: wrap; row-gap: 6px; } .pod-dock-info { flex: 1 1 0; }
+  .pod-dock-controls { order: 2; flex-basis: 100%; }
+  .pod-bar { flex-wrap: wrap; border-radius: 18px; padding: 4px 8px; }
+  .pod-seek { order: -1; flex-basis: 100%; margin: 6px 6px 2px; }
+  .pod-time { margin-right: auto; } }
 
 /* ★ favourite channels: the star in the All channels list and before a video's channel name */
 .tp-star, .lib-fav { background: none; border: 0; padding: 0 2px; cursor: pointer; color: var(--muted); font-size: 1rem; line-height: 1; }
@@ -475,3 +508,217 @@ body.has-pod-dock .app { height: calc(100vh - var(--pod-dock-h, 62px)); height: 
 .repo-ask { display: inline-flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .repo-ask-all { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 4px 0; }
 .repo-ask-all[hidden] { display: none; }
+
+/* 🔗 Resources tab */
+.app.mode-resources { grid-template-columns: 1fr; grid-template-areas: "top" "studio"; }
+.app.mode-resources .sidebar, .app.mode-resources .list-pane, .app.mode-resources .reader { display: none !important; }
+.app.mode-resources .pane-resizer { display: none; }
+.res-quick { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 2px 16px 6px; }
+.res-quick-item { font-size: .85em; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--panel, var(--bg)); color: inherit; cursor: pointer; max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.res-quick-item:hover { border-color: var(--accent, #3b82f6); }
+.res-cat { cursor: pointer; align-items: flex-start; }
+.res-empty-cats { grid-column: 1 / -1; }
+.res-list { list-style: none; margin: 0; padding: 0 16px 16px; display: grid; gap: 6px; }
+.res-row { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel, var(--bg)); }
+.res-main { flex: 1; min-width: 0; display: grid; gap: 3px; }
+.res-title { font-weight: 600; overflow-wrap: anywhere; }
+.res-meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.res-notes { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.res-actions { display: inline-flex; gap: 4px; flex: none; }
+.res-badge { width: 26px; height: 26px; font-size: 12px; flex: none; }
+.res-cat-ticks { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); gap: 2px 12px; overflow-x: hidden; }
+.res-cat-ticks li { margin-bottom: 4px; min-width: 0; overflow-wrap: anywhere; }
+.res-cat-list { list-style: none; margin: 0 0 8px; padding: 0; max-height: 55vh; overflow: auto; display: grid; gap: 4px; }
+.res-cat-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.res-cat-row input[type="text"]:not(.repo-emoji-input) { flex: 1; min-width: 140px; }
+@media (max-width: 600px) { .res-list { padding: 0 8px 8px; } }
+.res-views { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 2px; }
+.res-row.picked { outline: 2px solid var(--accent, #7c3aed); }
+.res-row > .repo-check { margin-top: 5px; }
+.res-import-folders { max-height: 45vh; }
+.res-import-folders li { list-style: none; }
+
+/* 🌳 Resources folder tree */
+.res-tree-tools { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.res-tree-tools input[type="search"] { min-width: 200px; }
+.res-tree { padding: 0 16px 16px; }
+.res-tree ul { list-style: none; margin: 0; padding: 0; }
+.res-tree-kids { padding-left: 22px !important; border-left: 1px dashed var(--border); margin-left: 9px !important; }
+.res-tree-row { display: flex; align-items: center; gap: 4px; padding: 2px 0; }
+.res-tree-caret { width: 22px; height: 22px; border: 0; background: none; color: inherit; cursor: pointer; font-size: 12px; flex: none; }
+.res-tree-name { font-weight: 600; overflow-wrap: anywhere; }
+.res-tree-link { display: flex; align-items: center; gap: 6px; padding: 2px 0 2px 4px; min-width: 0; }
+.res-tree-link .res-tree-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: min(70vw, 640px); }
+.res-tree-dot { width: 14px; text-align: center; color: var(--muted); flex: none; }
+.res-tree-link .repo-folder-menu, .res-tree-row .repo-folder-menu { opacity: .35; }
+.res-tree-link:hover .repo-folder-menu, .res-tree-row:hover .repo-folder-menu, .repo-folder-menu[open] { opacity: 1; }
+/* 🗺 Resources map (sitemap) */
+.res-map { overflow: auto; padding: 8px 16px 24px; }
+.res-map-root { display: flex; align-items: flex-start; gap: 0; }
+.res-map ul { list-style: none; margin: 0; padding: 0 0 0 30px; position: relative; display: flex; flex-direction: column; gap: 6px; }
+.res-map ul::before { content: ""; position: absolute; left: 14px; top: 14px; bottom: 14px; border-left: 1px solid var(--border); }
+.res-map li { display: flex; align-items: flex-start; position: relative; }
+.res-map li::before { content: ""; position: absolute; left: -16px; top: 14px; width: 16px; border-top: 1px solid var(--border); }
+.res-node { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border: 1px solid var(--border); border-left: 4px solid var(--accent, #7c3aed);
+  border-radius: 8px; background: var(--panel, var(--bg)); white-space: nowrap; cursor: pointer; min-height: 28px; }
+.res-node:hover, .res-node:focus { border-color: var(--accent, #7c3aed); outline: none; }
+.res-node-root { cursor: default; font-weight: 700; }
+.res-node-focus { border: 0; background: none; color: var(--muted); cursor: pointer; padding: 0 2px; }
+.res-leaf { padding: 2px 8px; border: 1px dashed var(--border); border-radius: 6px; font-size: .85em; max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.res-leaf-link { color: inherit; }
+.repo-del { font-size: 15px; line-height: 1; opacity: .5; }
+.repo-del:hover { opacity: 1; }
+
+/* 🧠 Resources mind map */
+.mm-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 12px; padding: 0 12px 12px; align-items: start; }
+.mm-canvas { overflow: hidden; height: 74vh; cursor: grab; touch-action: none; user-select: none; border: 1px solid var(--border); border-radius: var(--radius); background: var(--panel); }
+.mm-svg { display: block; width: 100%; height: 100%; }
+.mm-canvas.dragging { cursor: grabbing; }
+.mm-canvas:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.mm-zoom { display: inline-flex; gap: 4px; }
+.mm-tree path { fill: none; stroke-width: 1.6; opacity: .45; }
+.mm-rel path { fill: none; stroke: var(--accent); stroke-width: 2; stroke-dasharray: 6 5; opacity: .55; }
+.mm-node { cursor: pointer; outline: none; }
+.mm-node circle { fill-opacity: .22; stroke-width: 2; }
+.mm-node.mm-r0 circle { fill-opacity: .35; }
+.mm-node.mm-r3 circle { fill: var(--panel); stroke-dasharray: 3 3; }
+.mm-node text { fill: var(--text); font-size: 13px; paint-order: stroke; stroke: var(--panel); stroke-width: 3px; }
+.mm-node.mm-r0 text { font-size: 16px; font-weight: 600; }
+.mm-node.mm-r2 text, .mm-node.mm-r3 text { font-size: 11.5px; }
+.mm-node text.mm-count { font-size: 10px; fill: var(--text); font-weight: 600; }
+.mm-node:hover circle, .mm-node:focus-visible circle, .mm-node.mm-on circle { fill-opacity: .55; stroke-width: 3; }
+.mm-svg .mm-on { opacity: 1 !important; stroke-width: 3; }
+.mm-panel { position: sticky; top: 8px; max-height: 78vh; overflow: auto; padding: 12px; }
+.mm-panel h3 { margin: 0 0 4px; word-break: break-word; }
+.mm-panel h4 { margin: 12px 0 4px; font-size: .9em; }
+.mm-actions { justify-content: flex-start; flex-wrap: wrap; }
+.mm-rels, .mm-links, .mm-subs { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.mm-rels li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.mm-note { flex-basis: 100%; padding-left: 14px; }
+.mm-legend { margin-left: auto; }
+@media (max-width: 900px) { .mm-wrap { grid-template-columns: 1fr; } .mm-panel { position: static; max-height: none; } .mm-legend { margin-left: 0; } }
+.mm-rels .linklike, .mm-subs .linklike { background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; font: inherit; text-align: left; }
+.mm-rels .linklike:hover, .mm-subs .linklike:hover { text-decoration: underline; }
+
+/* Resources: what each link is for */
+.res-summary { margin: 4px 0 0; color: var(--text); opacity: .85; }
+.res-tree-sum { flex-basis: 100%; margin: 0 0 4px 22px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.res-hide-sum .res-tree-sum { display: none; }
+.res-tree-link { flex-wrap: wrap; }
+
+/* ▶ in-app video player (youtube-nocookie embed in a sandboxed frame) */
+.video-player-dialog { width: min(1100px, calc(100vw - 24px)); padding: 10px; }
+.vp-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+.vp-title { min-width: 0; flex: 1 1 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vp-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.vp-actions a.btn { text-decoration: none; }
+.vp-frame { position: relative; width: 100%; aspect-ratio: 16 / 9; max-height: calc(100dvh - 120px); background: #000; border-radius: var(--radius); overflow: hidden; }
+.vp-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+
+/* Resources: the link you jumped to */
+.res-located { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; animation: res-located-pulse 1.2s ease-out 2; }
+@keyframes res-located-pulse { 0% { background: color-mix(in srgb, var(--accent) 35%, transparent); } 100% { background: transparent; } }
+@media (prefers-reduced-motion: reduce) { .res-located { animation: none; background: color-mix(in srgb, var(--accent) 18%, transparent); } }
+.res-locate .repo-folder-menu-list { right: 0; left: auto; }
+
+/* Resources on phones, tablets and landscape (rule: 375x812, 812x375, 768x1024, 1024x768, desktop) */
+.res-dialog { width: min(560px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow: auto; }
+@media (max-width: 900px), (max-height: 600px) {
+  #resourcesView .studio-header { position: static; backdrop-filter: none; }
+}
+@media (max-width: 700px) {
+  #resourcesView .res-row { flex-wrap: wrap; }
+  #resourcesView .res-main { flex: 1 1 calc(100% - 60px); min-width: 0; }
+  #resourcesView .res-actions { flex: 1 1 100%; justify-content: flex-end; flex-wrap: wrap; }
+  #resourcesView .lib-header select, #resourcesView .lib-header input[type=search] { max-width: none; flex: 1 1 140px; min-width: 0; }
+  #resourcesView .res-tree-tools label { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; max-width: 100%; }
+  #resourcesView .res-tree-tools select, #resourcesView .res-tree-tools input[type=search] { max-width: 100%; min-width: 0; flex: 1 1 160px; }
+  #resourcesView .mm-legend { flex-basis: 100%; }
+  #resourcesView .mm-canvas { height: 62dvh; }
+  /* the Quick bar becomes one row you swipe sideways, so the folders aren't pushed off the screen */
+  #resourcesView .res-quick { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin; padding-bottom: 4px; }
+  #resourcesView .res-quick > * { flex: none; }
+  #resourcesView .res-quick-item { max-width: 70vw; }
+}
+@media (pointer: coarse), (max-width: 1024px) {
+  #resourcesView .btn, #resourcesView select, #resourcesView input[type=search], #resourcesView input[type=text],
+  #resourcesView .icon-btn, #resourcesView summary.icon-btn, #resourcesView .res-tree-caret, #resourcesView .res-node-focus,
+  #resourcesView .repo-fchip { min-height: 40px; min-width: 40px; }
+  #resourcesView .repo-tick, #resourcesView .linklike { min-height: 40px; display: inline-flex; align-items: center; }
+  #resourcesView .res-tree-row, #resourcesView .res-tree-link { min-height: 40px; }
+  .res-dialog .btn, .res-dialog .icon-btn, .res-dialog select, .res-dialog input[type=text], .res-dialog input[type=search], .res-dialog input[type=color] { min-height: 40px; min-width: 40px; }
+  #resourcesView .linklike { min-width: 40px; }
+  .res-dialog .linklike { min-height: 40px; display: inline-flex; align-items: center; }
+  .res-dialog label:has(> input[type=checkbox]) { min-height: 40px; display: flex; align-items: center; gap: 8px; }
+}
+/* Sort ▾ with a 📅 custom range picked: outlined like the old date button */
+.lib-header select.on { border-color: var(--accent); color: var(--accent); }
+
+/* Resources mind map: panel header + "goes well with" popup */
+.mm-panel-head { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+.mm-panel-head h3 { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.mm-conn-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.mm-conn-head h3 { margin: 0; overflow-wrap: anywhere; }
+.mm-conn .mm-rels li { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.mm-conn .mm-note { grid-column: 1; padding-left: 14px; }
+.mm-conn .mm-conn-tools { grid-column: 2; grid-row: 1 / span 2; display: inline-flex; gap: 4px; }
+.mm-conn .linklike { background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; font: inherit; text-align: left; }
+
+/* ★ Resources Launchpad + Ctrl+K launcher */
+.res-pad-home { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 4px 0 12px; }
+.res-pad-home code { padding: 2px 6px; border-radius: 6px; background: var(--panel-2); overflow-wrap: anywhere; }
+.res-pad { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.res-pad-small { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+.res-pad-tile { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-height: 104px; padding: 12px; border-radius: 12px;
+  border: 1px solid var(--border); border-top: 3px solid var(--c, var(--accent)); background: var(--panel); color: var(--text); text-decoration: none; }
+.res-pad-tile:hover, .res-pad-tile:focus-visible { background: color-mix(in srgb, var(--c, var(--accent)) 12%, var(--panel)); outline: none; box-shadow: 0 0 0 2px var(--c, var(--accent)); }
+.res-pad-icon { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 9px; font-size: 18px; font-weight: 700;
+  background: color-mix(in srgb, var(--c, var(--accent)) 22%, transparent); }
+.res-pad-title { font-weight: 600; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.res-pad-host { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.res-pad-small .res-pad-tile { min-height: 84px; }
+.res-pad-h { margin: 18px 0 8px; font-size: 1em; }
+.res-launcher { width: min(640px, calc(100vw - 24px)); padding: 12px; }
+.res-launch input[type=search] { width: 100%; font-size: 1.05em; min-height: 44px; }
+.res-launch-list { list-style: none; margin: 8px 0 0; padding: 0; max-height: min(420px, calc(100dvh - 180px)); overflow: auto; }
+.res-launch-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; cursor: pointer; min-height: 44px; }
+.res-launch-item.active { background: var(--selected); }
+.res-launch-icon { width: 24px; text-align: center; flex: none; }
+.res-launch-text { display: flex; flex-direction: column; min-width: 0; }
+.res-launch-text strong, .res-launch-text span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.res-launch-empty { padding: 10px; }
+.res-launch-hint { margin: 8px 2px 0; }
+@media (max-width: 700px) { .res-pad { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); } .res-launch-hint { display: none; } }
+
+/* 📦 repos linked to Resources topics */
+.res-tree-repo .res-tree-title { color: var(--text); }
+.res-repo-unlink { opacity: .35; }
+.res-tree-repo:hover .res-repo-unlink, .res-repo-unlink:focus-visible { opacity: 1; }
+.res-leaf-repo { border-left-style: dashed; }
+.res-repo-pick { max-height: min(52dvh, 420px); overflow: auto; }
+.res-repo-pick li { list-style: none; padding: 4px 0; overflow-wrap: anywhere; }
+/* smooth switching: an uncached view keeps the old one on screen, dimmed, until the new one is in */
+#libGrid { transition: opacity .15s ease; }
+#libGrid.is-loading { opacity: .55; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { #libGrid { transition: none; } }
+/* Repos: six inner tabs - sized to their names and wrapping (not the 158 px Videos / Podcasts tabs), so they fit any screen */
+.lib-header .repo-views { flex-wrap: wrap; max-width: 100%; }
+.lib-header .repo-views > .btn { flex: 1 1 auto; min-width: 0; padding: 0 10px; }
+
+/* ＋ add links / repos to a folder */
+.res-add-where { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.res-add-where select { flex: 1 1 200px; min-width: 0; max-width: 100%; }
+.res-add-menu { position: relative; display: inline-block; }
+.res-add-menu > summary { list-style: none; cursor: pointer; }
+.res-add-menu > summary::-webkit-details-marker { display: none; }
+/* never cut off: in the mind-map panel it opens inside the panel; elsewhere it opens rightwards and wraps */
+.res-add-menu .repo-folder-menu-list { left: 0; right: auto; max-width: min(320px, calc(100vw - 32px)); }
+.res-add-menu .repo-folder-menu-list .btn { white-space: normal; text-align: left; justify-content: flex-start; height: auto; }
+.mm-panel .res-add-menu { display: block; flex-basis: 100%; }
+.mm-panel .res-add-menu > summary { display: inline-flex; }
+.mm-panel .res-add-menu .repo-folder-menu-list { position: static; margin-top: 6px; min-width: 0; max-width: none; box-shadow: none; }
+/* ✎ rename on playlist / group cards: beside the ＋ (alone in the top-right corner inside a group) */
+.lib-card-edit { position: absolute; top: 6px; right: 52px; z-index: 2; }  /* clear of the ＋, also at 40px touch size */
+.lib-card-edit.solo { right: 6px; }
+.lib-card-edit .icon-btn { background: rgba(10, 12, 16, .88); color: #fff; border: 1px solid rgba(255, 255, 255, .45); border-radius: 50%; width: 32px; height: 32px; font-size: 1rem; box-shadow: 0 1px 4px rgba(0, 0, 0, .5); }
+.lib-card-edit .icon-btn:hover { background: var(--accent); border-color: var(--accent); }

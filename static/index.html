@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="/static/dashboard.css">
   <link rel="stylesheet" href="/static/social.css">
   <link rel="stylesheet" href="/static/sources.css">
+  <link rel="stylesheet" href="/static/accounts.css">
   <link rel="stylesheet" href="/static/ai.css">
   <link rel="stylesheet" href="/static/threatmap.css">
   <link rel="stylesheet" href="/static/intel.css">
@@ -26,9 +27,10 @@
         <button type="button" id="modeReader" aria-pressed="true" title="Articles (d to toggle)">📰 <span>Articles</span></button>
         <button type="button" id="modeDash" aria-pressed="false" title="Dashboards (d to toggle)">📊 <span>Dashboards</span></button>
         <button type="button" id="modeLibrary" aria-pressed="false" title="Videos: YouTube channels and videos by topic">📺 <span>Videos</span></button>
-        <button type="button" id="modeAccounts" aria-pressed="false" title="Accounts: posts from social media accounts you follow, by topic">👥 <span>Accounts</span></button>
+        <button type="button" id="modeAccounts" aria-pressed="false" title="Socials: posts from social media accounts you follow and posts you saved, by topic">👥 <span>Socials</span></button>
         <button type="button" id="modePodcasts" aria-pressed="false" title="Podcasts: follow shows and listen in the app">🎙 <span>Podcasts</span></button>
         <button type="button" id="modeRepos" aria-pressed="false" title="Repos: GitHub owners, repositories and topics you follow, by topic">📦 <span>Repos</span></button>
+        <button type="button" id="modeResources" aria-pressed="false" title="Resources: your websites, training, labs, cheat sheets and tools, by category">🔗 <span>Resources</span></button>
         <button type="button" id="modeThreatmap" aria-pressed="false" title="Threat Map: where threats in your feeds are reported, plus vendor live attack maps">🌍 <span>Threat Map</span></button>
       </div>
       <div class="search">
@@ -88,6 +90,7 @@
     <section id="accountsView" class="studio-view library-view" aria-label="Social accounts" hidden></section>
     <section id="podcastsView" class="studio-view library-view" aria-label="Podcasts" hidden></section>
     <section id="reposView" class="studio-view library-view" aria-label="GitHub repos" hidden></section>
+    <section id="resourcesView" class="studio-view library-view" aria-label="Resources" hidden></section>
     <section id="threatmapView" class="studio-view threatmap-view" aria-label="Threat Map" hidden></section>
   </div>
 
@@ -148,6 +151,7 @@
   <script src="/static/accounts.js" defer></script>
   <script src="/static/podcasts.js" defer></script>
   <script src="/static/repos.js" defer></script>
+  <script src="/static/resources.js" defer></script>
   <script src="/static/ai.js" defer></script>
   <script src="/static/threatmap.js" defer></script>
   <script src="/static/intel.js" defer></script>

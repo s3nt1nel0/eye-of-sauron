@@ -1,7 +1,7 @@
 services:
   eye-of-sauron:
     build: .
-    image: eye-of-sauron:1.2.0
+    image: eye-of-sauron:1.3.0
     container_name: eye-of-sauron
     restart: unless-stopped
     ports:

@@ -232,7 +232,7 @@
   // ======================================================================= settings / theme
   // ---------------------------------------------------------------- tab order (drag the tabs, or Settings → Arrange tabs…)
   const TAB_IDS = { reader: "modeReader", dashboard: "modeDash", library: "modeLibrary", accounts: "modeAccounts",
-    podcasts: "modePodcasts", repos: "modeRepos", threatmap: "modeThreatmap" };
+    podcasts: "modePodcasts", repos: "modeRepos", resources: "modeResources", threatmap: "modeThreatmap" };
   const tabBar = () => document.querySelector(".mode-switch");
   const tabKeys = () => [...(tabBar() ? tabBar().children : [])].map((b) => b.dataset.tab).filter(Boolean);
   function applyTabOrder() {
@@ -2240,19 +2240,21 @@ curl -X POST -H "Authorization: Bearer $FW_TOKEN" -H "Content-Type: application/
   }
 
   function setMode(mode, persist = true) {
-    if (!["reader", "dashboard", "library", "accounts", "podcasts", "repos", "threatmap"].includes(mode)) mode = "reader";
+    if (!["reader", "dashboard", "library", "accounts", "podcasts", "repos", "resources", "threatmap"].includes(mode)) mode = "reader";
     const app = $("#app");
     app.classList.toggle("mode-dashboard", mode === "dashboard");
     app.classList.toggle("mode-library", mode === "library");
     app.classList.toggle("mode-accounts", mode === "accounts");
     app.classList.toggle("mode-podcasts", mode === "podcasts");
     app.classList.toggle("mode-repos", mode === "repos");
+    app.classList.toggle("mode-resources", mode === "resources");
     app.classList.toggle("mode-threatmap", mode === "threatmap");
     $("#dashboardView").hidden = mode !== "dashboard";
     $("#libraryView").hidden = mode !== "library";
     $("#accountsView").hidden = mode !== "accounts";
     $("#podcastsView").hidden = mode !== "podcasts";
     $("#reposView").hidden = mode !== "repos";
+    $("#resourcesView").hidden = mode !== "resources";
     $("#threatmapView").hidden = mode !== "threatmap";
     $("#modeThreatmap").setAttribute("aria-pressed", String(mode === "threatmap"));
     const tmap = window.FW && window.FW.threatmap;
@@ -2267,6 +2269,9 @@ curl -X POST -H "Authorization: Bearer $FW_TOKEN" -H "Content-Type: application/
     $("#modeRepos").setAttribute("aria-pressed", String(mode === "repos"));
     const repos = window.FW && window.FW.repos;
     if (repos) { if (mode === "repos") repos.show(); else repos.hide(); }
+    $("#modeResources").setAttribute("aria-pressed", String(mode === "resources"));
+    const res = window.FW && window.FW.resources;
+    if (res) { if (mode === "resources") res.show(); else res.hide(); }
     // ＋ (add a feed) belongs to Articles; Videos and Accounts have their own ＋ in their toolbar. ⟳ follows the section.
     $("#addFeedBtn").hidden = mode !== "reader";
     const refreshTitle = { library: "Check subscribed channels for new videos", accounts: "Check followed accounts for new posts", reader: "Refresh all article feeds (r)",
@@ -2280,14 +2285,59 @@ curl -X POST -H "Authorization: Bearer $FW_TOKEN" -H "Content-Type: application/
     const board = window.FW && window.FW.dashboard;
     if (board) { if (mode === "dashboard") board.show(); else board.hide(); }
     // a short fade on the view that appears (no flash of an empty page while it refreshes in place)
-    const shown = { dashboard: "#dashboardView", library: "#libraryView", accounts: "#accountsView", podcasts: "#podcastsView", repos: "#reposView", threatmap: "#threatmapView" }[mode];
+    const shown = { dashboard: "#dashboardView", library: "#libraryView", accounts: "#accountsView", podcasts: "#podcastsView", repos: "#reposView", resources: "#resourcesView", threatmap: "#threatmapView" }[mode];
     const fadeEls = shown ? [$(shown)] : [$(".sidebar"), $(".list-pane"), $("#reader")];
     for (const el of fadeEls) { if (!el) continue; el.classList.remove("view-fade"); void el.offsetWidth; el.classList.add("view-fade"); }
     if (persist && state.settings.ui_mode !== mode) {
       state.settings.ui_mode = mode;
       api("PATCH", "/settings", { ui_mode: mode }).catch(() => { /* non-critical */ });
     }
+    requestAnimationFrame(scrollActiveTab);
   }
+
+  /* ---------- all screens: phone top bar height, open tab in view, folding tab filters ---------- */
+  // The top bar can wrap to two rows on phones: slide-over panels start below whatever height it has.
+  (() => {
+    const bar = document.querySelector(".topbar");
+    if (!bar || !window.ResizeObserver) return;
+    new ResizeObserver(() => document.documentElement.style.setProperty("--top-h", `${bar.offsetHeight}px`)).observe(bar);
+  })();
+  /** Keep the open tab visible in the (sideways-scrolling) phone tab bar. */
+  function scrollActiveTab() {
+    const b = document.querySelector('.mode-switch > button[aria-pressed="true"]');
+    if (b && b.parentElement.scrollWidth > b.parentElement.clientWidth) b.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }
+  /** Phones: each tab toolbar (.lib-header) gets a "☰ Filters" button; title, ＋ and search stay, the rest folds away.
+   *  Open / closed is remembered per tab while the page is open, so re-renders keep it. */
+  const filtersOpen = new Set();
+  function foldHeaders() {
+    for (const hd of document.querySelectorAll(".lib-header")) {
+      if (hd.querySelector(":scope > .filters-toggle")) continue;
+      const key = (hd.closest("section[id]") || {}).id || "";
+      const open = filtersOpen.has(key);
+      hd.classList.toggle("filters-open", open);
+      const btn = h("button", { type: "button", class: "btn small filters-toggle", text: "☰ Filters", "aria-expanded": String(open),
+        title: "Show or hide this tab's filters and sorting" });
+      btn.addEventListener("click", () => {
+        const now = !hd.classList.contains("filters-open");
+        hd.classList.toggle("filters-open", now);
+        btn.setAttribute("aria-expanded", String(now));
+        if (now) filtersOpen.add(key); else filtersOpen.delete(key);
+      });
+      const search = hd.querySelector(":scope > input");
+      (search || hd.firstElementChild || hd).after(btn);
+    }
+  }
+  (() => {
+    const app = document.getElementById("app");
+    if (!app || !window.MutationObserver) return;
+    let queued = false;
+    new MutationObserver(() => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(() => { queued = false; foldHeaders(); });
+    }).observe(app, { childList: true, subtree: true });
+  })();
 
   async function openArticleInReader(id) {
     setMode("reader");
@@ -2454,6 +2504,7 @@ curl -X POST -H "Authorization: Bearer $FW_TOKEN" -H "Content-Type: application/
     $("#modeAccounts").addEventListener("click", () => setMode("accounts"));
     $("#modePodcasts").addEventListener("click", () => setMode("podcasts"));
     $("#modeRepos").addEventListener("click", () => setMode("repos"));
+    $("#modeResources").addEventListener("click", () => setMode("resources"));
     $("#modeThreatmap").addEventListener("click", () => setMode("threatmap"));
     $("#search").addEventListener("input", (e) => {
       if (currentMode() !== "reader") setMode("reader");

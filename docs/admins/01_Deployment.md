@@ -69,11 +69,19 @@ docker compose up -d --build
   * memory and PID limits;
   * log rotation.
 * **Data:** lives in the named volume `eye-of-sauron-data`.
-* **Upgrades:**
+* **Upgrades - one command (1.3.0+):**
   ```bash
-  git pull && docker compose up -d --build
+  cd eye-of-sauron && ./deploy/update.sh
   ```
-  Database migrations run automatically on start. Back up first (see [GUIDE §5.2](GUIDE.md#52-backups--restore)).
+  It fetches the newest version from GitHub and lists what's new, then (after you say yes) builds it while the old one
+  keeps running, stops the app for about a minute, **backs up the data volume** to `./backups/` (the newest 5 are kept),
+  starts the new version and waits for its health check. If the new version doesn't come up healthy it **rolls back to
+  the version you had** and prints the command to restore the backup. Options: `--check` (only report whether an update
+  is waiting), `-y` (no question - for a timer), `--branch <name>`, `--no-backup`.
+  Database migrations run automatically on start. The manual way still works: `git pull && docker compose up -d --build`
+  (back up first, see [Operations §5.2](02_Operations.md)).
+  *Optional, updates on a schedule:* a nightly root crontab line such as
+  `30 3 * * * cd /root/eye-of-sauron && ./deploy/update.sh -y >> /var/log/eos-update.log 2>&1`.
 * **Stronger key protection:** move the credential-encryption key and admin password into Docker secrets (commented example at the bottom of `docker-compose.yml`, and [GUIDE §5.4](GUIDE.md#54-encryption-key-management)). A leaked backup of the data volume then doesn't expose your stored social, AI and channel credentials.
 
 ## 2. Home server / NAS (Synology, Unraid, TrueNAS, Raspberry Pi)
@@ -98,6 +106,9 @@ The default compose file sets **resource limits** (`mem_limit: 512m`). Raise the
   1. Create a Debian 12 LXC: unprivileged, with `nesting=1` for Docker, 1–2 cores, 1 GB RAM, 8 GB disk.
   2. Install Docker and follow §1.
   3. Back up the container with vzdump, or just the `eye-of-sauron-data` volume.
+  4. **Updating later:** open the container's console (or SSH in), then `cd ~/eye-of-sauron && ./deploy/update.sh`.
+     Reaching it through Tailscale: run `tailscale serve --bg 8080` once in the container and set `EOS_ALLOWED_HOSTS` to
+     the `<host>.<tailnet>.ts.net` name; updates don't change any of that.
 * **Option B: LXC without Docker.** Follow §4 inside the LXC.
 
 ## 4. Linux without Docker (systemd)

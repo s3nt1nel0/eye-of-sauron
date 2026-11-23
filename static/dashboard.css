@@ -149,7 +149,7 @@ table.data .num { text-align: right; font-variant-numeric: tabular-nums; }
 
 /* drill-down drawer */
 .drawer {
-  position: fixed; top: 54px; right: 0; bottom: 0; width: min(460px, 100vw); z-index: 30;
+  position: fixed; top: var(--top-h, 54px); right: 0; bottom: 0; width: min(460px, 100vw); z-index: 30;
   background: var(--panel); border-left: 1px solid var(--border); box-shadow: var(--shadow);
   display: flex; flex-direction: column;
 }

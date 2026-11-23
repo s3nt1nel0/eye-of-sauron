@@ -41,9 +41,9 @@ def _video_filters(feed_id: int | None, topic_id: int | None, q: str | None, len
     """FROM/WHERE for the library queries. Only fixed fragments chosen by enums are interpolated; values are bound."""
     where = ["1"]
     params: list = []
-    if feed_id is not None:
-        where.append("a.feed_id = ?")
-        params.append(feed_id)
+    if feed_id is not None:  # the feed's own videos and those it shares with another playlist / channel
+        where.append("(a.feed_id = ? OR a.id IN (SELECT article_id FROM video_links WHERE feed_id = ?))")
+        params += [feed_id, feed_id]
     if topic_id is not None:
         where.append("EXISTS (SELECT 1 FROM article_topics t WHERE t.article_id = a.id AND t.topic_id = ?)")
         params.append(topic_id)
@@ -114,13 +114,18 @@ def _attach_groups(db, rows: list[dict]) -> None:
         return
     playlists = _playlist_feeds(db)
     ids = [r["id"] for r in rows]
+    linked: dict[int, list[int]] = {}  # other playlists the same video is in (one copy, several playlists)
+    for lk in db.execute(f"SELECT article_id, feed_id FROM video_links WHERE article_id IN ({placeholders(len(ids))}) "
+                         "ORDER BY feed_id", ids):
+        if lk["feed_id"] in playlists:
+            linked.setdefault(lk["article_id"], []).append(lk["feed_id"])
     custom: dict[int, list[dict]] = {}
     for g in db.execute(f"SELECT i.article_id, g.id, g.name FROM video_group_items i JOIN video_groups g ON g.id = i.group_id "
                         f"WHERE i.article_id IN ({placeholders(len(ids))}) ORDER BY g.name COLLATE NOCASE", ids):
         custom.setdefault(g["article_id"], []).append({"id": f"g:{g['id']}", "name": g["name"]})
     for r in rows:
-        groups = [{"id": f"p:{r['feed_id']}", "name": playlists[r["feed_id"]]}] if r.get("feed_id") in playlists else []
-        r["groups"] = groups + custom.get(r["id"], [])
+        fids = list(dict.fromkeys(([r["feed_id"]] if r.get("feed_id") in playlists else []) + linked.get(r["id"], [])))
+        r["groups"] = [{"id": f"p:{fid}", "name": playlists[fid]} for fid in fids] + custom.get(r["id"], [])
 
 
 def _attach_topics(db, rows: list[dict]) -> None:
@@ -267,8 +272,13 @@ def add_video(body: AddVideoIn, principal: Principal = Depends(require_write)) -
                 (sources.SAVED_VIDEOS_URL, now(), json.dumps({"kind": "youtube", "saved": True}))).lastrowid)
         else:
             feed_id = int(feed["id"])
-        new_ids = store_entries(db, feed_id, [entry], None, now(),
+        new_ids = store_entries(db, feed_id, [entry], None, now(), video_of=lambda _e: meta,
                                 on_new=lambda d, _e, article_id, published: sources.store_video(d, article_id, meta, published))
+        if not new_ids:  # added meanwhile from a playlist / channel refresh: that copy is the one
+            row = db.execute("SELECT a.id, a.title FROM videos v JOIN articles a ON a.id = v.article_id WHERE v.video_id = ?",
+                             (video_id,)).fetchone()
+            if row is not None:
+                return {"article_id": row["id"], "title": row["title"], "already": True}
         _post_process(db, new_ids)
     audit("library_video_added", principal, video_id=video_id)
     if not new_ids:
@@ -321,6 +331,11 @@ def library_meta(_: Principal = Depends(require_read)) -> dict:
             "MAX(v.channel_title) AS ctitle, COUNT(*) AS videos, COALESCE(SUM(1 - a.is_read), 0) AS unwatched "
             "FROM videos v JOIN articles a ON a.id = v.article_id JOIN feeds f ON f.id = a.feed_id "
             "WHERE f.kind = 'youtube' GROUP BY a.feed_id, ckey").fetchall()
+        # videos a feed lists but that are stored once under another feed (counted in that feed's list, not twice
+        # in the channel's total)
+        linked_rows = db.execute(
+            "SELECT l.feed_id, COUNT(*) AS videos FROM video_links l JOIN articles a ON a.id = l.article_id "
+            "JOIN feeds f ON f.id = l.feed_id WHERE l.feed_id != a.feed_id AND f.kind = 'youtube' GROUP BY l.feed_id").fetchall()
         tops = [dict(r) for r in db.execute(
             "SELECT t.id, t.name, t.color, t.enabled, (SELECT COUNT(*) FROM article_topics x JOIN videos v ON v.article_id = x.article_id "
             "WHERE x.topic_id = t.id) AS videos FROM topics t ORDER BY t.name COLLATE NOCASE")]
@@ -338,6 +353,14 @@ def library_meta(_: Principal = Depends(require_read)) -> dict:
         return feed["retention_days"] if feed["retention_days"] is not None else global_days
 
     channels: dict[str, dict] = {}
+    playlist_ids: dict[int, str] = {}
+    for fid, feed in feeds.items():
+        try:
+            pid = json.loads(feed["source"] or "{}").get("playlist_id")
+        except ValueError:
+            pid = None
+        if isinstance(pid, str):
+            playlist_ids[fid] = pid
 
     def entry(key: str, title: str) -> dict:
         return channels.setdefault(key, {"key": key, "title": title, "videos": 0, "unwatched": 0, "feeds": [],
@@ -365,12 +388,23 @@ def library_meta(_: Principal = Depends(require_read)) -> dict:
         c["videos"] += r["videos"]
         c["unwatched"] += r["unwatched"]
         c["feeds"].append({"id": r["feed_id"], "title": feed["title"], "type": kind, "videos": r["videos"], "retention_days": keeps(feed)})
+    for r in linked_rows:
+        listed = [f for c in channels.values() for f in c["feeds"] if f["id"] == r["feed_id"]]
+        if listed:
+            listed[0]["videos"] += r["videos"]
+        elif r["feed_id"] in feeds:  # every video of this playlist is stored under the channel: list it with its count
+            feed = feeds[r["feed_id"]]
+            kind, cid = kind_of(feed)
+            c = entry(cid or f"feed:{r['feed_id']}", feed["title"])
+            c["feeds"].append({"id": r["feed_id"], "title": feed["title"], "type": kind, "videos": r["videos"], "retention_days": keeps(feed)})
     for fid, feed in feeds.items():  # feeds with no videos yet (just added playlists) still show up
         if not any(f["id"] == fid for c in channels.values() for f in c["feeds"]):
             kind, cid = kind_of(feed)
             c = entry(cid or f"feed:{fid}", feed["title"])
             c["feeds"].append({"id": fid, "title": feed["title"], "type": kind, "videos": 0, "retention_days": keeps(feed)})
     for c in channels.values():
+        for f in c["feeds"]:  # so the page can tell which of a channel's playlists are already followed
+            f["playlist_id"] = playlist_ids.get(f["id"])
         c["saved"] = bool(c["feeds"]) and all(f["type"] == "saved" for f in c["feeds"])
         c["feeds"].sort(key=lambda f: ({"channel": 0, "playlist": 1, "saved": 2}[f["type"]], f["title"].lower()))
     out = sorted(channels.values(), key=lambda c: c["title"].lower())
@@ -518,8 +552,12 @@ def _group_where(db, ref: str) -> tuple[str, list, str, dict]:
         feed = db.execute("SELECT id, title FROM feeds WHERE id = ?", (int(num),)).fetchone()
         if feed is None or int(num) not in _playlist_feeds(db):
             raise not_found("Playlist")
-        return ("FROM videos v JOIN articles a ON a.id = v.article_id JOIN feeds f ON f.id = a.feed_id WHERE a.feed_id = ?",
-                [int(num)], "a.sort_ts ASC, a.id ASC", {"id": ref, "type": "playlist", "name": feed["title"], "description": ""})
+        fid = int(num)
+        return ("FROM videos v JOIN articles a ON a.id = v.article_id JOIN feeds f ON f.id = a.feed_id "
+                "LEFT JOIN video_links pl ON pl.article_id = a.id AND pl.feed_id = ? "
+                "WHERE a.id IN (SELECT id FROM articles WHERE feed_id = ? UNION ALL SELECT article_id FROM video_links WHERE feed_id = ?)",
+                [fid, fid, fid], "COALESCE(pl.position, 1000000000) ASC, a.sort_ts ASC, a.id ASC",
+                {"id": ref, "type": "playlist", "name": feed["title"], "description": ""})
     g = db.execute("SELECT id, name, description FROM video_groups WHERE id = ?", (int(num),)).fetchone()
     if g is None:
         raise not_found("Group")
@@ -535,8 +573,9 @@ def _group_all_where(gid: int) -> tuple[str, list, str]:
     return ("FROM videos v JOIN articles a ON a.id = v.article_id JOIN feeds f ON f.id = a.feed_id "
             "LEFT JOIN video_group_items i ON i.article_id = a.id AND i.group_id = ? "
             "WHERE a.id IN (SELECT article_id FROM video_group_items WHERE group_id = ? "
-            "UNION ALL SELECT id FROM articles WHERE feed_id IN (SELECT feed_id FROM video_group_playlists WHERE group_id = ?))",
-            [gid, gid, gid], "COALESCE(i.position, 1e9) ASC, a.sort_ts ASC, a.id ASC")
+            "UNION ALL SELECT id FROM articles WHERE feed_id IN (SELECT feed_id FROM video_group_playlists WHERE group_id = ?) "
+            "UNION ALL SELECT article_id FROM video_links WHERE feed_id IN (SELECT feed_id FROM video_group_playlists WHERE group_id = ?))",
+            [gid, gid, gid, gid], "COALESCE(i.position, 1e9) ASC, a.sort_ts ASC, a.id ASC")
 
 
 def _order_key(db):
@@ -578,7 +617,8 @@ def list_groups(_: Principal = Depends(require_read)) -> dict:
                 f"SELECT COALESCE(v.channel_title, f.title) {base} GROUP BY 1 ORDER BY COUNT(*) DESC LIMIT 2", params)]  # nosec B608
             out.append({**info, "videos": stats[0], "watched": stats[1], "updated": stats[2], "channels": channels, "thumbs": thumbs})
         order_key = _order_key(db)
-    out.sort(key=lambda g: order_key(g["id"]))  # fixed: your dragged order, then new ones at the end
+    # your groups always come first, then playlists that aren't in a group; inside each: your dragged order, then new ones last
+    out.sort(key=lambda g: (0 if str(g["id"]).startswith("g:") else 1, order_key(g["id"])))
     return {"groups": out}
 
 
@@ -652,7 +692,7 @@ def update_group(ref: GroupRef, body: GroupPatch, _: Principal = Depends(require
 @router.delete("/library/groups/{ref}")
 def delete_group(ref: GroupRef, principal: Principal = Depends(require_write)) -> dict:
     """A group you made: deleted, its videos stay and its playlists go back to the main page. A playlist: unsubscribed,
-    and its videos are deleted too
+    and its videos are deleted too - except videos the channel or another followed playlist also lists, which stay
     (videos you starred or put in one of your groups are deleted with it - the playlist was their source)."""
     with get_db() as db:
         if ref.startswith("g:"):
@@ -663,7 +703,8 @@ def delete_group(ref: GroupRef, principal: Principal = Depends(require_write)) -
         fid = int(ref[2:])
         if fid not in _playlist_feeds(db):
             raise not_found("Playlist")
-        videos = db.execute("SELECT COUNT(*) FROM articles WHERE feed_id = ?", (fid,)).fetchone()[0]
+        videos = db.execute("SELECT COUNT(*) FROM articles a WHERE a.feed_id = ? AND NOT EXISTS (SELECT 1 FROM video_links l "
+                            "WHERE l.article_id = a.id AND l.feed_id != a.feed_id)", (fid,)).fetchone()[0]
         db.execute("DELETE FROM feeds WHERE id = ?", (fid,))
     audit("playlist_deleted", principal, feed_id=fid, videos=videos)
     return {"ok": True, "videos_removed": videos}
@@ -677,9 +718,12 @@ def remove_video(article_id: int, principal: Principal = Depends(require_write))
                          (article_id,)).fetchone()
         if row is None:
             raise not_found("Video")
-        db.execute("INSERT INTO article_tombstones (feed_id, guid, removed_at, manual) VALUES (?, ?, ?, 1) "
-                   "ON CONFLICT(feed_id, guid) DO UPDATE SET manual = 1, removed_at = excluded.removed_at",
-                   (row["feed_id"], row["guid"], now()))
+        fids = [row["feed_id"]] + [r[0] for r in db.execute(  # every playlist / channel that lists it
+            "SELECT feed_id FROM video_links WHERE article_id = ? AND feed_id != ?", (article_id, row["feed_id"]))]
+        for fid in fids:
+            db.execute("INSERT INTO article_tombstones (feed_id, guid, removed_at, manual) VALUES (?, ?, ?, 1) "
+                       "ON CONFLICT(feed_id, guid) DO UPDATE SET manual = 1, removed_at = excluded.removed_at",
+                       (fid, row["guid"], now()))
         db.execute("DELETE FROM articles WHERE id = ?", (article_id,))
     audit("video_removed", principal, article_id=article_id)
     return {"ok": True}
@@ -710,7 +754,8 @@ def keep_window(body: KeepIn, principal: Principal = Depends(require_write)) -> 
             cutoff = now() - body.days * 86400
             cond = (f"feed_id IN ({marks}) AND sort_ts < ? AND is_starred = 0 "
                     "AND id NOT IN (SELECT article_id FROM article_tags WHERE source = 'manual') "
-                    "AND id NOT IN (SELECT article_id FROM video_group_items)")
+                    "AND id NOT IN (SELECT article_id FROM video_group_items) "
+                    "AND NOT EXISTS (SELECT 1 FROM video_links l WHERE l.article_id = articles.id AND l.feed_id != articles.feed_id)")
             db.execute(f"INSERT OR IGNORE INTO article_tombstones (feed_id, guid, removed_at) SELECT feed_id, guid, ? "  # nosec B608
                        f"FROM articles WHERE {cond}", [now(), *ids, cutoff])
             removed = db.execute(f"DELETE FROM articles WHERE {cond}", [*ids, cutoff]).rowcount  # nosec B608

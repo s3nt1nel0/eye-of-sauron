@@ -140,7 +140,7 @@
 
 
   // ===================================================================== keep feeds to a time frame (retention + history)
-  const FEED_TYPES = [["articles", "📰 Article feeds"], ["podcasts", "🎙 Podcasts"], ["videos", "▶ YouTube channels"], ["accounts", "💬 Accounts"]];
+  const FEED_TYPES = [["articles", "📰 Article feeds"], ["podcasts", "🎙 Podcasts"], ["videos", "▶ YouTube channels"], ["accounts", "💬 Socials"]];
   const feedType = (f) => (f.kind === "podcast" ? "podcasts" : f.kind === "youtube" ? "videos" : f.social_platform ? "accounts" : "articles");
   const BACKFILL_KINDS = new Set(["rss", "podcast", "youtube", "hfpapers", "telegram"]);
 
@@ -284,7 +284,7 @@
     const failing = feeds.filter((f) => f.error_count > 0);
     // what a feed delivers: articles, podcast episodes, videos or account posts - shown apart, one kind at a time
     const typeOf = (f) => (f.kind === "podcast" ? "podcasts" : f.kind === "youtube" ? "videos" : f.social_platform ? "accounts" : "articles");
-    const TYPES = [["articles", "📰 Article feeds"], ["podcasts", "🎙 Podcasts"], ["videos", "▶ YouTube"], ["accounts", "💬 Accounts"]];
+    const TYPES = [["articles", "📰 Article feeds"], ["podcasts", "🎙 Podcasts"], ["videos", "▶ YouTube"], ["accounts", "💬 Socials"]];
     const typeCount = Object.fromEntries(TYPES.map(([t]) => [t, feeds.filter((f) => typeOf(f) === t).length]));
     const remembered = FW.store ? FW.store.get("fw-feed-type", "articles") : "articles";
     const filters = { q: "", status: "all", folder: "any", type: remembered === "all" || typeCount[remembered] ? remembered : "articles" };

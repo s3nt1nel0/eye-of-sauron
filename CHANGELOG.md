@@ -5,6 +5,44 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.3.0] — 2026-11-23
+
+### Added
+- **🔗 Resources tab — your bookmarks, sorted.** Import your browser's bookmark export (Chrome / Edge / Firefox / Brave
+  HTML; you choose which folders come in), or add links one by one. Links file themselves into 18 topic folders
+  (Offensive, Defensive & SOC, DFIR, Threat intel & OSINT, Learn & Practice…), can sit in several topics, and each gets a
+  short "what it's for". Views: **★ Launchpad** (big tiles of favourites and most-opened), 🌳 Folders, 🗺 Map,
+  🧠 Mind map, 🗂 Categories and ☰ All links; ☑ Select for changing many at once; "Find any resource…" jumps to a link.
+  Repos from the Repos tab appear under the matching topics.
+- **⌘ / Ctrl+K launcher from every tab:** type a few letters and press Enter to open that one site.
+- **▶ Videos play inside the app** in YouTube's privacy-enhanced player (sandboxed), with ⏮ / ⏭ through the videos on
+  the page, ↗ YouTube and Esc to close. Ctrl / ⌘-click a title still opens YouTube.
+- **Videos:** ☰ *Sort a channel into its playlists*, ✎ rename playlists and groups, put a single video straight into a
+  group when adding it, instant switching between views.
+- **👥 Socials (was Accounts):** 🗑 delete posts; saved single posts are shown readably (text, links, picture opens big
+  in the app) so you rarely need the original.
+- **📦 Repos:** GitLab projects; inner tabs (📁 Folders … 🚀 Releases) and short filter names like the other tabs; the
+  date range lives in the Sort menu; 🗑 remove a repo from Repos and every folder.
+- **🎙 Podcasts:** a new player bar (↺ 10 · ▶/⏸ · 10 ↻ · time · seek · volume · ⋮ speed / download); filters named like
+  Videos, with the date range in the Sort menu.
+- **One-command updates for Docker installs:** `./deploy/update.sh` fetches the newest version, shows what's new, builds
+  it while the old one keeps running, backs up your data volume to `./backups/` (newest 5 kept), switches over and
+  **rolls back automatically** if the new version doesn't report healthy. `--check` only reports, `-y` skips the question.
+
+### Changed
+- **Works on phones, tablets and desktops, upright or sideways.** Up to 900 px wide the top bar takes two rows (search,
+  ⟳, ⚙ on top; a swipeable tab bar below); below 1600 px the tabs show icons (names in tooltips) so search keeps its
+  width; on phones each tab's filters fold behind **☰ Filters**; on touch screens every control is at least 40 px.
+- **The Accounts tab is now called 👥 Socials.**
+- **No duplicate videos:** a video listed by a channel and its playlists is stored once (existing copies are merged on
+  upgrade; nothing you starred or watched is lost).
+- CSP: one new directive, `frame-src https://www.youtube-nocookie.com`, for the in-app player only. The app-wide
+  `Referrer-Policy: no-referrer` is unchanged; only the player frame sends the app's origin, which YouTube needs.
+
+### Fixed
+- **Phones:** the top bar was wider than the screen, so search, ⟳, ⚙ and the last tabs couldn't be reached.
+- **Laptops / tablets in landscape:** the tab names squeezed the search box to nothing (or pushed it off-screen).
+
 ## [1.2.0] — 2026-11-21
 
 ### Added

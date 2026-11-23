@@ -23,6 +23,7 @@ from app.api import accounts as accounts_api
 from app.api import podcasts as podcasts_api
 from app.api import extras as extras_api
 from app.api import repos as repos_api
+from app.api import resources as resources_api
 from app.config import get_settings
 from app.db import init_db
 from app.scheduler import scheduler
@@ -39,6 +40,8 @@ CSP = (
     "font-src 'self'; "
     "media-src https:; "
     "connect-src 'self'; "
+    # ▶ the Videos player only: YouTube's privacy-enhanced embed host (sandboxed iframe), no other frames
+    "frame-src https://www.youtube-nocookie.com; "
     "manifest-src 'self'; "
     "form-action 'self'; "
     "base-uri 'none'; "
@@ -99,7 +102,7 @@ class BodySizeLimitMiddleware:
         if scope["type"] != "http":
             await self.app(scope, receive, send)
             return
-        limit = self.opml_limit if scope.get("path") == "/api/v1/opml/import" else self.default_limit
+        limit = self.opml_limit if scope.get("path") in ("/api/v1/opml/import", "/api/v1/resources/import") else self.default_limit
 
         for name, value in scope.get("headers", []):
             if name == b"content-length":
@@ -265,6 +268,43 @@ def _repair_saved_posts() -> None:
     threading.Thread(target=run, name="saved-post-repair", daemon=True).start()
 
 
+def _fill_saved_post_meta() -> None:
+    """In the background: saved single posts from before authors / handles / pictures were recorded are read again from
+    their platform (the same public / official endpoints as adding one). Text you pasted is kept. A post the platform no
+    longer hands over is marked, so it isn't asked for again on every start (its card still offers ↻ and pasting)."""
+    import threading
+    import time
+
+    def run() -> None:
+        from app import integrations, social_posts
+        from app.db import get_db
+
+        try:
+            with get_db() as db:
+                rows = db.execute("SELECT a.id FROM articles a JOIN feeds f ON f.id = a.feed_id WHERE f.url LIKE ? AND NOT EXISTS "
+                                  "(SELECT 1 FROM social_post_meta m WHERE m.article_id = a.id) LIMIT 500",
+                                  (social_posts.SAVED_FEED_PREFIX + "%",)).fetchall()
+                config, secrets = integrations.load(db, "x")
+            rsshub = config.get("bridge_url") if config.get("bridge_type") == "rsshub" else None
+            done = 0
+            for r in rows:
+                try:
+                    social_posts.refresh_saved(r["id"], rsshub, secrets.get("bearer_token"))
+                    done += 1
+                except social_posts.PostError as exc:
+                    if not str(exc).startswith(("Could not reach", "The site is rate-limiting")):  # offline: try next start
+                        with get_db() as db:
+                            social_posts.save_meta(db, r["id"], {"source": "unavailable"})
+                    log.info("Saved post %s could not be read again: %s", r["id"], exc)
+                time.sleep(2)  # gentle on the platforms
+            if rows:
+                log.info("Saved posts: author/picture details filled on %d of %d post(s)", done, len(rows))
+        except Exception:  # optional clean-up; try again next start
+            log.exception("Saved-post details fill failed")
+
+    threading.Thread(target=run, name="saved-post-meta", daemon=True).start()
+
+
 def _repair_youtube_titles() -> None:
     """Once, in the background: fix videos stored with YouTube's "Deleted video" placeholder title (needs the key)."""
     import threading
@@ -383,6 +423,7 @@ async def lifespan(_: FastAPI):
         scheduler.start()
         _repair_youtube_titles()
         _repair_saved_posts()
+        _fill_saved_post_meta()
         _retag_episodes_once()
         _smart_feature_upkeep()
     yield
@@ -447,7 +488,7 @@ def create_app() -> FastAPI:
     app.add_middleware(SecurityHeadersMiddleware)
 
     for router in (accounts_api.router, podcasts_api.router, attack.router, auth.router, content.router, automation.router, insights.router, cves.router, history.router, scrape.router, greader.admin_router,
-                   sources_api.router, library.router, ai_api.router, extras_api.router, repos_api.router):
+                   sources_api.router, library.router, ai_api.router, extras_api.router, repos_api.router, resources_api.router):
         app.include_router(router, prefix="/api/v1")
     # Google Reader-compatible API for native RSS apps (FreshRSS-style path and a short alias).
     app.include_router(greader.build_router("/api/greader.php"))

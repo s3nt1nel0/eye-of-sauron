@@ -14,6 +14,7 @@ from app.api.common import StrictModel, TopicIds, date_clause, not_found, topic_
 from app.config import get_settings
 from app.db import get_db, placeholders
 from app.fetcher import ACCEPT, parse_bytes, xml_guard
+from app.sanitize import sanitize_html
 from app.security import Principal, audit, rate_limit, require_read, require_write
 
 router = APIRouter(prefix="/accounts", tags=["accounts"])
@@ -45,8 +46,12 @@ def recognize(body: RecognizeIn, _: Principal = Depends(require_write)) -> dict:
     raw = body.input.strip()
     if raw.startswith(("http://", "https://", "www.")) and social_posts.is_post_url(raw):
         plat = social_posts.platform_of(raw if "://" in raw else "https://" + raw)
+        with get_db() as db:
+            rsshub = _rsshub_base(db)
+            exists = _existing_post(db, raw)
         return {"kind": "post", "platform": plat, "label": accounts.PLATFORMS.get(plat, "Other"),
-                "needs_text": plat in social_posts.PASTE_ONLY.values()}
+                "needs_text": plat in social_posts.PASTE_ONLY.values(),
+                "contacts": social_posts.contacts(raw, rsshub, bool(_x_token())), "exists": exists}
     with get_db() as db:
         rsshub = _rsshub_base(db)
     try:
@@ -64,6 +69,32 @@ def _rsshub_base(db) -> str | None:
     if config.get("bridge_type") == "rsshub" and config.get("bridge_url"):
         return str(config["bridge_url"])
     return None
+
+
+def _existing_post(db, url: str) -> dict | None:
+    """The post already in this tab - saved, or from an account you follow - that this link points to, in any of its link
+    forms (social_posts.post_key). -> {"id", "where"} or None. No network."""
+    key = social_posts.post_key(url)
+    if not key:
+        return None
+    token = social_posts.key_token(key)
+    if len(token) >= 5:
+        like = "%" + token.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
+        rows = db.execute(f"SELECT a.id, a.url, f.title FROM articles a JOIN feeds f ON f.id = a.feed_id "  # nosec B608 - fixed fragment
+                          f"WHERE {SOCIAL} AND a.url LIKE ? ESCAPE '\\' LIMIT 200", (like,)).fetchall()
+    else:
+        rows = db.execute(f"SELECT a.id, a.url, f.title FROM articles a JOIN feeds f ON f.id = a.feed_id "  # nosec B608 - fixed fragment
+                          f"WHERE {SOCIAL} AND a.url = ? LIMIT 50", (url.strip(),)).fetchall()
+    for r in rows:
+        if social_posts.post_key(r["url"] or "") == key:
+            return {"id": r["id"], "where": r["title"]}
+    return None
+
+
+def _x_token() -> str | None:
+    """The official X API bearer token (Settings → Integrations → X), when one is set."""
+    with get_db() as db:
+        return integrations.secret(db, "x", "bearer_token")
 
 
 def _store_first_posts(feed_id: int, entries) -> None:
@@ -142,7 +173,8 @@ class PostIn(StrictModel):
     text: Annotated[str, StringConstraints(max_length=social_posts.MAX_TEXT)] | None = None  # pasted post text
 
 
-SAVED_POSTS_URL = "https://eye-of-sauron.invalid/saved-posts/{platform}"  # placeholder address, never fetched
+SAVED_POSTS_URL = social_posts.SAVED_FEED_PREFIX + "{platform}"  # placeholder address, never fetched
+SAVED_LIKE = social_posts.SAVED_FEED_PREFIX + "%"
 
 
 @router.post("/posts", status_code=201, dependencies=[Depends(rate_limit("accounts_add", 30))])
@@ -151,8 +183,11 @@ def add_post(body: PostIn, principal: Principal = Depends(require_write)) -> dic
     the text you pasted (LinkedIn, Instagram, Facebook...). It is tagged with topics like everything else."""
     with get_db() as db:
         rsshub = _rsshub_base(db)
+        dup = _existing_post(db, body.url)
+    if dup:  # checked before anything is fetched: the same post in any link form, saved or from a followed account
+        raise HTTPException(status_code=409, detail=f"That post is already saved in Socials (in “{dup['where']}”)")
     try:
-        post = social_posts.fetch(body.url, body.text, rsshub)
+        post = social_posts.fetch(body.url, body.text, rsshub, _x_token())
     except social_posts.PostError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from None
     from app.fetcher import insert_article  # local import: fetcher pulls in the scheduler stack
@@ -168,14 +203,190 @@ def add_post(body: PostIn, principal: Principal = Depends(require_write)) -> dic
                 (_social_folder(db), f"Saved {accounts.PLATFORMS.get(plat, 'other')} posts", url, now(), plat)).lastrowid
         else:
             feed_id = row["id"]
-        article_id = insert_article(db, feed_id, guid=post["link"], url=post["link"], title=post["title"][:1000],
+        key = social_posts.post_key(post["link"])  # the post's own key: the database refuses a second copy too
+        article_id = insert_article(db, feed_id, guid=f"post:{key}" if key else post["link"], url=post["link"], title=post["title"][:1000],
                                     author=post["author"], raw_html=post["html"], published=post["published"],
                                     fetched_at=now(), ignore_tombstone=True)
         if article_id is None:
             raise HTTPException(status_code=409, detail="That post is already saved")
+        db.execute("UPDATE articles SET text_content = ? WHERE id = ?", (social_posts.search_text(post["html"]), article_id))
+        social_posts.save_meta(db, article_id, post)
         topics.classify(db, [article_id])
+        follow = _follow_info(db, post["profile_url"], rsshub)
     audit("post_saved", principal, platform=plat)
-    return {"id": article_id, "platform": plat, "title": post["title"], "feed_id": feed_id}
+    return {"id": article_id, "platform": plat, "title": post["title"], "feed_id": feed_id, "author": post["author"],
+            "handle": post["handle"], "truncated": post["truncated"], "follow": follow}
+
+
+def _followed_urls(db) -> set[str]:
+    return {r["url"] for r in db.execute(f"SELECT f.url FROM feeds f WHERE {SOCIAL}")}  # nosec B608 - fixed fragment
+
+
+def _follow_info(db, profile_url: str | None, rsshub: str | None, followed: set[str] | None = None) -> dict | None:
+    """Can the author of a saved post be followed in this tab, and are they already? Offline: no site is asked."""
+    if not profile_url:
+        return None
+    try:
+        found = accounts.detect(profile_url, None, rsshub)
+    except accounts.AccountError as exc:
+        return {"url": profile_url, "possible": False, "followed": False, "reason": str(exc)}
+    if found["platform"] == "other":
+        return None
+    followed = _followed_urls(db) if followed is None else followed
+    reason = None
+    if found["via"] == "x":
+        user = profile_url.rstrip("/").rsplit("/", 1)[-1].lower()
+        is_followed = f"https://x.com/{user}" in followed
+        config, secrets = integrations.load(db, "x")
+        if not (config.get("bridge_type") or secrets.get("bearer_token")):
+            reason = "Following X accounts needs an RSSHub bridge or an X API bearer token (Settings → Integrations → X)."
+    else:
+        feed = found.get("feed_url") or ""
+        is_followed = feed in followed or feed.replace("/new/.rss?limit=100", "/.rss") in followed
+    return {"url": profile_url, "possible": reason is None, "followed": is_followed, "reason": reason,
+            "platform": found["platform"], "note": found.get("note")}
+
+
+def _picture(prefs):
+    """-> url → what the browser should load: nothing (images off), our signed proxy, or the https address itself."""
+    from app import media
+
+    def show(url):
+        if not url or not prefs["load_images"] or not str(url).startswith("https://"):
+            return None
+        return media.proxied(url) if prefs["image_proxy"] else url
+    return show
+
+
+def _decorate(db, rows: list[dict]) -> list[dict]:
+    """Saved single posts: author handle, profile picture, the post's picture, a readable preview (paragraphs kept),
+    whether the platform shortened it, and the Follow offer. Pictures go through the image proxy when that is on."""
+    if not rows:
+        return rows
+    saved = {r["id"] for r in db.execute(
+        f"SELECT a.id FROM articles a JOIN feeds f ON f.id = a.feed_id WHERE f.url LIKE ? AND a.id IN ({placeholders(len(rows))})",
+        [SAVED_LIKE, *[r["id"] for r in rows]])}  # nosec B608 - placeholders only
+    if not saved:
+        return rows
+    ids = sorted(saved)
+    meta = {m["article_id"]: dict(m) for m in db.execute(
+        f"SELECT * FROM social_post_meta WHERE article_id IN ({placeholders(len(ids))})", ids)}  # nosec B608
+    bodies = {b["id"]: b["content_html"] for b in db.execute(
+        f"SELECT id, content_html FROM articles WHERE id IN ({placeholders(len(ids))})", ids)}  # nosec B608
+    prefs = app_settings.get_all(db)
+    rsshub, followed = _rsshub_base(db), _followed_urls(db)
+    show = _picture(prefs)
+    for r in rows:
+        if r["id"] not in saved:
+            continue
+        m = meta.get(r["id"]) or {}
+        text = social_posts.plain_text(social_posts.strip_lead_image(bodies.get(r["id"]) or ""))
+        r.update({"saved": True, "text": text[:700], "text_len": len(text), "handle": m.get("handle"),
+                  "profile_url": m.get("profile_url"), "avatar": show(m.get("avatar_url")), "image": show(m.get("image_url")),
+                  "truncated": bool(m.get("truncated")), "source": m.get("source") or None,
+                  "follow": _follow_info(db, m.get("profile_url"), rsshub, followed)})
+    return rows
+
+
+def _saved_or_404(db, article_id: int):
+    row = db.execute(
+        f"SELECT {POST_COLUMNS}, a.content_html FROM articles a JOIN feeds f ON f.id = a.feed_id "  # nosec B608 - fixed fragments
+        "WHERE a.id = ? AND f.url LIKE ?", (article_id, SAVED_LIKE)).fetchone()
+    if row is None:
+        raise not_found("Saved post")
+    return row
+
+
+@router.get("/posts/{article_id}", dependencies=[Depends(rate_limit("accounts_read", 240))])
+def post_detail(article_id: int, _: Principal = Depends(require_read)) -> dict:
+    """One saved post in full (its text as paragraphs with links), for a card's "Show more"."""
+    with get_db() as db:
+        row = dict(_saved_or_404(db, article_id))
+        body = social_posts.strip_lead_image(row.pop("content_html") or "")
+        prefs = app_settings.get_all(db)
+        out = _decorate(db, _attach_topics(db, [row]))[0]
+    body = sanitize_html(body, allow_images=prefs["load_images"])  # re-sanitised on output, like the reader
+    if prefs["load_images"] and prefs["image_proxy"]:
+        from app import media
+        body = media.rewrite_images(body)
+    out["html"] = body
+    out["text"] = social_posts.plain_text(body)
+    return out
+
+
+@router.post("/posts/{article_id}/refresh", dependencies=[Depends(rate_limit("accounts_add", 30))])
+def refresh_post(article_id: int, principal: Principal = Depends(require_write)) -> dict:
+    """Read a saved post again from its platform (author, picture, date; the text unless you pasted it)."""
+    with get_db() as db:
+        _saved_or_404(db, article_id)
+        rsshub = _rsshub_base(db)
+    try:
+        social_posts.refresh_saved(article_id, rsshub, _x_token())
+    except social_posts.PostError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from None
+    except LookupError:
+        raise not_found("Saved post") from None
+    audit("post_refreshed", principal, article_id=article_id)
+    return post_detail(article_id, principal)
+
+
+class PostTextIn(StrictModel):
+    text: Annotated[str, StringConstraints(min_length=1, max_length=social_posts.MAX_TEXT)]
+
+
+@router.put("/posts/{article_id}/text", dependencies=[Depends(rate_limit("accounts_add", 30))])
+def set_post_text(article_id: int, body: PostTextIn, principal: Principal = Depends(require_write)) -> dict:
+    """Your pasted copy of a saved post (for platforms that only hand over the start of it, or nothing)."""
+    with get_db() as db:
+        _saved_or_404(db, article_id)
+    try:
+        social_posts.set_text(article_id, body.text)
+    except social_posts.PostError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from None
+    except LookupError:
+        raise not_found("Saved post") from None
+    audit("post_text_pasted", principal, article_id=article_id)
+    return post_detail(article_id, principal)
+
+
+class PostIdsIn(StrictModel):
+    ids: list[Annotated[int, Field(ge=1)]] = Field(min_length=1, max_length=500)
+
+
+def _delete_posts(ids: list[int]) -> int:
+    """Delete posts of this tab for good: a "never again" mark (manual tombstone) keeps the account's next check from
+    bringing them back. Only posts of social accounts / saved posts are touched. A saved post can be added again by
+    pasting its link."""
+    from app.db import now
+    ids = sorted(set(ids))
+    with get_db() as db:
+        rows = db.execute(f"SELECT a.id, a.feed_id, a.guid FROM articles a JOIN feeds f ON f.id = a.feed_id "  # nosec B608
+                          f"WHERE {SOCIAL} AND a.id IN ({placeholders(len(ids))})", ids).fetchall()
+        for r in rows:
+            db.execute("INSERT INTO article_tombstones (feed_id, guid, removed_at, manual) VALUES (?, ?, ?, 1) "
+                       "ON CONFLICT(feed_id, guid) DO UPDATE SET manual = 1, removed_at = excluded.removed_at",
+                       (r["feed_id"], r["guid"], now()))
+        found = [r["id"] for r in rows]
+        if found:
+            db.execute(f"DELETE FROM articles WHERE id IN ({placeholders(len(found))})", found)  # nosec B608 - placeholders only
+    return len(found)
+
+
+@router.delete("/posts/{article_id}", dependencies=[Depends(rate_limit("accounts_delete", 120))])
+def delete_post(article_id: int, principal: Principal = Depends(require_write)) -> dict:
+    """Delete one post from this tab (it won't come back when its account is checked again)."""
+    if not _delete_posts([article_id]):
+        raise not_found("Post")
+    audit("social_post_deleted", principal, article_id=article_id)
+    return {"ok": True, "deleted": 1}
+
+
+@router.post("/posts/delete", dependencies=[Depends(rate_limit("accounts_delete", 120))])
+def delete_posts(body: PostIdsIn, principal: Principal = Depends(require_write)) -> dict:
+    """Delete several posts at once (ids of other tabs' items are ignored)."""
+    deleted = _delete_posts(body.ids)
+    audit("social_posts_deleted", principal, requested=len(body.ids), deleted=deleted)
+    return {"ok": True, "deleted": deleted}
 
 
 FeedIdList = Annotated[str, StringConstraints(pattern=r"^\d{1,9}(,\d{1,9}){0,199}$")]
@@ -249,7 +460,7 @@ def posts(feed_id: int | None = Query(None, ge=1), platform: Platform | None = N
             for r in rows:
                 if r["platform"] == "reddit" and reddit.is_post_url(r["url"]):
                     r["body"], r["media"], r["thread"] = reddit.body(r["html"]), reddit.media(r["html"]), True
-        return {"total": total, "items": _attach_topics(db, rows)}
+        return {"total": total, "items": _decorate(db, _attach_topics(db, rows))}
 
 
 @router.get("/posts/{article_id}/thread", dependencies=[Depends(rate_limit("accounts_thread", 30))])
@@ -287,14 +498,14 @@ def shelves(feed_id: int | None = Query(None, ge=1), platform: Platform | None =
             if total:
                 rows = [dict(r) for r in db.execute(f"SELECT {POST_COLUMNS} {tb} ORDER BY a.sort_ts DESC LIMIT ?",  # nosec B608
                                                     [*params, t["id"], per])]
-                out.append({"topic": dict(t), "total": total, "items": _attach_topics(db, rows)})
+                out.append({"topic": dict(t), "total": total, "items": _decorate(db, _attach_topics(db, rows))})
         ob = base + " AND NOT EXISTS (SELECT 1 FROM article_topics x WHERE x.article_id = a.id)"
         other = db.execute(f"SELECT COUNT(*) {ob}", params).fetchone()[0]  # nosec B608
         out.sort(key=lambda s: -s["total"])
         if other:
             rows = [dict(r) for r in db.execute(f"SELECT {POST_COLUMNS} {ob} ORDER BY a.sort_ts DESC LIMIT ?", [*params, per])]  # nosec B608
             out.append({"topic": {"id": 0, "name": "Other (no topic matched)", "color": "#6b7280"}, "total": other,
-                        "items": _attach_topics(db, rows)})
+                        "items": _decorate(db, _attach_topics(db, rows))})
     return {"shelves": out}
 
 

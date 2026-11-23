@@ -478,7 +478,8 @@ def _backfill_source(job: Job, feed, max_pages: int, cutoff: int | None) -> None
         added = 0
         for start in range(0, len(entries), 500):
             with get_db() as db:
-                new_ids = store_entries(db, feed_id, entries[start : start + 500], cutoff, now(), on_new=on_new)
+                new_ids = store_entries(db, feed_id, entries[start : start + 500], cutoff, now(), on_new=on_new,
+                                        video_of=(lambda e: videos.get(e.get("id"))) if videos else None)
                 _post_process(db, new_ids)
             added += len(new_ids)
         return added

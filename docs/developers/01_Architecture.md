@@ -330,6 +330,20 @@ History imports use the same storage path but **never** fire events: no webhooks
 | Read later | `app/readlater.py`, `app/api/extras.py` (`/readlater`, `/articles/{id}/save`), `PUT /integrations/readlater` | Obsidian / Markdown are built in the browser. |
 
 
+## 1.3.0 additions
+
+| Module | Purpose |
+|---|---|
+| `app/resources.py` | 🔗 Resources: bookmark import (browser HTML / plain lists), URL cleaning (http(s) only, no credentials), topic folders and categories, filing new links into topics, page title / description fetch through the SSRF guard |
+| `app/api/resources.py` | `/resources`: list, search, folders, categories, import, bulk actions, launchpad / recent, ⌘K lookups |
+| `static/resources.js` | The Resources tab (Launchpad, Folders, Map, Mind map, Categories, All links) and the ⌘/Ctrl+K launcher |
+| `app/video_links.py` | One stored copy per YouTube video shared by every channel / playlist that lists it (merges older duplicates) |
+| `static/accounts.css` | Socials (was Accounts) styles |
+| `deploy/update.sh` | Safe in-place update for Docker Compose installs (fast-forward, build, backup, switch, health check, rollback) |
+
+Front-end: an "All screens" block at the end of `static/styles.css` plus `foldHeaders` / `scrollActiveTab` / the
+`--top-h` observer in `static/app.js` make every tab work from 375 px phones to wide screens.
+
 ## 1.2.0 additions
 
 | Module | Purpose |
