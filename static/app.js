@@ -325,6 +325,33 @@
   }
 
   // ======================================================================= sidebar
+  /** Where an article comes from: its feed and its folder, each a link that opens that feed / folder in the list. */
+  function articleSource(a) {
+    const feed = (state.sidebar && state.sidebar.feeds || []).find((f) => f.id === a.feed_id);
+    const folder = feed && feed.folder_id !== null ? (state.sidebar.folders || []).find((f) => f.id === feed.folder_id) : null;
+    return { feed, folder, feedTitle: a.feed_title || (feed && (feed.title || feed.url)) || "" };
+  }
+  function openSource(view) {
+    if (view.type === "feed" && state.view.type === "feed" && state.view.id === view.id && !state.q) return;
+    if (view.type === "folder" && state.view.type === "folder" && state.view.id === view.id && !state.q) return;
+    selectView(view);
+  }
+  function sourceLinks(a, where) {
+    const { feed, folder, feedTitle } = articleSource(a);
+    const link = (cls, icon, text, view, title) => h("button", {
+      type: "button", class: `src-link ${cls}`, title, "aria-label": title,
+      onclick: (e) => { e.stopPropagation(); openSource(view); },
+      onkeydown: (e) => { if (e.key === "Enter") e.stopPropagation(); },
+    }, where === "reader" ? h("span", { class: "src-ico", "aria-hidden": "true", text: icon }) : null, h("span", { class: "src-text", text }));
+    const feedEl = feed || a.feed_id ? link("feed", "📡", feedTitle, { type: "feed", id: a.feed_id }, `Show every article from the feed “${feedTitle}”`)
+      : h("span", { class: "feed", text: feedTitle });
+    const folderEl = folder ? link("folder", "📁", folder.name, { type: "folder", id: folder.id }, `Show every article in the folder “${folder.name}”`)
+      : where === "reader" && feed ? h("span", { class: "src-link folder none", title: "This feed is not in a folder", text: "📁 No folder" }) : null;
+    if (where === "reader") return h("span", { class: "src-line" }, h("span", { class: "src-label", text: "From" }), feedEl,
+      folderEl ? h("span", { class: "src-label", text: "in" }) : null, folderEl);
+    return [feedEl, folderEl];
+  }
+
   function viewEquals(a, b) { return a.type === b.type && (a.id ?? null) === (b.id ?? null); }
 
   function sideItem({ label, count, icon, view, extraClass, dot, title, warn }) {
@@ -944,7 +971,7 @@
       }) : null,
       h("div", { class: "meta" },
         state.settings.show_site_icons !== false && a.icon_v ? siteIcon(a.feed_id, a.icon_v) : null,
-        h("span", { class: "feed", text: a.feed_title }),
+        sourceLinks(a, "list"),
         state.settings.show_reading_time !== false && a.read_minutes ? h("span", { class: "read-time", title: "Reading time", text: `${a.read_minutes} min` }) : null,
         h("span", { class: "time", title: fullDate(a.sort_ts), text: relTime(a.sort_ts) })),
       h("div", { class: "title" }, marked(a.title)),
@@ -1203,7 +1230,7 @@
         h("h1", null, url ? h("a", { href: url, target: "_blank", rel: "noopener noreferrer" }, marked(a.title)) : marked(a.title)),
         a.title_original && a.title_original !== a.title ? h("div", { class: "orig-title", title: "Original title (translated by your AI provider)", text: `🌐 ${a.title_original}` }) : null,
         h("div", { class: "byline" },
-          h("span", { text: a.feed_title }),
+          sourceLinks(a, "reader"),
           a.author ? h("span", { text: `by ${a.author}` }) : null,
           h("span", { text: fullDate(a.published || a.fetched_at) }),
           state.settings.show_reading_time !== false && a.read_minutes ? h("span", { text: `${a.read_minutes} min read` }) : null),
@@ -1802,7 +1829,7 @@
           h("optgroup", { label: "Names a CVE that is…" }, ["kev", "kev-ransomware"].map((s) => h("option", { value: `cat:${s}`, text: cveCatName(s), selected: r.cve_category === s }))),
           h("optgroup", { label: "Names a CVE in the CVE category" }, cveCats.map((c) => h("option", { value: `cat:${c.slug}`, text: c.name, selected: r.cve_category === c.slug })))),
         exclude: h("input", { type: "text", value: r.exclude_keywords.join(", "), placeholder: "optional, e.g. webinar, sponsored" }),
-        match: h("select", null, h("option", { value: "title_content", text: "Title and content", selected: r.match_in === "title_content" }), h("option", { value: "title", text: "Title only", selected: r.match_in === "title" })),
+        match: h("select", null, h("option", { value: "title_content", text: "Title and content", selected: r.match_in === "title_content" }), h("option", { value: "title_opening", text: "Title and opening lines", selected: r.match_in === "title_opening" }), h("option", { value: "title", text: "Title only", selected: r.match_in === "title" })),
         scope: h("select", null, h("option", { value: "", text: "All feeds" }),
           h("optgroup", { label: "Folder" }, folders.map((x) => h("option", { value: `folder:${x.id}`, text: x.name, selected: r.folder_id === x.id }))),
           h("optgroup", { label: "Feed" }, feeds.map((x) => h("option", { value: `feed:${x.id}`, text: x.title, selected: r.feed_id === x.id })))),
@@ -1823,7 +1850,7 @@
           settingRow("…and also one of", f.require, "Optional second list: the article must contain one word from each list, e.g. OT terms AND attack terms."),
           settingRow("CVE condition", f.cve, "Only articles that name a CVE (CVE-YYYY-NNNN) with this severity, whose weakness (CWE) maps to this OWASP category, that is in CISA KEV, or that falls in this CVE category (Settings → CVE tracking). Uses the CVE data from the CVE tab."),
           settingRow("…but not if it contains", f.exclude),
-          settingRow("Search in", f.match),
+          settingRow("Search in", f.match, "“Title and opening lines” looks at the headline and the first few sentences only, so a word an article mentions in passing further down does not file it."),
           settingRow("Apply to", f.scope),
           settingRow("File into collection", f.tag),
           settingRow("Send to webhook", f.hook),
@@ -1883,7 +1910,7 @@
       h("div", { class: "muted" },
         [
           r.feed_id ? `Feed: ${nameOf(feeds, r.feed_id, "title")}` : r.folder_id ? `Folder: ${nameOf(folders, r.folder_id)}` : "All feeds",
-          r.match_in === "title" ? "title only" : "title + content",
+          r.match_in === "title" ? "title only" : r.match_in === "title_opening" ? "title + opening lines" : "title + content",
           r.keywords_in_title ? "main words in title" : null,
           r.cve_severity ? `names a ${r.cve_severity.toLowerCase()} CVE` : null,
           r.cve_owasp ? `names a CVE in OWASP ${r.cve_owasp.replace(":", " ")}` : null,

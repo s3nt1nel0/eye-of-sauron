@@ -116,7 +116,7 @@ def test_collection_packs_install_idempotent_and_backfill(authed, feed):
     assert authed.post("/api/v1/rules/packs", json={"slugs": ["nope"]}).status_code == 422
     assert next(p for p in authed.get("/api/v1/rules/packs").json()["packs"] if p["slug"] == "ot")["installed"] == 4
     # the legacy starter-pack endpoint is the core pack
-    assert authed.post("/api/v1/rules/starter-pack").json()["rules_created"] == 7
+    assert authed.post("/api/v1/rules/starter-pack").json()["rules_created"] == 8  # APT & Nation-State has two rules since 2026-11-26
 
 
 def test_pack_rules_are_well_formed():

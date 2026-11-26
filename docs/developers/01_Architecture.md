@@ -330,6 +330,22 @@ History imports use the same storage path but **never** fire events: no webhooks
 | Read later | `app/readlater.py`, `app/api/extras.py` (`/readlater`, `/articles/{id}/save`), `PUT /integrations/readlater` | Obsidian / Markdown are built in the browser. |
 
 
+## 1.4.0 additions
+
+| Module | Change |
+|---|---|
+| `app/stories.py` | Same-story matching on word stems with rare-word weighting, plus title + opening-lines similarity for re-worded headlines; never merges different CVE IDs. `REV` 2 regroups stored articles once on start |
+| `app/collection_packs.py` | Stricter ready-made collection rules (title + opening lines, APT split into two rules). `PACK_RULES_REV` / `PREVIOUS` / `CURRENT` drive a one-time upgrade of unedited rules |
+| `app/api/automation.py` | `match_in: "title_opening"` (stored as `match_in = "title_content"` + `opening_only = 1`); `upgrade_pack_rules()` runs at start-up |
+| `app/rules.py` | Matches `opening_only` rules against the title plus the first 500 characters of the content |
+| `app/declutter.py` | More ad / sponsor / paywall / player patterns; `REV` 2 re-cleans stored articles once |
+| `app/fetcher.py` | `_feed_in_redirect`: when following a redirect yields no feed, re-reads the 30x answer itself (same URL, same guarded request) and uses it only if it parses as a feed |
+| `app/api/library.py` | `POST /library/videos/bulk` (`delete`, `add_to_playlist`) for ☑ Select videos |
+| `app/social_posts.py` | Sign-in / sign-up page detection (`login_wall`, `is_wall_text`), `mark_unavailable`, `linkedin_posted_at`; start-up repair of posts that saved a sign-in page |
+| `static/resources.js` | 📦 Repos view inside Resources (moves `#reposView` into the Resources body), repo hits in search and Ctrl+K, mind-map ⋯ menus |
+| `static/app.js` | Feed / folder source line in the list and reader; rule editor's *Title and opening lines* |
+| `app/db.py` | New column `rules.opening_only INTEGER NOT NULL DEFAULT 0` |
+
 ## 1.3.0 additions
 
 | Module | Purpose |

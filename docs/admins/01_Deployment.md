@@ -79,7 +79,9 @@ docker compose up -d --build
   the version you had** and prints the command to restore the backup. Options: `--check` (only report whether an update
   is waiting), `-y` (no question - for a timer), `--branch <name>`, `--no-backup`.
   Database migrations run automatically on start. The manual way still works: `git pull && docker compose up -d --build`
-  (back up first, see [Operations §5.2](02_Operations.md)).
+  (back up first, see [Operations §5.2](02_Operations.md)). **Coming from a version before 1.3.0** (no `deploy/update.sh`
+  yet)? Use the manual way once; `git pull` alone isn't enough, because the updater then finds nothing new and doesn't
+  rebuild. From then on `./deploy/update.sh` works.
   *Optional, updates on a schedule:* a nightly root crontab line such as
   `30 3 * * * cd /root/eye-of-sauron && ./deploy/update.sh -y >> /var/log/eos-update.log 2>&1`.
 * **Stronger key protection:** move the credential-encryption key and admin password into Docker secrets (commented example at the bottom of `docker-compose.yml`, and [GUIDE §5.4](GUIDE.md#54-encryption-key-management)). A leaked backup of the data volume then doesn't expose your stored social, AI and channel credentials.

@@ -168,6 +168,7 @@ CREATE TABLE IF NOT EXISTS rules (
     cve_category     TEXT,                   -- ... or a CVE in this CVE-tracking category slug ('rce', 'kev', ...)
     keywords_in_title INTEGER NOT NULL DEFAULT 0, -- v9: the main keywords must be in the title (other lists: match_in)
     match_in         TEXT NOT NULL DEFAULT 'title_content' CHECK (match_in IN ('title', 'title_content')),
+    opening_only     INTEGER NOT NULL DEFAULT 0, -- with match_in 'title_content': only the opening lines of the content
     feed_id          INTEGER REFERENCES feeds(id) ON DELETE CASCADE,
     folder_id        INTEGER REFERENCES folders(id) ON DELETE CASCADE,
     tag_id           INTEGER REFERENCES tags(id) ON DELETE SET NULL,
@@ -981,7 +982,8 @@ def _migrate(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE rules ADD COLUMN alert_channel_id INTEGER REFERENCES delivery_channels(id) ON DELETE SET NULL")
     for column, ddl in (("require_keywords", "TEXT NOT NULL DEFAULT '[]'"), ("cve_severity", "TEXT"),
                         ("cve_owasp", "TEXT"), ("keywords_in_title", "INTEGER NOT NULL DEFAULT 0"),
-                        ("cve_category", "TEXT")):  # v9: richer collection rules (fixed names, not user input)
+                        ("cve_category", "TEXT"),
+                        ("opening_only", "INTEGER NOT NULL DEFAULT 0")):  # v9+: richer collection rules (fixed names, not user input)
         if column not in rule_columns:
             conn.execute(f"ALTER TABLE rules ADD COLUMN {column} {ddl}")
     resource_columns = {row[1] for row in conn.execute("PRAGMA table_info(resources)")}

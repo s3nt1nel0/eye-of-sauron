@@ -215,3 +215,56 @@ def test_player_iframe_is_sandboxed_and_validated():
     assert 'sandbox: "allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox"' in player
     assert "allow-top-navigation" not in player and "allow-forms" not in player
     assert 'referrerpolicy: "strict-origin"' in player and player.count("iframe") == 1
+
+
+# ============================================================================ ☑ Select: bulk actions
+def _two_feeds_with_videos(n=3):
+    from app.db import get_db
+
+    now = int(time.time())
+    with get_db() as db:
+        ch = db.execute("INSERT INTO feeds (title, url, created_at, kind, source) VALUES ('Chan', 'https://y/c', ?, 'youtube', ?)",
+                        (now, json.dumps({"kind": "youtube", "channel_id": CH}))).lastrowid
+        pl = db.execute("INSERT INTO feeds (title, url, created_at, kind, source) VALUES ('Course', 'https://y/p', ?, 'youtube', ?)",
+                        (now, json.dumps({"kind": "youtube", "playlist_id": PL}))).lastrowid
+        ids = []
+        for i in range(n):
+            vid = f"VIDEO{i:06d}"
+            aid = db.execute("INSERT INTO articles (feed_id, guid, title, fetched_at, sort_ts) VALUES (?, ?, ?, ?, ?)",
+                             (ch, f"yt:video:{vid}", f"v{i}", now, now + i)).lastrowid
+            db.execute("INSERT INTO videos (article_id, video_id) VALUES (?, ?)", (aid, vid))
+            ids.append(aid)
+    return ch, pl, ids
+
+
+def test_bulk_add_to_playlist_links_without_copying(authed):
+    ch, pl, ids = _two_feeds_with_videos()
+    r = authed.post("/api/v1/library/videos/bulk", json={"article_ids": ids[:2] + [999999], "action": "add_to_playlist", "feed_id": pl})
+    assert r.status_code == 200 and r.json() == {"added": 2, "skipped": 1}
+    assert authed.post("/api/v1/library/videos/bulk", json={"article_ids": ids[:2], "action": "add_to_playlist", "feed_id": pl}).json() == {"added": 0, "skipped": 2}
+    assert authed.get(f"/api/v1/library/groups/p:{pl}").json()["total"] == 2     # shown in the playlist
+    assert authed.get(f"/api/v1/library/videos?feed_id={ch}").json()["total"] == 3   # still under the channel
+    assert _copies() == (3, 3)
+    # only a followed playlist can be the target (not a channel, not a made-up id); a feed id is required
+    for bad in ({"feed_id": ch}, {"feed_id": 424242}, {}):
+        assert authed.post("/api/v1/library/videos/bulk", json={"article_ids": ids, "action": "add_to_playlist", **bad}).status_code == 404
+
+
+def test_bulk_delete_removes_for_good_and_validates(authed):
+    ch, pl, ids = _two_feeds_with_videos()
+    authed.post("/api/v1/library/videos/bulk", json={"article_ids": [ids[0]], "action": "add_to_playlist", "feed_id": pl})
+    r = authed.post("/api/v1/library/videos/bulk", json={"article_ids": ids[:2] + [ids[0], 999999], "action": "delete"})
+    assert r.json() == {"removed": 2, "skipped": 1}                                # duplicates folded, unknown id skipped
+    from app.db import get_db
+
+    with get_db() as db:
+        tombs = {(r[0], r[1]) for r in db.execute("SELECT feed_id, guid FROM article_tombstones WHERE manual = 1")}
+    assert {(ch, "yt:video:VIDEO000000"), (pl, "yt:video:VIDEO000000"), (ch, "yt:video:VIDEO000001")} <= tombs
+    assert _copies() == (1, 1)
+    for bad in ({"article_ids": [], "action": "delete"}, {"article_ids": ids, "action": "drop"},
+                {"article_ids": list(range(1, 1002)), "action": "delete"}, {"article_ids": ids, "action": "delete", "extra": 1}):
+        assert authed.post("/api/v1/library/videos/bulk", json=bad).status_code == 422, bad
+
+
+def test_bulk_videos_needs_a_signed_in_writer(client):
+    assert client.post("/api/v1/library/videos/bulk", json={"article_ids": [1], "action": "delete"}).status_code in (401, 403)

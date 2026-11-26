@@ -45,3 +45,7 @@
 .acc-paste .form-actions { justify-content: flex-end; }
 .acc-contacts { flex-basis: 100%; }
 .acc-post .acc-follow, .acc-post .acc-trunc { margin-top: 8px; }
+/* long links in the ＋ dialog wrap instead of pushing it sideways (phones) */
+.acc-detected code, .acc-batch code { overflow-wrap: anywhere; word-break: break-all; }
+/* a short card (e.g. a post waiting for its text) keeps its own height instead of stretching to its row's tallest card */
+#accGrid.lib-grid:not(.shelves), #accGrid .lib-shelf-row { align-items: start; }

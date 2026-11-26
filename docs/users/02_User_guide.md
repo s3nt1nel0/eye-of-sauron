@@ -1,7 +1,7 @@
 # User guide
 
 *A simple, plain-language guide to what Eye of Sauron does and how to use it.*
-*Written for version 1.3. This guide is updated with every release. For detailed setup, administration and troubleshooting, see the [administrator docs](../admins/02_Operations.md).*
+*Written for version 1.4. This guide is updated with every release. For detailed setup, administration and troubleshooting, see the [administrator docs](../admins/02_Operations.md).*
 
 ---
 
@@ -33,7 +33,7 @@ anywhere to jump straight to a saved site):
 | 📰 **Articles** | Reading articles, like an email inbox for news. Includes the 🎭 Threat actors filter. |
 | 📊 **Dashboards** | Charts and numbers: what's trending, which threats are active, CVE tracking, MITRE ATT&CK / ATLAS matrices. |
 | 📺 **Videos** | YouTube channels and saved videos as a library, split into categories by topic; videos play inside the app. |
-| 📦 **Repos** | GitHub (and GitLab) projects you follow, plus gists, GitHub Docs pages and websites, in your own folders. |
+| 📦 **Repos** | GitHub (and GitLab) projects you follow, plus gists, GitHub Docs pages and websites, in your own folders. Shown inside 🔗 Resources (📦 Repos) by default; it can be its own tab again. |
 | 🔗 **Resources** | Your bookmarks: websites, training platforms, labs, cheat sheets and tools, sorted into topics, with a ★ Launchpad. |
 | 👥 **Socials** | Posts from social media accounts you follow (Mastodon, Bluesky, Reddit, X through a bridge…). |
 | 🎙 **Podcasts** | Podcast shows and episodes, with a built-in player. |
@@ -158,7 +158,7 @@ Set rules up in **Settings → Rules**. A rule can:
 
 Grouped collections, such as *ATT&CK: …*, appear under one heading in the sidebar. Click the heading to open or close the group.
 
-**Smarter rules:** a rule can also require a word from a **second list**, for example *OT words* **and** *attack words*. Tick **Main words must be in the title** to keep it focused on articles that are really about the topic. It can also match only articles that mention a CVE of a chosen **severity** or **OWASP category**. If you leave the words empty, the rule matches everything in the folder or feed you chose.
+**Smarter rules:** a rule can also require a word from a **second list**, for example *OT words* **and** *attack words*. Tick **Main words must be in the title** to keep it focused on articles that are really about the topic. Or set **Search in → Title and opening lines**: the rule then looks at the headline and the first few sentences only, so a word an article mentions in passing further down doesn't file it. The ready-made threat collections (APT & Nation-State, Ransomware, Malware, Phishing…) work this way. For example, an article about Nvidia's CEO that mentions a "Chinese espionage case" deep in the text is no longer filed under APT & Nation-State. If you changed one of those rules yourself, your version is kept. It can also match only articles that mention a CVE of a chosen **severity** or **OWASP category**. If you leave the words empty, the rule matches everything in the folder or feed you chose.
 
 **Topics** work automatically in the background. Every article and video is tagged with topics such as *Malware*, *Cloud* or *AI security*. You can edit topics in **Videos → Topics…**.
 
@@ -284,7 +284,7 @@ The line under the menus says what you're looking at, for example: *"Qilin — 8
 - **Cleaning up:** **☑ Select** → tick playlists/groups → **🗑 Delete…**.
 - **Adding just a playlist:** paste the playlist link (or the link of a video you're watching in it) into **+ Add channels or video**; only that playlist is added, not the channel.
 - **Watched videos:** press **✓** on a video (or play it) and it leaves your library view; pick **✓ Watched** in the **Status** drop-down to see them, and press **↩** there to bring one back. Turn this off with *Hide watched videos* in Settings → Appearance & reading.
-- **Videos toolbar:** **＋** (left), search, **Channels ▾**, **Topics ▾**, **Length**, **Status** (*all / Unwatched / ✓ Watched / ★ Starred*), **Sort** (date added, published, views, length, and at the bottom **📅 Custom range…** to show only videos published between two dates - pick **✕ Clear custom range** to remove it; the Sort box is outlined while a range is on), **View** (Grid or List), then **🏷️ By topic** and **🗂️ Playlists & groups**. These two switch on and off: click one to open it, click it again to go back to the view you were in (all videos or By topic). Switching between them, and turning **🏷️ Tags** on or off, is instant: each view is kept in memory and quietly refreshed in the background.
+- **Videos toolbar:** **＋** (left), search, **Channels ▾**, **Topics ▾**, **Length**, **Status** (*all / Unwatched / ✓ Watched / ★ Starred*), **Sort** (date added, published, views, length, and at the bottom **🕘 Last 24 hours** - only videos published in the past day, counted from now each time the list loads - and **📅 Custom range…** to show only videos published between two dates; **✕ Show any date** / **✕ Clear custom range** removes either; the Sort box is outlined while one is on), **View** (Grid or List), then **🏷️ By topic** and **🗂️ Playlists & groups**. These two switch on and off: click one to open it, click it again to go back to the view you were in (all videos or By topic). Switching between them, and turning **🏷️ Tags** on or off, is instant: each view is kept in memory and quietly refreshed in the background.
 - **Sort** offers date added, published date, views and length (the topic view is the 🏷 By topic tab).
 - **Adding a playlist always brings every video in it.** The retention choice is for a channel's videos only. Ticking just *Follow the channel* brings its new uploads from now on, not its old videos.
 - **🏷 By topic** (next to All videos) shows a shelf per topic. *Show all →* on a shelf opens that topic; click **By topic** again to get the shelves back.
@@ -297,6 +297,9 @@ The line under the menus says what you're looking at, for example: *"Qilin — 8
 - **Socials** (the 👥 tab, called *Accounts* before 2026-11-23): **＋** adds anything - paste profile links, subreddits (reddit.com/r/homelab) or single posts, one per line; the dialog shows what each line is. Use **Accounts ▾ → ⚙** for an account's settings (retention, refresh, name…) or to remove it, and **Platforms ▾ → ⚙** to change or remove all accounts of a platform.
 - **Subreddits** bring in every new post, checked every 30 minutes.
 - **Single posts** (a link to one post) are shown so you can read them right here: who wrote it (name, handle, picture), when, the post's picture and its text. Long posts start as a short preview - press **Show more ▾** (above the text) for all of it. While you read, **Show less ▴** stays at the top of the screen, just under the search bar, so you can fold the post from anywhere in it.
+- **"⚠ LinkedIn only shows this post to signed-in members"** on a card means the site showed its sign-in page instead of the post (or the post was deleted). The card is called *LinkedIn post* and shows the day it was posted. Nothing is ever done to get around that: open the post, copy its text and press **✎ Paste the post's text**. **↻** tries the site again.
+- **No duplicates:** a post that's already in Socials - one you saved, or one from an account you follow - can't be added again, even from a different-looking link (twitter.com instead of x.com, a LinkedIn share link…). The ＋ window marks it **✓ already in Socials** and skips it. If you deleted a post, you can add it again.
+- **🏷️ Tags** shows every post's topics or folds them behind each post's 🏷️ button. Switching it just changes the tags in place - the page doesn't reload or jump.
 - **Delete a post:** press **🗑** under it (on the cards and in ☰ Read). It asks first. A post from an account you follow won't come back when the account is checked again; a post you saved yourself can be added again by pasting its link. To remove all of an account's posts, remove the account (**Accounts ▾ → ⚙ → 🗑 Remove**).
 - **Pictures:** click a saved post's picture to see it big, right here (it doesn't open the post's site). Click the picture again for its actual size; press Esc, ✕ or click the dark area to close. **Open post ↗** is still there when you want the original.
 - **Make posts wider or narrower:** point at a post's right edge until a small bar appears, then drag it. All posts in the view change together (the ☰ Read view has its own width). Your width is remembered; double-click the edge to go back to the automatic width.
@@ -350,11 +353,18 @@ The line under the menus says what you're looking at, for example: *"Qilin — 8
   but not searched for on their own, so articles about something else aren't tagged.
 - **No ads inside articles:** sponsor lines, "follow us on…" and newsletter boxes, "Buy now" / "Try it free" links and
   "The post … appeared first on …" footers that publishers put into their feeds are removed, so the reader shows the article only.
-  It learns per source: a promo line that keeps appearing under a site's articles is recognised after about three articles. This
-  is always on; there is no setting for it.
+  It learns per source: a promo line that keeps appearing under a site's articles is recognised after about three articles.
+  Some things go straight away, even the first time: paid sponsor boxes inside an article, "we may earn a commission"
+  notices, "you're out of free articles" paywall text, "listen to this article" players, and a site's own product plug at
+  the very end. Sponsored articles keep their text, and tables or lists of products are never cut. This is always on;
+  there is no setting for it.
 - **Same story, many sources:** when several sites report the same story, the list shows it once with a **🧩 +5 sources**
-  button. Click it to see the other sources and read any of them; **✓ Mark all read** clears the whole story. Turn it off or make
+  button. Click it to see the other sources and read any of them; **✓ Mark all read** clears the whole story. It also catches
+  re-worded headlines ("Hackers spy on Bulgarian government…" and "Bulgaria discovers massive government breach…") by
+  comparing the first lines of the articles. Two articles about different CVE numbers are never grouped. Turn it off or make
   it stricter / looser in **Settings → Appearance & reading → Smart features**.
+- **Where an article comes from:** every article in the list shows its feed and its 📁 folder, and an open article says
+  *From (feed) in (folder)*. Click the feed or the folder to see everything from it.
 - **Pages for the things articles mention:** open an article and click a chip in the **Mentions** row (a threat actor, malware,
   vendor, country…). Its page shows how often it was mentioned over time, the latest articles, videos, podcast episodes and posts
   about it, and what it is usually seen together with. Techniques and MITRE groups also show MITRE's description.
@@ -388,6 +398,7 @@ The line under the menus says what you're looking at, for example: *"Qilin — 8
 - **Watching:** click a video's picture or title and it plays **inside the app**, in a window over the page. **⏮ / ⏭** go to the previous / next video on the page (in a playlist, in the playlist's order), **↗ YouTube** opens it on YouTube, **✕** or Esc closes it (the video stops). Want YouTube in a new tab instead? Ctrl-click (⌘-click on a Mac) the title.
 - **One copy of each video:** a video that is in a channel *and* in some of its playlists is stored once and shown in each of them - no duplicates. Adding a playlist or channel that overlaps what you have only adds the videos you don't have yet.
 - **Sort a channel's videos into its playlists:** added a channel but not its playlists? **Channels ▾ → ⚙ beside the channel → ☰ Sort into its playlists…** shows the channel's playlists (all ticked). Untick any you don't want, keep *Put them in a group named after the channel* if you like, and click **Sort into playlists**. The videos you already have go into their playlists in the channel's order; only missing videos are downloaded. Needs the free YouTube API key.
+- **Doing something to many videos at once:** click **☑ Select** in the toolbar (in the video grid and in By topic). Tick videos - or click their pictures, or **Select all shown** - and use the bar at the bottom: **🗂️ Add to group…** (one of yours or a new one), **▶ Add to playlist…** (it also shows in that playlist; your library only, YouTube isn't changed), **✓ Watched / ↩ Unwatched**, **★ Star / ☆ Unstar**, **🗑️ Remove…** (for good). **Done** (or **✓ Done selecting**) turns it off. On a phone the bar is one row: swipe it sideways for more actions. Playlists & groups has its own ☑ Select for cards.
 - **Removing:** **🗑** on a video removes it for good (it won't come back on updates, from any playlist or channel). In a playlist, **🗑 Delete playlist** removes the playlist and its videos - except videos the channel or another playlist you follow also has, which stay.
 - **Playlists & groups:** click **🗂 Playlists & groups** to see each playlist you follow, and your own groups, as cards. Click a card to see its videos in order.
   - **Make a group** (a series, a course, "watch later"…): click **＋** on any video card → **New group…**, or **+ New group** in the Playlists & groups view. Add more videos the same way.
@@ -476,6 +487,14 @@ can find it quickly.
   and **click and drag to move** the map; on the keyboard, click the map and use the arrow keys, + / − and 0 (fit).
   **Fit** shows the whole map centred again. Connect two folders with
   **🧠 Goes well with…** (on the map, or in a folder's ⋯ in the tree); ✎ changes the note, ✕ removes the connection.
+- **📦 Repos** (a view button in Resources): your whole Repos screen lives here now - repo folders, all repos, by topic /
+  owner / language, releases, adding and following. The number on the button is new releases since you last looked.
+  The Repos tab at the top is hidden; **Show Repos as its own tab too** (in the 📦 view) brings it back. Searching in
+  Resources lists matching repos first, and Ctrl+K finds repos as well.
+- **Change a link from the mind map:** press **⋯** next to a link (or repo) in the side panel. **📁 Folders…** lists
+  every folder with a tick where it is now - tick more to put it in several topics, untick to take it out; **− Take out
+  of …** removes it from just this topic; ✎ Edit changes its title, description and notes; 🗑 Delete removes it from
+  Resources entirely (from every folder). The same 📁 Folders… is in a link's ⋯ in the folder tree.
 - **Adding links:** **＋** (top) or **＋ Add… → ＋ New links…** on a topic. Leave **Put them in** on *✨ Sort into topics
   automatically* and each new link goes where it fits (next to links from the same site, by its title and description,
   its category and type) - you'll see *→ 📁 folder* after each one. With **📖 Read each page** ticked the app reads each

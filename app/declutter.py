@@ -12,6 +12,15 @@ tracking pixels. Three layers, all local (no request is made):
   3. tail         - at the end of an article: repeated blocks after promotion go too, and so do the few
                     repeated blocks leading up to a call-to-action (the heading and sales lines of a
                     multi-part ad).
+  Since REV 2 (2026-11-26) also, without needing repetition:
+  * paid placements - a box (little text) around a link to another site whose campaign tags say it was paid for
+                    (utm_medium=paid_display / link placement / sponsored / native / affiliate ...), with its
+                    image, heading and sales lines;
+  * boilerplate   - affiliate / commission disclosures, "you're out of free articles" paywall text, "add us on
+                    Google" / "preferred source" buttons, "listen to this article" audio players, "[link] [comments]";
+                    when the line shares a paragraph with a picture, only the line goes;
+  * closing plug  - a short section after the article's last horizontal rule that ends in a "download / install /
+                    try / add it to your browser" link (the publisher's own product ad).
 
 Deliberately conservative: only short blocks, never a block holding the story's paragraphs, and repeated text
 without a link or a promotion cue (a vendor's standing advice, "Relevant CWE: …" lines, a legal notice) is kept.
@@ -34,7 +43,7 @@ from app.sanitize import to_text
 
 log = logging.getLogger("eos.declutter")
 
-REV = "1"
+REV = "2"
 MAX_BLOCK = 400            # only blocks with less text than this are ever removed
 TAIL_BLOCKS = 8            # the last blocks of an article are counted even without a link
 MAX_TAGS = 20000           # markup with more elements than this is left as it is (cost guard)
@@ -43,6 +52,16 @@ MIN_REPEAT = 3             # a block is "repeated" when this many articles of th
 MIN_SHARE = 0.02           # …and at least this share of the feed's counted articles
 BIG_SHARE = 0.30           # an outside link without campaign parameters must be in this share of the articles
 TAIL_BACK = 4              # repeated blocks removed before a closing call-to-action
+PAID_BOX = 600             # a paid placement's box holds at most this much text
+BOILER_MAX = 300           # boilerplate lines are short
+WIDGET_BOX = 150           # an audio-player widget holds at most this much text
+AD_LINE = 160              # a paid link's own line is short and at least a quarter link - not a sentence naming a vendor
+AD_PARAGRAPH = 250         # …and no block in its box is longer than this
+SPONSORED_TARGETS = 3      # paid links to this many different pages: the whole article is sponsored content
+CLOSING_MAX = 450          # the closing plug after the last <hr>: at most this much text…
+CLOSING_BLOCKS = 3         # …in at most this many blocks
+MAX_CLIMB = 8              # ancestors looked at when growing a removal to its box
+MAX_PAID = 50              # paid links looked at per article (cost guard for hostile markup)
 WINDOW = 400               # counted articles per feed before the counts are halved (old campaigns fade)
 TOTAL = "*"                # feed_blocks row holding the number of counted articles
 ELIGIBLE = "COALESCE(f.kind, 'rss') IN ('rss', 'html') AND f.social_platform IS NULL"  # fixed SQL fragment
@@ -76,7 +95,11 @@ PROMO = re.compile(
     r"|subscribe (today|now)[\s.!]*$|^join [\d.,+k ]+ ?(readers|subscribers|professionals)"
     r"|create an account to save|sign up here|(delivered|straight|directly|stories like this) (to|in) your inbox"
     r"|as a preferred source|\(buy now\)|^buyer'?s guide:|\b(buy now|shop now|order now)[\s!.→»]*$"
-    r"|get notified about new (publications|posts|articles)", re.I | re.S)
+    r"|get notified about new (publications|posts|articles)"
+    r"|(have you )?signed up (for|to) (our|the) .{0,30}newsletter|(start|begin) (every|each|your) (day|morning) with the (top|latest)"
+    r"|upgrade to a paid plan|get a free [\w ]{1,30} account|price data by coingecko"
+    r"|meld je aan voor (onze|de) nieuwsbrief|abonneer je .{0,60}nieuwsbrief|volg (ons|jij) .{0,60}(mastodon|bluesky|instagram|linkedin|op de voet)",
+    re.I | re.S)
 # a block that is nothing but a link saying this
 CTA = re.compile(
     r"^(try (it |now )?(for )?free|start (your |a )?free trial|free trial|(book|request|get|schedule) a (free )?demo"
@@ -87,6 +110,18 @@ CTA_SOFT = re.compile(
     r"^(get started( for free| free| now| today)?|download (the|our|your|now|free)( [\w-]+){0,4}|learn more( about [\w .&-]{1,60})?"
     r"|click here|watch (the )?(webinar|demo|video)|read (their|the|our) review|find out more|see how|get the (report|guide|ebook))"
     r"[\s!.:»→>…]*$", re.I)
+# campaign tags of a link that was paid for (not an editorial link, which never carries these)
+PAID = re.compile(r"(^|[?&#;])(utm_medium=([^&#]*[^a-z&#])?(paid|sponsor\w*|placement|display|native|cpc|ppc|advert\w*|banner)"
+                  r"(?![a-z])|utm_source=(display_network|paid|sponsor\w*)(?![a-z]))", re.I)
+BOILER = re.compile(
+    r"affiliate partner|\b(we|may) (may )?(earn|receive|make) (a )?(small )?(commission|payment|money)\b"
+    r"|editorially independent|commission from merchants|when you (purchase|buy) through (links|our links)"
+    r"|you['’]re out of free articles|to continue reading (the rest of )?this (article|story),? please (log|sign) in"
+    r"|preferred (news )?source on google|^add (us |as a preferred source )?on google$"
+    r"|^listen to this article$|^press play to start listening$|^\[link\] \[comments\]$", re.I)
+WIDGET = re.compile(r"^(listen to this article|press play to start listening)$", re.I)
+CLOSING_CTA = re.compile(r"\b(download(ing)?|install(ing)?|add it to your (browser|device)|try (it|\w+) (free|now|today)|get (it|\w+) (free|now|today)"
+                         r"|start (your|a) free|protect (yourself|your devices?) (now|today)|free trial)\b", re.I)
 NEWSLETTER_HEAD = re.compile(r"^[\w' &-]{0,40}newsletter[\s:!.]*$", re.I)
 # softer wording: only counts for a block that repeats across the feed
 CUE = re.compile(r"newsletter|subscribe|follow (us|me)|sponsor|free trial|try (it )?(for )?free|\bdemo\b|webinar|check out|listen to|"
@@ -242,6 +277,118 @@ def _offsite(block: Tag, own: frozenset[str]) -> bool:
     return False
 
 
+INLINE_GAP = ("a", "span", "em", "strong", "b", "i", "u", "small", "font", "code")
+CONTENT_LISTS = ("table", "thead", "tbody", "tfoot", "tr", "td", "th", "ul", "ol", "dl", "li")  # rows of content, not ad boxes
+
+
+def _box(node: Tag, limit: int, doc_text: int, root: BeautifulSoup) -> Tag:
+    """The largest ancestor of ``node`` (itself included) that still holds at most ``limit`` characters of text,
+    has no picture of the article's (when it is not where we started) and is clearly not the whole article."""
+    target = node
+    parent = node.parent
+    for _ in range(MAX_CLIMB):
+        if parent is None or parent is root or not isinstance(parent, Tag) or parent.name in CONTENT_LISTS:
+            break
+        size = len(_text(parent))
+        if size > limit or size * 2 > doc_text:
+            break
+        target = parent
+        parent = parent.parent
+    return target
+
+
+def _paid_placements(soup: BeautifulSoup, own: frozenset[str], doc_text: int) -> int:
+    paid: list[Tag] = []
+    targets: set[str] = set()
+    for a in soup.find_all("a", href=True):
+        href = a["href"]
+        try:
+            parts = urlsplit(href)
+        except ValueError:
+            continue
+        if not (PAID.search(parts.query) or PAID.search(parts.fragment)):
+            continue
+        site = site_of(href)
+        if not site or site in own:
+            continue
+        paid.append(a)
+        targets.add(f"{(parts.hostname or '').lower()}{parts.path}")
+        if len(paid) >= MAX_PAID:
+            break  # cost guard: each one may look at a few ancestors
+    if len(targets) >= SPONSORED_TARGETS:
+        return 0  # paid links all through it: a sponsored article - its paragraphs are the article, leave them
+    removed = 0
+    for a in paid:
+        if a.decomposed:
+            continue
+        line = a.find_parent(BLOCK_TAGS)
+        if line is not None:
+            if line.name in CONTENT_LISTS:
+                continue                          # a product table / list row: content of the article, not a box
+            line_text, link_text = len(_text(line)), len(_text(a))
+            if line_text > AD_LINE or link_text * 4 < line_text:
+                continue                          # a sentence that happens to link a vendor with a tracking tag
+        box = _box(a, PAID_BOX, doc_text, soup)
+        if any(len(_text(b)) > AD_PARAGRAPH for b in ([box] if box.name not in BLOCK_TAGS else []) + box.find_all(BLOCK_TAGS)
+               if b.find(BLOCK_TAGS) is None):
+            continue
+        box.decompose()
+        removed += 1
+    return removed
+
+
+def _boilerplate(soup: BeautifulSoup, doc_text: int) -> int:
+    removed = 0
+    for b in _leaf_blocks(soup):
+        if b.decomposed:
+            continue
+        text = _text(b)
+        if not text or len(text) > BOILER_MAX or not BOILER.search(text):
+            continue
+        if WIDGET.match(text):
+            box = _box(b, WIDGET_BOX, doc_text, soup)
+            if box.find(["img", "video", "picture"]) is None:
+                box.decompose()
+                removed += 1
+            continue
+        if b.find(["img", "video", "picture", "iframe"]) is None:
+            b.decompose()
+            removed += 1
+            continue
+        # the line shares its paragraph with a picture: remove only the smallest inline element that holds it
+        for el in b.find_all(["small", "em", "i", "span", "strong", "b", "sub", "sup", "font"]):
+            if BOILER.search(_text(el)) and el.find(["img", "video", "picture", "iframe"]) is None:
+                el.decompose()
+                removed += 1
+                break
+    return removed
+
+
+def _closing_plug(soup: BeautifulSoup, doc_text: int) -> int:
+    """A short closing section after the last <hr> that ends in a download / install / try link."""
+    rules = soup.find_all("hr")
+    if not rules:
+        return 0
+    last = rules[-1]
+    after: list[Tag] = []
+    size = 0
+    for el in last.find_all_next(True):
+        if not isinstance(el, Tag) or el.name not in BLOCK_TAGS or el.find(BLOCK_TAGS) is not None:
+            continue
+        after.append(el)
+        size += len(_text(el))
+        if len(after) > CLOSING_BLOCKS or size > CLOSING_MAX:
+            return 0
+    if not after or size * 3 > doc_text:  # nothing there, or that is most of the "article"
+        return 0
+    if not any(CLOSING_CTA.search(a.get_text(" ", strip=True)) for b in after for a in b.find_all("a", href=True)):
+        return 0
+    for b in after:
+        b.decompose()
+    last.decompose()
+    return len(after)
+
+
 def signatures(html: str) -> list[str]:
     """Blocks of one article that are worth counting across its feed (before it is cleaned)."""
     if not html or html.count("<") > 2 * MAX_TAGS:
@@ -295,6 +442,10 @@ def _clean_once(html: str, own_sites: frozenset[str], repeated: frozenset[str], 
         elif _ad_host(el.get("href")) and (el.find("img") is not None or not el.get_text(strip=True)):  # a banner, not a mention
             el.decompose()
             removed += 1
+    doc_text = len(_text(soup))
+    removed += _paid_placements(soup, own_sites, doc_text)
+    removed += _boilerplate(soup, doc_text)
+    removed += _closing_plug(soup, doc_text)
     blocks = _leaf_blocks(soup)
     gone: dict[int, str] = {}                    # id(block) -> why
     info: list[tuple[Tag, str, bool]] = []       # block, text, repeated in the feed
@@ -350,7 +501,10 @@ def _drop_empty(soup: BeautifulSoup) -> None:
         if t.name in EMPTY_OK:
             continue
         if all(isinstance(c, NavigableString) and not c.strip() for c in t.contents):
-            t.decompose()
+            if t.name in INLINE_GAP and t.contents:
+                t.replace_with(" ")               # "A separate<a> </a>ClickFix": keep the space between the words
+            else:
+                t.decompose()
     while soup.contents:
         last = soup.contents[-1]
         if (isinstance(last, Tag) and last.name in ("br", "hr")) or (isinstance(last, NavigableString) and not last.strip()):

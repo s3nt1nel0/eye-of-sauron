@@ -23,7 +23,7 @@
       // Saved before folders existed (no v: 2): open on your folder tree once, whatever view was remembered.
       const f = saved.v === 2 ? { ...DEFAULTS, ...saved } : { ...DEFAULTS, sort: saved.sort || DEFAULTS.sort };
       f.v = 2;
-      if (!["launch", "tree", "map", "mind", "categories", "list"].includes(f.view)) f.view = "tree";
+      if (!["launch", "tree", "map", "mind", "repos", "categories", "list"].includes(f.view)) f.view = "tree";
       f.category_id = f.category_id === undefined || f.category_id === null ? "" : String(f.category_id);
       return f;
     })(),
@@ -35,7 +35,7 @@
       this.renderShell();
       await this.reload();
     },
-    hide() { /* nothing to tear down */ },
+    hide() { this.unmountRepos(); },
     save() { store.set("fw-resources-filters", this.filters); },
     async loadMeta() {
       this.meta = await api("GET", "/resources/meta").catch((ex) => ({ missing: ex.message === "Not Found", total: 0, training: 0, uncategorised: 0,
@@ -44,7 +44,7 @@
     async refreshAll() { await this.loadMeta(); this.renderShell(); await this.reload(); },
     set(changes, shell = true) {
       if (changes.view && changes.view !== "list") this.folderFilter = null;
-      if (["launch", "tree", "map", "mind"].includes(changes.view)) {
+      if (["launch", "tree", "map", "mind", "repos"].includes(changes.view)) {
         Object.assign(changes, { q: "", kind: "", training: false, status: "", favourite: false, category_id: "" });
       }
       Object.assign(this.filters, changes); this.save(); if (shell) this.renderShell(); this.reload();
@@ -53,7 +53,7 @@
     shownView() {
       const f = this.filters;
       if (f.view === "categories") return f.category_id === "" && !f.q ? "categories" : "list";
-      if (["launch", "tree", "map", "mind"].includes(f.view)) return f.category_id === "" && !f.q && !f.kind && !f.training && !f.status && !f.favourite ? f.view : "list";
+      if (["launch", "tree", "map", "mind", "repos"].includes(f.view)) return f.category_id === "" && !f.q && !f.kind && !f.training && !f.status && !f.favourite ? f.view : "list";
       return "list";
     },
     catName(id) {
@@ -74,6 +74,7 @@
     },
 
     renderShell() {
+      this.unmountRepos();
       const el = $("#resourcesView");
       const f = this.filters;
       const m = this.meta;
@@ -102,10 +103,11 @@
           select("Sort", SORTS, f.sort, (v) => this.set({ sort: v }, false)),
           h("button", { type: "button", class: "btn small", text: "⚙ Categories", title: "Rename, recolour, reorder, add or delete categories", onclick: () => this.openCategories() })),
         h("div", { class: "res-views lib-pad", role: "tablist", "aria-label": "How to show your links" },
-          [["launch", "★ Launchpad"], ["tree", "🌳 Folders"], ["map", "🗺 Map"], ["mind", "🧠 Mind map"], ["categories", "🗂 Categories"], ["list", "☰ All links"]].map(([v, label]) => {
+          [["launch", "★ Launchpad"], ["tree", "🌳 Folders"], ["map", "🗺 Map"], ["mind", "🧠 Mind map"], ["repos", "📦 Repos"], ["categories", "🗂 Categories"], ["list", "☰ All links"]].map(([v, label]) => {
             const on = this.shownView() === v;
             return h("button", { type: "button", role: "tab", class: `btn small${on ? " primary" : ""}`, "aria-selected": String(on), text: label,
-              onclick: () => this.set({ view: v }) });
+              "data-view": v, onclick: () => this.set({ view: v }) },
+              v === "repos" ? h("span", { class: "res-badge-new", id: "resReposBadge", hidden: true }) : null);
           })),
         h("div", { class: "repo-filters lib-pad" },
           h("label", { class: "repo-tick" }, h("input", { type: "checkbox", checked: f.favourite, onchange: (e) => this.set({ favourite: e.target.checked, view: e.target.checked ? "list" : f.view }) }), " ★ Favourites"),
@@ -126,6 +128,7 @@
         h("div", { id: "resCount", class: "muted small lib-pad", "aria-live": "polite" }),
         h("div", { id: "resBody" }),
         h("div", { class: "lib-more" }, h("button", { id: "resMore", type: "button", class: "btn", text: "Load more", hidden: true, onclick: () => this.loadMore() })));
+      this.updateReposBadge();
       if (m.missing) {
         $("#resBody").replaceWith(h("div", { class: "card lib-empty" }, h("h3", { text: "Restart needed" }),
           h("p", { class: "muted", text: "The server running this app doesn't have the Resources tab yet. Restart the app, then reload this page." })));
@@ -160,6 +163,11 @@
       const more = $("#resMore");
       if (more) more.hidden = true;
       if (f.view === "categories" && f.category_id === "" && !f.q) { this.renderCategories(body); return; }
+      if (f.view === "repos" && f.category_id === "" && !f.q && !f.kind && !f.training && !f.status && !f.favourite) {
+        this.mountRepos(body);
+        return;
+      }
+      this.unmountRepos();
       if (f.view === "launch" && f.category_id === "" && !f.q && !f.kind && !f.training && !f.status && !f.favourite) {
         await this.renderLaunchpad(body);
         return;
@@ -175,8 +183,20 @@
         this.items = data.items;
         this.total = data.total;
         $("#resCount").textContent = `${data.total.toLocaleString()} link(s)${f.category_id !== "" ? ` in ${this.catName(f.category_id)}` : ""}`;
-        fill(body, data.items.length ? h("ul", { class: "res-list" }, data.items.map((r) => this.row(r)))
-          : h("p", { class: "muted lib-pad", text: this.meta.total ? "Nothing matches these filters." : "" }));
+        let repoHits = null;
+        if (f.q && !f.kind && !f.training && !f.status && f.category_id === "") {
+          const rr = await api("GET", `/resources/repo-search?${new URLSearchParams({ q: f.q })}`).catch(() => ({ items: [] }));
+          if (rr.items.length) {
+            const term = f.q;
+            repoHits = h("div", { class: "res-repo-hits lib-pad" },
+              h("strong", { class: "small", text: `📦 Repos (${rr.items.length >= 40 ? "40+" : rr.items.length})` }),
+              h("ul", { class: "res-repo-hit-list" }, rr.items.slice(0, 6).map((rp) => h("li", null, this.repoLink(rp),
+                rp.description ? h("span", { class: "muted small", text: ` - ${rp.description.slice(0, 90)}` }) : null))),
+              h("button", { type: "button", class: "btn small", text: "Show them in 📦 Repos", onclick: () => { this.reposQuery = term; this.set({ view: "repos" }); } }));
+          }
+        }
+        fill(body, repoHits, data.items.length ? h("ul", { class: "res-list" }, data.items.map((r) => this.row(r)))
+          : h("p", { class: "muted lib-pad", text: this.meta.total ? "Nothing else matches these filters." : "" }));
         if (more) more.hidden = this.items.length >= this.total;
         this.renderSelBar();
       } catch (err) { fill(body, h("p", { class: "error lib-pad", text: err.message })); }
@@ -238,6 +258,7 @@
       const linkRow = (it, fid) => {
         const menu = h("details", { class: "repo-folder-menu" }, h("summary", { class: "icon-btn", text: "⋯", "aria-label": `Options for ${it.title}` }),
           h("div", { class: "repo-folder-menu-list", role: "menu" },
+            h("button", { type: "button", class: "btn small", text: "📁 Folders… (put it in several)", onclick: () => this.placeIn({ type: "link", item: it }) }),
             h("button", { type: "button", class: "btn small", text: "⇢ Move to folder…", onclick: () => this.fileLinks([it.id], fid ? "move" : "add", fid) }),
             h("button", { type: "button", class: "btn small", text: "＋ Also put in folder…", onclick: () => this.fileLinks([it.id], "add", null) }),
             h("button", { type: "button", class: "btn small", text: it.favourite ? "☆ Remove from favourites" : "★ Add to favourites (Launchpad)", onclick: async () => {
@@ -392,6 +413,89 @@
             rootLinks.length > 60 ? h("li", null, h("div", { class: "res-leaf muted", text: `…and ${rootLinks.length - 60} more` })) : null))));
     },
 
+    /** ⋯ for one link or repo in the mind-map panel: choose its folders (several), take it out of this one, edit, delete. */
+    itemMenu({ type, item, fid }) {
+      const t = this.tree;
+      const here = fid ? t.folder.get(fid) : null;
+      const close = (e) => { const d = e.target.closest("details"); if (d) d.open = false; };
+      const after = async () => { this.tree = null; await this.loadTree(); this.mindSel = fid; this.reload(); };
+      const rows = type === "link" ? [
+        h("button", { type: "button", class: "btn small", text: "📁 Folders… (put it in several)", onclick: (e) => { close(e); this.placeIn({ type, item }); } }),
+        here ? h("button", { type: "button", class: "btn small", text: `− Take out of ${here.name}`, onclick: async (e) => {
+          close(e);
+          if (await guarded(() => api("POST", `/resources/folders/${fid}/items`, { resource_ids: [item.id], action: "remove" }), `Taken out of ${here.name}`)) await after();
+        } }) : null,
+        h("button", { type: "button", class: "btn small", text: "✎ Edit title, description, notes…", onclick: async (e) => {
+          close(e);
+          const full = (await api("GET", `/resources?q=${encodeURIComponent(item.url.slice(0, 190))}&limit=5`)).items.find((x) => x.id === item.id);
+          if (full) this.openEdit(full);
+        } }),
+        h("button", { type: "button", class: "btn small", text: "📍 Show in the folder tree", onclick: (e) => { close(e); this.locate(item, "tree", fid); } }),
+        h("button", { type: "button", class: "btn small danger", text: "🗑 Delete link…", onclick: async (e) => {
+          close(e);
+          const n = (item.folders || []).length;
+          if (!window.confirm(`Delete “${item.title}”?\n\nIt goes from Resources entirely${n > 1 ? ` - from all ${n} folders it's in` : ""}. This can't be undone.\nTo only remove it from ${here ? here.name : "this folder"}, use “Take out” instead.`)) return;
+          if (await guarded(() => api("DELETE", `/resources/${item.id}`), "Link deleted")) await after();
+        } }),
+      ] : [
+        h("button", { type: "button", class: "btn small", text: "📁 Folders… (show it under several)", onclick: (e) => { close(e); this.placeIn({ type, item }); } }),
+        here ? h("button", { type: "button", class: "btn small", text: `− Take off ${here.name}`, onclick: async (e) => {
+          close(e);
+          if (await guarded(() => api("POST", `/resources/folders/${fid}/repos`, { repo_ids: [item.id], action: "remove" }), `Taken off ${here.name} (still in Repos)`)) await after();
+        } }) : null,
+      ];
+      return h("details", { class: "repo-folder-menu mm-item-menu" },
+        h("summary", { class: "icon-btn", text: "⋯", title: "Edit, move or remove", "aria-label": `Options for ${item.title}` }),
+        h("div", { class: "repo-folder-menu-list", role: "menu" }, rows));
+    },
+    /** 📁 Folders…: every folder with a tick where this link (or repo) is now - tick more to add it there, untick to take it out. */
+    async placeIn({ type, item }) {
+      await this.loadTree();
+      const t = this.tree;
+      const now = new Set(type === "link" ? (t.items.find((x) => x.id === item.id) || item).folders || []
+        : [...t.reposBy.entries()].filter(([, rs]) => rs.some((r) => r.id === item.id)).map(([f]) => f));
+      const chosen = new Set(now);
+      const find = h("input", { type: "search", maxlength: 100, placeholder: "Find a folder…", "aria-label": "Find a folder" });
+      const list = h("ul", { class: "res-cat-list res-place-list" });
+      const count = h("p", { class: "muted small" });
+      const err = h("p", { class: "error small" });
+      const rows = [];
+      const walk = (pid, depth) => (t.kids.get(pid) || []).forEach((f) => {
+        const box = h("input", { type: "checkbox", checked: chosen.has(f.id), onchange: (e) => { if (e.target.checked) chosen.add(f.id); else chosen.delete(f.id); tally(); } });
+        const li = h("li", { "data-text": this.folderPath(f.id).toLowerCase(), style: { "padding-left": `${depth * 16}px` } },
+          h("label", null, box, ` 📁 ${f.name}`, now.has(f.id) ? h("span", { class: "muted small", text: " · here now" }) : null));
+        rows.push(li);
+        walk(f.id, depth + 1);
+      });
+      walk(0, 0);
+      fill(list, rows);
+      const tally = () => { count.textContent = `In ${chosen.size} folder(s)${chosen.size ? "" : " - it will show under “Not in a folder”"}`; };
+      tally();
+      find.addEventListener("input", () => {
+        const q = find.value.trim().toLowerCase();
+        rows.forEach((li) => { li.hidden = !!q && !li.dataset.text.includes(q); });
+      });
+      this.dialog("Choose folders", (dlg) => h("form", { class: "form", onsubmit: async (e) => {
+        e.preventDefault();
+        const add = [...chosen].filter((f) => !now.has(f));
+        const remove = [...now].filter((f) => !chosen.has(f));
+        try {
+          for (const f of add) await api("POST", type === "link" ? `/resources/folders/${f}/items` : `/resources/folders/${f}/repos`,
+            type === "link" ? { resource_ids: [item.id], action: "add" } : { repo_ids: [item.id] });
+          for (const f of remove) await api("POST", type === "link" ? `/resources/folders/${f}/items` : `/resources/folders/${f}/repos`,
+            type === "link" ? { resource_ids: [item.id], action: "remove" } : { repo_ids: [item.id], action: "remove" });
+          dlg.close();
+          if (add.length || remove.length) toast(`Added to ${add.length}, taken out of ${remove.length} folder(s)`);
+          this.tree = null; this.reload();
+        } catch (ex) { err.textContent = ex.message; }
+      } }, h("h3", { text: `📁 Folders for ${type === "repo" ? "📦 " : ""}${item.title}` }),
+        h("p", { class: "muted small", text: type === "repo" ? "Tick every topic it should show under. The repo itself stays in the Repos tab."
+          : "Tick every topic it belongs to - it's one link, shown in each (edits and ★ apply everywhere)." }),
+        find, list, count, err,
+        h("div", { class: "form-actions" }, h("button", { type: "button", class: "btn", text: "Cancel", onclick: () => dlg.close() }),
+          h("button", { type: "submit", class: "btn primary", text: "Save" }))));
+      find.focus();
+    },
     /** ＋ Add… for one folder: new links (pasted), links already in Resources, or repos from the Repos tab. */
     addMenu(fid, label = "＋ Add…") {
       return h("details", { class: "repo-folder-menu res-add-menu" },
@@ -484,6 +588,58 @@
       search();
     },
 
+    /* ===================================================================== 📦 Repos inside Resources */
+    reposCombined() { return store.get("fw-repos-in-resources", true) !== false; },
+    /** The top Repos tab is hidden while Repos lives in Resources (one click brings it back). */
+    applyReposTab() {
+      const b = document.getElementById("modeRepos");
+      if (b) b.hidden = this.reposCombined();
+    },
+    /** Show the Repos screen (the Repos tab's own section) inside Resources' 📦 Repos view. */
+    mountRepos(body) {
+      const rv = document.getElementById("reposView");
+      if (!rv || !FW.repos) { fill(body, h("p", { class: "muted lib-pad", text: "Repos isn't available in this app." })); return; }
+      if (!this.reposHome) this.reposHome = { parent: rv.parentNode };
+      const combined = this.reposCombined();
+      $("#resCount").textContent = "Your GitHub repos, owners, topics, stars and releases - the Repos screen, here in Resources";
+      const note = h("p", { class: "muted small res-repos-note lib-pad" },
+        combined ? "📦 Repos lives here in Resources now (its own tab is hidden). " : "📦 Repos also has its own tab at the top. ",
+        h("button", { type: "button", class: "btn small", text: combined ? "Show Repos as its own tab too" : "Keep Repos only in Resources",
+          onclick: () => { store.set("fw-repos-in-resources", !combined); this.applyReposTab(); this.unmountRepos(); this.reload(); } }));
+      fill(body, note, rv);                                  // moves the Repos section in here
+      rv.hidden = false;
+      rv.classList.add("res-embedded");
+      this.reposMounted = true;
+      store.set("fw-res-releases-seen", Math.floor(Date.now() / 1000));
+      this.updateReposBadge(0);
+      if (this.reposQuery) {                                 // "Show them in 📦 Repos" / Ctrl+Enter: open on that search
+        Object.assign(FW.repos.filters, { q: this.reposQuery, view: "grid" });
+        if (FW.repos.save) FW.repos.save();
+        this.reposQuery = null;
+      }
+      FW.repos.show();
+    },
+    /** Put the Repos section back where the page keeps it (before Resources redraws, or when leaving the view / tab). */
+    unmountRepos() {
+      if (!this.reposMounted) return;
+      this.reposMounted = false;
+      const rv = document.getElementById("reposView");
+      if (FW.repos) FW.repos.hide();
+      if (!rv || !this.reposHome) return;
+      const anchor = document.getElementById("resourcesView");
+      this.reposHome.parent.insertBefore(rv, anchor && anchor.parentNode === this.reposHome.parent ? anchor : null);
+      rv.classList.remove("res-embedded");
+      rv.hidden = !document.getElementById("app").classList.contains("mode-repos");
+    },
+    /** New releases since you last opened 📦 Repos, as a small count on its button. */
+    async updateReposBadge(n) {
+      const set = (k) => { const b = document.getElementById("resReposBadge"); if (b) { b.hidden = !k; b.textContent = k > 99 ? "99+" : String(k); b.title = `${k} new release(s)`; } };
+      if (typeof n === "number") { set(n); return; }
+      const seen = store.get("fw-res-releases-seen", 0) || Math.floor(Date.now() / 1000) - 7 * 86400;
+      const r = await api("GET", `/repos/releases?${new URLSearchParams({ since: String(seen), limit: "1" })}`).catch(() => null);
+      if (r && this.filters.view !== "repos") set(r.total || 0);
+    },
+
     /* ===================================================================== ★ Launchpad + Ctrl+K launcher */
     /** One tile: opens ONE site in a new tab (and counts it); the colour and emoji come from its first category. */
     tile(r) {
@@ -549,10 +705,10 @@
       const tabs = () => [...document.querySelectorAll(".mode-switch > button[id^='mode']")].map((b) => ({ type: "tab", id: b.id, label: (b.title || b.textContent).split(":")[0].trim(), icon: b.textContent.trim().split(" ")[0] }));
       const draw = () => {
         fill(list, items.length ? items.map((it, i) => {
-          const sub = it.type === "res" ? (it.r.summary || it.r.host) : it.type === "folder" ? `Folder · ${it.path}` : "Tab";
+          const sub = it.type === "res" ? (it.r.summary || it.r.host) : it.type === "folder" ? `Folder · ${it.path}` : it.type === "repo" ? `Repo${it.rp.description ? ` · ${it.rp.description}` : ""}` : "Tab";
           return h("li", { id: `resLaunch${i}`, role: "option", class: `res-launch-item${i === active ? " active" : ""}`, "aria-selected": String(i === active),
             onclick: (e) => run(it, e.ctrlKey || e.metaKey), onmousemove: () => { if (active !== i) { active = i; mark(); } } },
-            h("span", { class: "res-launch-icon", "aria-hidden": "true", text: it.type === "res" ? (it.r.favourite ? "★" : "🔗") : it.type === "folder" ? "📁" : it.icon }),
+            h("span", { class: "res-launch-icon", "aria-hidden": "true", text: it.type === "res" ? (it.r.favourite ? "★" : "🔗") : it.type === "folder" ? "📁" : it.type === "repo" ? "📦" : it.icon }),
             h("span", { class: "res-launch-text" }, h("strong", { text: it.type === "res" ? it.r.title : it.label }), h("span", { class: "muted small", text: sub })));
         }) : h("li", { class: "muted small res-launch-empty", text: "Nothing matches - try another word." }));
         mark();
@@ -597,7 +753,10 @@
         const res = [...pool.values()].sort((a, b) => score(b) - score(a)).slice(0, 8).map((r) => ({ type: "res", r }));
         const folders = this.tree ? this.tree.folders.filter((f) => hit(f.name)).slice(0, 4).map((f) => ({ type: "folder", fid: f.id, label: f.name, path: this.folderPath(f.id) })) : [];
         const tabHits = tabs().filter((t) => hit(t.label)).slice(0, 3);
-        items = [...res, ...folders, ...tabHits];
+        const rr = await api("GET", `/resources/repo-search?${new URLSearchParams({ q })}`).catch(() => ({ items: [] }));
+        if (mine !== seq) return;
+        const repoHits = rr.items.slice(0, 4).map((rp) => ({ type: "repo", rp, label: rp.title }));
+        items = [...res, ...repoHits, ...folders, ...tabHits];
         active = 0; draw();
       };
       let timer = null;
@@ -614,6 +773,10 @@
           window.open(safeUrl(it.r.url), "_blank", "noopener,noreferrer");
         } else if (it.type === "res") {
           await this.inResources(() => this.locate(it.r, "tree"));
+        } else if (it.type === "repo" && !show) {
+          window.open(safeUrl(it.rp.url), "_blank", "noopener,noreferrer");
+        } else if (it.type === "repo") {
+          await this.inResources(async () => { this.reposQuery = it.rp.title; this.set({ view: "repos" }); });
         } else if (it.type === "folder") {
           await this.inResources(() => this.openFolder(it.fid));
         } else {
@@ -874,14 +1037,16 @@
             h("button", { type: "button", class: "linklike", text: `📁 ${sf.name}`, title: `Show ${sf.name}`, onclick: () => jump(sf.id) }),
             h("span", { class: "muted small", text: ` ${sf.total.toLocaleString()} link(s)${(t.kids.get(sf.id) || []).length ? ` · ${(t.kids.get(sf.id) || []).length} subfolder(s)` : ""}` })))) : null,
           links.length ? h("h4", { text: `Links here (${links.length})` }) : null,
-          links.length ? h("ul", { class: "mm-links" }, links.slice(0, 40).map((it) => h("li", { "data-rid": String(it.id) }, this.link(it, "res-tree-title"),
+          links.length ? h("ul", { class: "mm-links mm-editable" }, links.slice(0, 40).map((it) => h("li", { "data-rid": String(it.id) },
+            h("div", { class: "mm-item-row" }, this.link(it, "res-tree-title"), this.itemMenu({ type: "link", item: it, fid })),
             it.summary ? h("div", { class: "muted small", text: it.summary }) : null))) : null,
           links.length > 40 ? h("p", { class: "muted small", text: `…and ${links.length - 40} more - ☰ Its links shows them all.` }) : null,
           ...(() => {                                            // 📦 repos from the Repos tab linked to this topic
             const rps = f ? t.reposBy.get(fid) || [] : [];
             if (!rps.length) return [];
             return [h("h4", { text: `Repos (${rps.length})` }),
-              h("ul", { class: "mm-links mm-repos" }, rps.map((rp) => h("li", null, this.repoLink(rp),
+              h("ul", { class: "mm-links mm-repos mm-editable" }, rps.map((rp) => h("li", null,
+                h("div", { class: "mm-item-row" }, this.repoLink(rp), this.itemMenu({ type: "repo", item: rp, fid })),
                 rp.description ? h("div", { class: "muted small", text: rp.description }) : null)))];
           })());
       };
@@ -1123,7 +1288,7 @@
     listing() {
       const f = this.filters;
       if (f.view === "categories" && f.category_id === "" && !f.q) return false;
-      if (["launch", "tree", "map", "mind"].includes(f.view) && f.category_id === "" && !f.q && !f.kind && !f.training && !f.status && !f.favourite) return false;
+      if (["launch", "tree", "map", "mind", "repos"].includes(f.view) && f.category_id === "" && !f.q && !f.kind && !f.training && !f.status && !f.favourite) return false;
       return true;
     },
 
@@ -1417,4 +1582,19 @@
   };
   window.addEventListener("hashchange", openLaunchpadFromHash);
   openLaunchpadFromHash();
+
+  // 📦 Repos lives in Resources: hide its top tab, and whenever the app switches to Repos (restoring it as the last tab -
+  // however late that lands on a slow phone - or code calling setMode("repos")), show Resources › 📦 Repos instead.
+  // Hooked to the moment the mode is applied (#app's class), not to a timer.
+  view.applyReposTab();
+  const appEl = document.getElementById("app");
+  const toReposView = () => {
+    if (!view.reposCombined() || !appEl || !appEl.classList.contains("mode-repos")) return;
+    if (document.querySelector("#resourcesView #reposView")) return;
+    Object.assign(view.filters, { view: "repos", q: "", kind: "", training: false, status: "", favourite: false, category_id: "" });
+    view.save();
+    document.getElementById("modeResources")?.click();
+  };
+  if (appEl) new MutationObserver(toReposView).observe(appEl, { attributes: true, attributeFilter: ["class"] });
+  toReposView();
 })();

@@ -15,6 +15,7 @@ from functools import lru_cache
 from app.db import get_db, now, placeholders
 
 MAX_KEYWORDS = 100
+OPENING_CHARS = 500  # "title + opening lines": how much of the article text counts as its opening
 MAX_KEYWORD_LENGTH = 100
 
 
@@ -75,6 +76,9 @@ def _scoped(rule: sqlite3.Row) -> bool:
 def _matches(rule: sqlite3.Row, article: sqlite3.Row, cve_info: dict[int, tuple[set, set]] | None = None) -> bool:
     """feed/folder scope AND (any keyword) AND (any required keyword) AND (CVE condition) AND NOT (any excluded).
 
+    Searched text: the title, plus the article text (match_in 'title_content') or only its opening lines
+    (opening_only), so a word mentioned in passing deep in an article does not file it.
+
     A rule with no keywords matches everything in its feed/folder scope, or every article that meets its
     CVE condition; an unscoped rule with neither matches nothing.
     """
@@ -84,7 +88,10 @@ def _matches(rule: sqlite3.Row, article: sqlite3.Row, cve_info: dict[int, tuple[
         return False
     text = article["title"] or ""
     if rule["match_in"] == "title_content":
-        text = f"{text}\n{article['text_content'] or ''}"
+        content = article["text_content"] or ""
+        if _row_get(rule, "opening_only"):
+            content = content[:OPENING_CHARS]  # what the article is about, not every word it mentions in passing
+        text = f"{text}\n{content}"
     keywords = parse_keywords(rule["keywords"])
     severity, owasp = _row_get(rule, "cve_severity"), _row_get(rule, "cve_owasp")
     category = _row_get(rule, "cve_category")

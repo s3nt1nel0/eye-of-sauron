@@ -254,3 +254,32 @@ def test_videos_and_podcasts_can_be_listed_by_what_they_mention(authed):
                 "/api/v1/library/videos?entity_id=1%20OR%201=1", f"/api/v1/podcasts/episodes?entity_id={eid}&days=5", "/api/v1/podcasts/episodes?entity_id=-1"):
         assert authed.get(url).status_code == 422, url
     assert authed.get("/api/v1/library/videos?entity_id=999999").json()["total"] == 0
+
+
+# ------------------------------------------------------------------ stories v2 (2026-11-26)
+def test_stems_and_number_words_join_reworded_headlines():
+    assert stories.stem("bulgarian") == stories.stem("bulgaria") == "bulgar"
+    assert stories.stem("hackers") == "hacker" and stories.stem("five") == "5" and stories.stem("stole") == "steal"
+    a = stories.Doc("Hackers Secretly Spy on Bulgarian Government for Five Years and Steal 62 Million Pages")
+    assert {"bulgar", "5", "hacker", "steal", "spy"} <= a.title
+
+
+def test_reworded_story_joins_through_its_opening_lines_but_different_cves_never_do():
+    stories.reset_live()
+    f1, f2, f3, f4 = feed(11), feed(12), feed(13), feed(14)
+    filler = [article(feed(20 + i), f"Unrelated filler headline number {i} about routers patches and quarterly earnings") for i in range(5)]
+    lead = ("Bulgaria has disrupted a cyberespionage operation that gave hackers covert access to state administration networks "
+            "for five years. Innovation and Digital Transformation Minister Ivan Vasilev said intruders downloaded 130 gigabytes, "
+            "62 million pages.")
+    a = article(f1, "Hackers Secretly Spy on Bulgarian Government for Five Years and Steal 62 Million Pages of Documents", lead)
+    b = article(f2, "Bulgaria Discovers Massive Government Breach After Five Years of Undetected Spying",
+                "Bulgaria uncovered a five-year cyberespionage campaign that stole 130GB of government files, about 62 million pages, "
+                "the ministry for innovation and digital transformation announced.")
+    c1 = article(f3, "Acme Portal plugin flaw exploited in attacks against hosting firms", "CVE-2026-1111 lets attackers run code in Acme Portal.")
+    c2 = article(f4, "Acme Portal plugin flaw exploited in attacks against hosting providers", "CVE-2026-2222 lets attackers run code in Acme Portal.")
+    with get_db() as db:
+        sid = {r[0]: r[1] for r in db.execute("SELECT id, story_id FROM articles WHERE id IN (?, ?, ?, ?)", (a, b, c1, c2))}
+    assert sid[a] == sid[b] == a
+    assert sid[c1] is None and sid[c2] is None, "different CVE IDs: different stories"
+    assert filler and stories.rebuild()["grouped"] >= 2
+    stories.reset_live()
