@@ -5,6 +5,57 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.4.0] — 2026-11-26
+
+### Added
+- **Where an article comes from.** Every article in the list shows its feed and 📁 folder; the reader shows
+  *From (feed) in (folder)*. Click either to open that feed or folder. Works on phones, tablets and desktop.
+- **Rules: *Search in → Title and opening lines*** (`match_in: "title_opening"`): the headline plus the first 500
+  characters of the article, so a word mentioned in passing further down no longer files it.
+- **☑ Select videos** in the Videos grid and By topic: tick several videos (or click their pictures, or *Select all
+  shown*) and use the bar at the bottom: add to a group or playlist, mark watched / unwatched, star / unstar, or remove
+  for good. One swipeable row on phones. New API: `POST /api/v1/library/videos/bulk` (`delete`, `add_to_playlist`).
+- **🕘 Last 24 hours** in the Videos Sort menu (a rolling window; *✕ Show any date* removes it).
+- **📦 Repos inside 🔗 Resources.** A 📦 Repos view button in Resources shows the whole Repos screen (folders, all repos,
+  by topic / owner / language, releases, adding and following) with a count of new releases. The top Repos tab is hidden
+  by default; *Show Repos as its own tab too* brings it back. Resources search lists matching repos first and Ctrl+K
+  finds repos too (Enter opens the repo, Ctrl+Enter shows it in 📦 Repos).
+- **Resources mind map: edit links and repos from the side panel** (⋯ → 📁 Folders…, − Take out of this folder, ✎ Edit,
+  📍 Show in the tree, 🗑 Delete).
+
+### Changed
+- **Same-story grouping finds about 50% more of the same story (🧩 +n sources).** Headlines are compared by word stems
+  ("Bulgarian" = "Bulgaria", "hackers" = "hacker", "five" = "5"), rare words count more than common ones, and a
+  re-worded headline joins when it shares a rare word and the article's opening lines say much the same. Articles that
+  name different CVE IDs are never merged. Stored articles regroup once on start (`stories.REV` 2). *Strict* still keeps
+  to near-identical titles; *Loose* groups more.
+- **Ready-made threat collections are more accurate.** APT & Nation-State, Ransomware, Zero-days & Exploits, Phishing,
+  Breaches & Leaks, Malware, Supply Chain, Offensive / Defensive security and Threat intelligence now look at the title
+  and opening lines, not every word. APT & Nation-State is two rules: named groups (Lazarus, Volt Typhoon, APT28,
+  Sandworm… 80 names), or nation-state words together with a hacking word; "threat actor" alone or `sudo apt install`
+  no longer count. Rules you edited are left alone; unedited ones are upgraded once on start (`pack_rules_rev` 2).
+- **More ads removed from articles** (`declutter.REV` 2): paid sponsor boxes, affiliate / commission notices, paywall
+  text, "Add as preferred source" buttons, "Listen to this article" players, Reddit's "[link] [comments]" and a
+  publisher's closing product plug. Sponsored articles keep their paragraphs; product tables and lists are never cut.
+  Stored articles are cleaned once on start.
+- **Repos cards: 40 px tap targets on touch screens** for the owner, topics, #tags, folder chips and filter ticks.
+- **👥 Socials: a site's sign-in page is no longer saved as the post.** LinkedIn / Instagram / Facebook sign-in or
+  sign-up pages count as "no preview", so adding such a post asks you to paste its text. Posts saved that way before are
+  repaired on start: read once more, otherwise marked *✎ Paste the post's text*. LinkedIn posts show the day they were
+  made (read from the post's own id).
+- **👥 Socials: the same post can't be added twice**, whatever form its link takes; a post you deleted can be added again.
+
+### Fixed
+- **Feeds that answer with a redirect to their home page but still send the feed** (e.g. GBHackers, "Could not parse
+  feed" since 24 Nov). The app asks once more without following the redirect and reads the feed from that answer, only
+  when it really is a feed and only through the same SSRF-guarded request.
+- 🏷️ Tags in Socials no longer reloads the tab; long links in the ＋ dialog wrap on phones.
+
+### Upgrade notes
+- Nothing to do by hand. On first start 1.4.0 adds one column (`rules.opening_only`), regroups stories, re-cleans stored
+  articles and upgrades unedited ready-made collection rules; on a large database this takes a minute or two.
+- Docker installs: `./deploy/update.sh` (backs up, switches, rolls back automatically if unhealthy).
+
 ## [1.3.0] — 2026-11-23
 
 ### Added

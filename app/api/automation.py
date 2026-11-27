@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import sqlite3
 import threading
 from typing import Annotated, Any, Literal
@@ -20,6 +21,7 @@ from app.rules import KEV_CATEGORIES, apply_rules
 from app.scheduler import scheduler
 from app.security import Principal, audit, rate_limit, require_admin, require_read, require_write
 
+log = logging.getLogger("eos.rules")
 router = APIRouter()
 
 
@@ -33,7 +35,8 @@ class RuleIn(StrictModel):
     cve_owasp: Annotated[str, StringConstraints(pattern=r"^(2021|2025):A(0[1-9]|10)$")] | None = None
     # ... or a CVE in this CVE-tracking category (slug), or "kev" / "kev-ransomware" (CISA KEV)
     cve_category: Annotated[str, StringConstraints(pattern=r"^[a-z0-9][a-z0-9-]{0,59}$")] | None = None
-    match_in: Literal["title", "title_content"] = "title_content"
+    # "title_opening" = the title and the opening lines of the article (stored as title_content + opening_only)
+    match_in: Literal["title", "title_opening", "title_content"] = "title_content"
     keywords_in_title: bool = False  # the main keywords must be in the title; the other lists follow match_in
     feed_id: int | None = None
     folder_id: int | None = None
@@ -54,7 +57,14 @@ def _rule_out(row: sqlite3.Row) -> dict:
     out["require_keywords"] = json.loads(row["require_keywords"] or "[]")
     for key in ("star", "mark_read", "enabled", "ai_summarize", "keywords_in_title"):
         out[key] = bool(out[key])
+    if out.pop("opening_only", 0) and out["match_in"] == "title_content":
+        out["match_in"] = "title_opening"
     return out
+
+
+def _stored_match(match_in: str) -> tuple[str, int]:
+    """API match_in -> (rules.match_in, rules.opening_only)."""
+    return ("title_content", 1) if match_in == "title_opening" else (match_in, 0)
 
 
 def _check_refs(db: sqlite3.Connection, body: RuleIn, principal: Principal) -> None:
@@ -79,13 +89,14 @@ def _check_refs(db: sqlite3.Connection, body: RuleIn, principal: Principal) -> N
 
 
 def _rule_values(body: RuleIn) -> tuple:
+    match_in, opening_only = _stored_match(body.match_in)
     return (
-        body.name, json.dumps(body.keywords), json.dumps(body.exclude_keywords), body.match_in,
+        body.name, json.dumps(body.keywords), json.dumps(body.exclude_keywords), match_in,
         body.feed_id, body.folder_id, body.tag_id, body.webhook_id,
         int(body.star), int(body.mark_read), int(body.enabled), body.position,
         body.alert_channel_id, int(body.ai_summarize),
         json.dumps(body.require_keywords), body.cve_severity, body.cve_owasp, int(body.keywords_in_title),
-        body.cve_category,
+        body.cve_category, opening_only,
     )
 
 
@@ -104,7 +115,8 @@ def create_rule(body: RuleIn, principal: Principal = Depends(require_write)) -> 
         cur = db.execute(
             "INSERT INTO rules (name, keywords, exclude_keywords, match_in, feed_id, folder_id, tag_id, "
             "webhook_id, star, mark_read, enabled, position, alert_channel_id, ai_summarize, "
-            "require_keywords, cve_severity, cve_owasp, keywords_in_title, cve_category) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            "require_keywords, cve_severity, cve_owasp, keywords_in_title, cve_category, opening_only) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             _rule_values(body),
         )
         return _rule_out(db.execute("SELECT * FROM rules WHERE id = ?", (cur.lastrowid,)).fetchone())
@@ -121,7 +133,7 @@ def replace_rule(rule_id: int, body: RuleIn, principal: Principal = Depends(requ
             "UPDATE rules SET name=?, keywords=?, exclude_keywords=?, match_in=?, feed_id=?, folder_id=?, "
             "tag_id=?, webhook_id=?, star=?, mark_read=?, enabled=?, position=?, "
             "alert_channel_id=?, ai_summarize=?, require_keywords=?, cve_severity=?, cve_owasp=?, keywords_in_title=?, "
-            "cve_category=? "
+            "cve_category=?, opening_only=? "
             "WHERE id = ?",
             (*_rule_values(body), rule_id),
         )
@@ -193,16 +205,76 @@ def _install_pack(db: sqlite3.Connection, pack: collection_packs.Pack) -> tuple[
             if spec.get("folder"):
                 db.execute("INSERT OR IGNORE INTO folders (name) VALUES (?)", (spec["folder"],))
                 folder_id = db.execute("SELECT id FROM folders WHERE name = ?", (spec["folder"],)).fetchone()["id"]
+            match_in, opening_only = _stored_match(spec.get("match_in", "title_content"))
             cur = db.execute(
                 "INSERT INTO rules (name, keywords, exclude_keywords, require_keywords, match_in, folder_id, tag_id, "
-                "cve_severity, cve_owasp, keywords_in_title, position, cve_category) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                "cve_severity, cve_owasp, keywords_in_title, position, cve_category, opening_only) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (name, json.dumps(spec.get("keywords", [])), json.dumps(spec.get("exclude", [])),
-                 json.dumps(spec.get("require", [])), spec.get("match_in", "title_content"), folder_id, tag_id,
+                 json.dumps(spec.get("require", [])), match_in, folder_id, tag_id,
                  spec.get("cve_severity"), spec.get("cve_owasp"), int(spec.get("title_keywords", False)), 1000,
-                 spec.get("cve_category")),
+                 spec.get("cve_category"), opening_only),
             )
             new_rule_ids.append(int(cur.lastrowid))
     return new_rule_ids, created_tags
+
+
+def _spec_matches(row: sqlite3.Row, spec: collection_packs.RuleSpec) -> bool:
+    """True when an installed rule is exactly what the pack spec would install (keywords compared case-insensitively)."""
+    def norm(raw: str | None) -> list[str]:
+        return sorted(str(k).lower() for k in json.loads(raw or "[]"))
+    match_in, opening_only = _stored_match(spec.get("match_in", "title_content"))
+    return (norm(row["keywords"]) == sorted(k.lower() for k in spec.get("keywords", []))
+            and norm(row["require_keywords"]) == sorted(k.lower() for k in spec.get("require", []))
+            and norm(row["exclude_keywords"]) == sorted(k.lower() for k in spec.get("exclude", []))
+            and row["match_in"] == match_in and int(row["opening_only"] or 0) == opening_only
+            and bool(row["keywords_in_title"]) == bool(spec.get("title_keywords", False))
+            and row["feed_id"] is None and not spec.get("folder"))
+
+
+def upgrade_pack_rules() -> dict:
+    """Once per pack revision: bring unedited "Auto: ..." rules up to the current pack spec, add rules the spec gained,
+    take out filings the stricter rules no longer make and file what the new rules match. Rules you edited stay as they are."""
+    from app.cve_sync import get_state, set_state
+    from app.rules import refile_tags
+
+    with get_db() as db:
+        if get_state(db, "pack_rules_rev", "") == collection_packs.PACK_RULES_REV:
+            return {"upgraded": 0}
+        changed: list[int] = []
+        tags: set[int] = set()
+        for name, old in collection_packs.PREVIOUS.items():
+            row = db.execute("SELECT * FROM rules WHERE name = ?", (name,)).fetchone()
+            if row is None or not _spec_matches(row, old):
+                continue
+            coll, index, spec = collection_packs.CURRENT[name]
+            match_in, opening_only = _stored_match(spec.get("match_in", "title_content"))
+            db.execute("UPDATE rules SET keywords = ?, require_keywords = ?, exclude_keywords = ?, match_in = ?, "
+                       "opening_only = ?, keywords_in_title = ? WHERE id = ?",
+                       (json.dumps(spec.get("keywords", [])), json.dumps(spec.get("require", [])),
+                        json.dumps(spec.get("exclude", [])), match_in, opening_only,
+                        int(spec.get("title_keywords", False)), row["id"]))
+            changed.append(row["id"])
+            if row["tag_id"] is not None:
+                tags.add(row["tag_id"])
+            # rules the collection gained (e.g. "Auto: APT & Nation-State #2"), only beside an upgraded first rule
+            for extra, (ecoll, eindex, espec) in collection_packs.CURRENT.items():
+                if ecoll != coll or eindex <= index or row["tag_id"] is None:
+                    continue
+                if db.execute("SELECT 1 FROM rules WHERE name = ?", (extra,)).fetchone():
+                    continue
+                emi, eoo = _stored_match(espec.get("match_in", "title_content"))
+                changed.append(int(db.execute(
+                    "INSERT INTO rules (name, keywords, exclude_keywords, require_keywords, match_in, tag_id, "
+                    "keywords_in_title, position, opening_only, enabled) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                    (extra, json.dumps(espec.get("keywords", [])), json.dumps(espec.get("exclude", [])),
+                     json.dumps(espec.get("require", [])), emi, row["tag_id"], int(espec.get("title_keywords", False)),
+                     row["position"], eoo, row["enabled"])).lastrowid))
+        set_state(db, "pack_rules_rev", collection_packs.PACK_RULES_REV)
+    removed = refile_tags(sorted(tags)) if tags else 0
+    if changed:
+        _backfill_rules(changed)
+    log.info("Collection rules upgraded: %d rules, %d filings no longer matched", len(changed), removed)
+    return {"upgraded": len(changed), "removed": removed}
 
 
 @router.get("/rules/packs", tags=["rules"])

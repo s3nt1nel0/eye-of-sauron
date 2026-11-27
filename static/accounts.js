@@ -289,7 +289,7 @@
 
     /** Who wrote it: the profile picture (or their initial), name and handle - for single saved posts. */
     authorHead(p) {
-      const name = p.author || p.handle || p.feed_title || "";
+      const name = p.author || p.handle || (p.saved ? `${this.label(p.platform)} post` : p.feed_title) || "";  // not "Saved LinkedIn posts"
       const avatar = this.imgSrc(p.avatar);
       return [
         avatar ? h("img", { class: "acc-avatar", src: avatar, alt: "", loading: "lazy", referrerpolicy: "no-referrer" })
@@ -435,9 +435,11 @@
             if (card.getBoundingClientRect().top < 0) card.scrollIntoView({ block: "start" });
           } else more.textContent = "Show more ▾";
         } }) : null;
-      const trunc = saved && p.truncated ? h("p", { class: "acc-trunc small" },
-        h("span", { text: `⚠ ${this.label(p.platform)} only hands over the start of this post. ` }),
-        h("button", { type: "button", class: "link-btn", text: "✎ Paste the full text", onclick: (e) => { const el = e.currentTarget.closest("article") || card; if (!el.querySelector(".acc-paste")) trunc.after(this.pasteBox(p, el)); } })) : null;
+      const missing = saved && p.source === "unavailable";   // the site showed a sign-in page / nothing instead of the post
+      const trunc = saved && (p.truncated || missing) ? h("p", { class: "acc-trunc small" },
+        h("span", { text: missing ? `⚠ ${this.label(p.platform)} only shows this post to signed-in members (or it was deleted), so the app can't read it — it never signs in for you. Open the post ↗, copy its text and paste it here. `
+          : `⚠ ${this.label(p.platform)} only hands over the start of this post. ` }),
+        h("button", { type: "button", class: "link-btn", text: missing ? "✎ Paste the post's text" : "✎ Paste the full text", onclick: (e) => { const el = e.currentTarget.closest("article") || card; if (!el.querySelector(".acc-paste")) trunc.after(this.pasteBox(p, el)); } })) : null;
       const follow = saved ? this.followControl(p.follow, this.followName(p)) : null;
       const open = () => {
         if (!p.is_read) { api("POST", "/articles/bulk", { ids: [p.id], action: "read" }).catch(() => {}); p.is_read = true; card.classList.add("watched"); }
@@ -735,7 +737,7 @@
       const summary = h("p", { class: "small" });
       fill(dlg, h("div", { class: "form source-wizard" },
         h("div", { class: "sd-head" }, h("h3", { text: `Adding ${items.length} link${items.length > 1 ? "s" : ""}` })),
-        h("ol", { class: "batch-list small" }, rows.map((r) => h("li", null, h("code", { text: r.line }), " — ", r.status))),
+        h("ol", { class: "batch-list small acc-batch" }, rows.map((r) => h("li", null, h("code", { text: r.line }), " — ", r.status))),
         summary, h("div", { class: "form-actions" }, done)));
       let accounts = 0, posts = 0;
       for (const r of rows) {

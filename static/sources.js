@@ -1009,6 +1009,8 @@
       f.topic_match = "any";  // the any/all switch was removed: several topics = videos from any of them
       if (f.sort === "topic") f.sort = "added";  // Sort: Topic (shelves) was removed 2026-11-15
       f.dates = FW.dateRange.clean(f.dates);       // 📅 custom from / to range (null = any date)
+      if (f.recent !== "24h") f.recent = null;     // 🕘 the rolling last 24 hours (instead of a custom range)
+      if (f.recent) f.dates = null;
       return f;
     })(),
     items: [], total: 0, meta: null, loading: false,
@@ -1177,6 +1179,7 @@
 
     renderShell() {
       this.countsKey = null;  // a new toolbar needs its topic numbers filled in again
+      if (this.filters.view === "groups" && this.videoSelecting) { this.videoSelecting = false; this.videoSel.clear(); }  // e.g. a playlist badge opened Playlists & groups
       const view = $("#libraryView");
       const f = this.filters;
       const m = this.meta;
@@ -1211,22 +1214,26 @@
           .map(([v, l]) => h("option", { value: v, text: l, selected: f.sort === v })),
         // a date filter, not a sort: picking it opens the from / to picker and the sort stays as it was
         h("hr"),
+        h("option", { value: "last-24h", text: f.recent ? "🕘 Last 24 hours ✓" : "🕘 Last 24 hours" }),
         h("option", { value: "custom-range", text: f.dates ? `📅 Custom range: ${FW.dateRange.label(f.dates)}…` : "📅 Custom range…" }),
-        f.dates ? h("option", { value: "clear-range", text: "✕ Clear custom range" }) : null);
+        f.dates || f.recent ? h("option", { value: "clear-range", text: f.recent ? "✕ Show any date" : "✕ Clear custom range" }) : null);
       sortSel.addEventListener("change", async () => {
         const pick = sortSel.value;
-        if (pick === "custom-range" || pick === "clear-range") {
+        if (pick === "last-24h") {
+          sortSel.value = f.sort;
+          f.recent = "24h"; f.dates = null;
+        } else if (pick === "custom-range" || pick === "clear-range") {
           sortSel.value = f.sort;
           const r = pick === "clear-range" ? null : await FW.dateRange.pick(f.dates);
           if (r === undefined) return;  // cancelled
-          f.dates = r;
+          f.dates = r; f.recent = null;
         } else {
           f.sort = pick;
         }
         if (f.view === "groups") f.view = "all";
         this.openGroup = null; this.save(); this.renderShell(); this.reload();
       });
-      if (f.dates) { sortSel.classList.add("on"); sortSel.title = `Sort - showing only videos published ${FW.dateRange.label(f.dates)}`; }
+      if (f.dates || f.recent) { sortSel.classList.add("on"); sortSel.title = `Sort - showing only videos published ${this.dateLabel()}`; }
       const layoutSel = h("select", { "aria-label": "View", title: "How videos are laid out" },
         [["grid", "▦ View: Grid"], ["list", "☰ View: List"]].map(([v, l]) => h("option", { value: v, text: l, selected: f.layout === v })));
       layoutSel.addEventListener("change", () => { f.layout = layoutSel.value; if (f.view === "groups") f.view = "all"; this.openGroup = null; this.save(); this.renderShell(); this.reload(); });
@@ -1333,12 +1340,18 @@
             viewBtn("topics", "🏷️ By topic", "Your videos sorted into a shelf per topic (the channel, length and watched filters apply)"),
             viewBtn("groups", "🗂️ Playlists & groups", "Playlists and your own groups, as cards")),
           tagsBtn(),
+          h("button", { type: "button", id: "libSelectBtn", class: `btn small${this.videoSelecting ? " primary" : ""}`, "aria-pressed": String(this.videoSelecting),
+            hidden: f.view === "groups", text: this.videoSelecting ? "✓ Done selecting" : "☑ Select",
+            title: "Tick several videos, then add them to a group or playlist, mark them watched, star or remove them",
+            onclick: () => this.setSelecting(!this.videoSelecting) }),
           h("span", { class: "spacer" })),
         // topics are picked in Topics ▾ (the row of topic buttons is gone)
         m.reclassifying ? h("div", { class: "muted small lib-pad", text: "⏳ Tagging videos with your topics…" }) : null,
         h("div", { id: "libCount", class: "muted small lib-pad" }),
         h("div", { id: "libGrid", class: `lib-grid${f.layout === "list" ? " layout-list" : ""}` }),
-        h("div", { class: "lib-more" }, h("button", { id: "libMore", type: "button", class: "btn", text: "Load more", hidden: true, onclick: () => this.loadMore() })));
+        h("div", { class: "lib-more" }, h("button", { id: "libMore", type: "button", class: "btn", text: "Load more", hidden: true, onclick: () => this.loadMore() })),
+        h("div", { id: "libSelBar", class: "lib-sel-bar", role: "toolbar", "aria-label": "Selected videos", hidden: true }));
+      this.syncSelBar();
       this.refreshStarCount();
       if (!m.channels.length) {
         $("#libGrid").replaceWith(h("div", { class: "card lib-empty" },
@@ -1394,13 +1407,20 @@
       return true;
     },
 
+    /** 📅 The date filter: the rolling last 24 hours (to the minute, so the list cache still hits) or a custom range. */
+    addDates(p) {
+      if (this.filters.recent === "24h") { p.set("since", String(Math.floor(Date.now() / 60000) * 60 - 86400)); return p; }
+      return FW.dateRange.addParams(p, this.filters.dates);
+    },
+    dateLabel() { return this.filters.recent ? "in the last 24 hours" : FW.dateRange.label(this.filters.dates); },
+
     query(offset) {
       const f = this.filters;
       const p = new URLSearchParams({ sort: f.sort, length: f.length, state: this.stateNow(), limit: "60", offset: String(offset) });
       if (f.channels.length) p.set("channels", this.channelKeys().join(","));
       if (f.topic_ids.length) { p.set("topic_ids", this.topicIds().join(",")); p.set("topic_match", f.topic_ids.includes("fav") ? "any" : f.topic_match); }
       if (f.q) p.set("q", f.q);
-      FW.dateRange.addParams(p, f.dates);
+      this.addDates(p);
       if (this.mention && this.mention.article) p.set("related_to", String(this.mention.article));
       else if (this.mention) { p.set("entity_id", String(this.mention.id)); p.set("days", String(this.mention.days || 0)); }
       return `/library/videos?${p}`;
@@ -1412,7 +1432,7 @@
       const p = new URLSearchParams({ length: f.length, state: this.stateNow() });
       if (f.channels.length) p.set("channels", this.channelKeys().join(","));
       if (f.q) p.set("q", f.q);
-      FW.dateRange.addParams(p, f.dates);
+      this.addDates(p);
       if (this.mention && this.mention.article) p.set("related_to", String(this.mention.article));
       else if (this.mention) { p.set("entity_id", String(this.mention.id)); p.set("days", String(this.mention.days || 0)); }
       if (onlyIfChanged && this.countsKey === String(p)) return;  // a view switch: same filters, same numbers
@@ -1477,6 +1497,9 @@
     },
     /** By topic / Playlists & groups on or off: no toolbar rebuild, the content swaps in place. */
     setView(v) {
+      if (v === "groups" && this.videoSelecting) { this.videoSelecting = false; this.videoSel.clear(); this.syncSelBar(); }  // that page has its own Select
+      const selBtn = $("#libSelectBtn");
+      if (selBtn) { selBtn.hidden = v === "groups"; selBtn.classList.remove("primary"); selBtn.setAttribute("aria-pressed", String(this.videoSelecting)); selBtn.textContent = this.videoSelecting ? "✓ Done selecting" : "☑ Select"; }
       this.filters.view = v;
       this.openGroup = null;
       this.save();
@@ -1488,6 +1511,127 @@
       }
       this.reload({ fromCache: true });
     },
+    // ------------------------------------------------------------------ ☑ Select videos (grid and By topic)
+    videoSelecting: false,
+    videoSel: new Map(),   // article id -> video, while ☑ Select is on
+
+    /** ☑ Select on / off: tick boxes on the cards, a bar of actions at the bottom; clicking a video ticks it. */
+    setSelecting(on) {
+      this.videoSelecting = on;
+      if (!on) this.videoSel.clear();
+      const btn = $("#libSelectBtn");
+      if (btn) {
+        btn.classList.toggle("primary", on);
+        btn.setAttribute("aria-pressed", String(on));
+        btn.textContent = on ? "✓ Done selecting" : "☑ Select";
+      }
+      this.syncSelBar();
+      this.redrawTags();  // same redraw from memory: the cards get / lose their tick boxes
+    },
+    toggleVideo(v, on) {
+      if (on) this.videoSel.set(v.id, v); else this.videoSel.delete(v.id);
+      for (const el of document.querySelectorAll(`#libGrid [data-video="${Number(v.id)}"]`)) {  // By topic: the same video on several shelves
+        el.classList.toggle("picked", on);
+        const box = el.querySelector(".lib-video-check");
+        if (box) box.checked = on;
+      }
+      this.syncSelBar();
+    },
+    shownVideos() {
+      const seen = new Map();
+      for (const el of document.querySelectorAll("#libGrid .lib-card")) if (el._video) seen.set(el._video.id, el._video);
+      return [...seen.values()];
+    },
+    syncSelBar() {
+      const bar = $("#libSelBar");
+      if (!bar) return;
+      bar.hidden = !this.videoSelecting;
+      if (!this.videoSelecting) { fill(bar); return; }
+      const n = this.videoSel.size;
+      const ids = () => [...this.videoSel.keys()];
+      const act = (text, title, fn, cls = "btn small") => h("button", { type: "button", class: cls, text, title, disabled: !n, onclick: fn });
+      const wrap = (btn) => h("span", { class: "lib-add-wrap" }, btn);
+      const shown = this.shownVideos();
+      fill(bar,
+        h("strong", { class: "lib-sel-count", text: n ? `${n} selected` : "Tick videos" }),
+        h("button", { type: "button", class: "btn small", text: `Select all shown (${shown.length})`, disabled: !shown.length || shown.every((v) => this.videoSel.has(v.id)),
+          onclick: () => shown.forEach((v) => this.toggleVideo(v, true)) }),
+        h("button", { type: "button", class: "btn small", text: "Clear", disabled: !n, onclick: () => [...this.videoSel.values()].forEach((v) => this.toggleVideo(v, false)) }),
+        h("span", { class: "lib-sel-sep", "aria-hidden": "true" }),
+        wrap(act("🗂️ Add to group…", "Add the ticked videos to one of your groups, or a new one", (e) => this.selGroupMenu(e.currentTarget))),
+        wrap(act("▶ Add to playlist…", "List the ticked videos in one of your playlists too (in your library; YouTube isn't changed)", (e) => this.selPlaylistMenu(e.currentTarget))),
+        act("✓ Watched", "Mark the ticked videos watched", () => this.selBulk("read", "Marked watched")),
+        act("↩ Unwatched", "Mark the ticked videos unwatched", () => this.selBulk("unread", "Marked unwatched")),
+        act("★ Star", "Star the ticked videos", () => this.selBulk("star", "Starred")),
+        act("☆ Unstar", "Unstar the ticked videos", () => this.selBulk("unstar", "Unstarred")),
+        act("🗑️ Remove…", "Remove the ticked videos from your library for good", () => this.selRemove(ids()), "btn small danger"),
+        h("button", { type: "button", class: "btn small primary", text: "Done", onclick: () => this.setSelecting(false) }));
+    },
+    /** After an action: forget remembered views (they changed), untick, and show the result. */
+    async afterSel(msg) {
+      this.cache.clear();
+      this.videoSel.clear();
+      if (msg) toast(msg);
+      this.syncSelBar();
+      await this.reload();
+      this.refreshStarCount();
+    },
+    async chunked(ids, call) {  // the API takes up to 1,000 ids per request
+      let total = 0;
+      for (let i = 0; i < ids.length; i += 500) {
+        const r = await guarded(() => call(ids.slice(i, i + 500)));
+        if (!r) return null;
+        total += r.updated ?? r.added ?? r.removed ?? 0;
+      }
+      return total;
+    },
+    async selBulk(action, msg) {
+      const ids = [...this.videoSel.keys()];
+      const n = await this.chunked(ids, (part) => api("POST", "/articles/bulk", { ids: part, action }));
+      if (n !== null) await this.afterSel(`${msg}: ${ids.length} video${ids.length === 1 ? "" : "s"}`);
+    },
+    async selRemove(ids) {
+      if (!window.confirm(`Remove ${ids.length} video${ids.length === 1 ? "" : "s"} from your library for good? They won't come back on later updates (from any playlist or channel). It cannot be undone.`)) return;
+      const n = await this.chunked(ids, (part) => api("POST", "/library/videos/bulk", { article_ids: part, action: "delete" }));
+      if (n !== null) await this.afterSel(`Removed ${n} video${n === 1 ? "" : "s"}`);
+    },
+    /** A small menu above the bar's button (it sits at the bottom of the screen). */
+    selMenu(anchor, title, entries) {
+      document.querySelectorAll(".lib-group-menu").forEach((m) => m.remove());
+      const menu = h("div", { class: "lib-group-menu lib-sel-menu", role: "menu" }, h("div", { class: "muted small", text: title }),
+        entries.length ? entries.map(([text, fn, cls]) => h("button", { type: "button", role: "menuitem", class: cls || "", text,
+          onclick: async () => { menu.remove(); await fn(); } })) : h("div", { class: "muted small", text: "None yet" }));
+      // placed on the screen itself (the bar can scroll sideways on phones, which would cut a menu inside it off),
+      // above the button and kept inside the window
+      const r = anchor.getBoundingClientRect();
+      Object.assign(menu.style, { position: "fixed", top: "auto", right: "auto", bottom: `${Math.round(window.innerHeight - r.top + 6)}px`, left: "8px" });
+      document.body.append(menu);
+      menu.style.left = `${Math.round(Math.max(8, Math.min(r.left, window.innerWidth - menu.offsetWidth - 8)))}px`;
+      const close = (e) => { if (!menu.contains(e.target) && e.target !== anchor) { menu.remove(); document.removeEventListener("click", close); } };
+      setTimeout(() => document.addEventListener("click", close), 0);
+    },
+    async selGroupMenu(anchor) {
+      const res = await api("GET", "/library/groups").catch(() => null);
+      const mine = res ? res.groups.filter((g) => g.type === "group") : [];
+      const ids = [...this.videoSel.keys()];
+      this.selMenu(anchor, "Add to group", [
+        ...mine.map((g) => [g.name, async () => {
+          const n = await this.chunked(ids, (part) => api("POST", `/library/groups/${g.id}/videos`, { article_ids: part }));
+          if (n !== null) await this.afterSel(`Added ${n} to “${g.name}”${n < ids.length ? ` (${ids.length - n} were in it already)` : ""}`);
+        }]),
+        ["+ New group…", async () => { if (await this.newGroup(ids)) await this.afterSel(); }, "new"]]);
+    },
+    selPlaylistMenu(anchor) {
+      const lists = [];
+      for (const c of this.meta.channels) for (const fd of c.feeds) if (fd.type === "playlist") lists.push({ id: fd.id, title: fd.title });
+      lists.sort((a, b) => a.title.localeCompare(b.title));
+      const ids = [...this.videoSel.keys()];
+      this.selMenu(anchor, "Add to playlist (in your library)", lists.map((p) => [p.title, async () => {
+        const n = await this.chunked(ids, (part) => api("POST", "/library/videos/bulk", { article_ids: part, action: "add_to_playlist", feed_id: p.id }));
+        if (n !== null) await this.afterSel(`Added ${n} to “${p.title}”${n < ids.length ? ` (${ids.length - n} were in it already)` : ""}`);
+      }]));
+    },
+
     /** 🏷️ Tags on / off: redraw what is on screen from memory, no server call. */
     redrawTags() {
       const y = window.scrollY;
@@ -1552,6 +1696,7 @@
           s.id !== null && s.total > s.items.length ? h("button", { type: "button", class: "link-btn small", text: `Show all ${s.total.toLocaleString()} →`,
             onclick: () => { this.filters.topic_ids = [String(s.id)]; this.save(); this.renderShell(); this.reload(); } }) : null),
         h("div", { class: "lib-shelf-row" }, s.items.map((v) => this.card(v, topicsById, showImages))))));
+      if (this.videoSelecting) this.syncSelBar();
       if (!distinct && !this.meta.channels.length) grid.classList.remove("shelves");
     },
 
@@ -1560,7 +1705,7 @@
       const f = this.filters;
       return [f.channels.length ? `${f.channels.length} channel${f.channels.length === 1 ? "" : "s"}` : null,
         f.topic_ids.length ? `${f.topic_ids.length} topic${f.topic_ids.length === 1 ? "" : "s"}` : null,
-        f.length !== "any" ? "length" : null, f.dates ? `dates: ${FW.dateRange.label(f.dates)}` : null, this.stateNow() !== "all" ? (this.stateNow() === "starred" ? "starred only" : this.stateNow()) : null].filter(Boolean);
+        f.length !== "any" ? "length" : null, f.dates || f.recent ? `dates: ${this.dateLabel()}` : null, this.stateNow() !== "all" ? (this.stateNow() === "starred" ? "starred only" : this.stateNow()) : null].filter(Boolean);
     },
 
     noMatches() {
@@ -1570,7 +1715,7 @@
       return h("p", { class: "muted lib-pad" }, `Nothing matches with these filters on (${active.join(", ")}). `,
         h("button", { type: "button", class: "btn small", text: "Clear filters and search all videos", onclick: () => {
           const f = this.filters;
-          f.channels = []; f.topic_ids = []; f.length = "any"; f.state = "all"; f.dates = null;
+          f.channels = []; f.topic_ids = []; f.length = "any"; f.state = "all"; f.dates = null; f.recent = null;
           this.save(); this.renderShell(); this.reload();
         } }));
     },
@@ -1584,6 +1729,7 @@
       fill($("#libCount"), `${this.total.toLocaleString()} video${this.total === 1 ? "" : "s"}${this.filters.q ? ` matching “${this.filters.q}”` : ""} `, this.mentionChip());
       fill(grid, this.items.length ? this.items.map((v) => this.card(v, topicsById, showImages)) : this.noMatches());
       $("#libMore").hidden = this.items.length >= this.total;
+      if (this.videoSelecting) this.syncSelBar();  // "Select all shown" counts what is on the page now
     },
 
     // ------------------------------------------------------------------ playlists & groups
@@ -2093,6 +2239,7 @@
       const url = safeUrl(v.url);
       const thumb = safeUrl(v.thumbnail) || (v.video_id ? `https://i.ytimg.com/vi/${encodeURIComponent(v.video_id)}/hqdefault.jpg` : null);
       const open = async () => {  // plays in the app; YouTube in a new tab only if the video can't be embedded
+        if (this.videoSelecting && this.filters.view !== "groups") { this.toggleVideo(v, !this.videoSel.has(v.id)); return; }  // ☑ Select: a click ticks it
         if (!playVideo(v, card) && url) window.open(url, "_blank", "noopener,noreferrer");
         if (!v.is_read) { v.is_read = true; card.classList.add("watched"); api("PATCH", `/articles/${v.id}`, { is_read: true }).catch(() => {}); }
       };
@@ -2156,6 +2303,14 @@
               onclick: async () => { if (await guarded(() => api("DELETE", `/library/groups/${opts.inGroup}/videos/${v.id}`), "Removed from the group")) card.remove(); } }) : null,
             h("button", { type: "button", class: "btn small", text: "Open in Articles", onclick: () => FW.openArticleInReader(v.id) }))));
       card._play = open;  // the player's ⏮ / ⏭ step through the cards on the page
+      card._video = v;
+      if (this.videoSelecting && !opts.inGroup && !opts.inPlaylist) {
+        const picked = this.videoSel.has(v.id);
+        card.classList.add("selecting");
+        card.classList.toggle("picked", picked);
+        card.prepend(h("input", { type: "checkbox", class: "lib-video-check", checked: picked, "aria-label": `Select ${v.title}`,
+          onclick: (e) => e.stopPropagation(), onchange: (e) => this.toggleVideo(v, e.target.checked) }));
+      }
       return card;
     },
   };

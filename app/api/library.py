@@ -710,23 +710,66 @@ def delete_group(ref: GroupRef, principal: Principal = Depends(require_write)) -
     return {"ok": True, "videos_removed": videos}
 
 
+def _remove_video(db, article_id: int) -> bool:
+    """Delete one video for good: remembered as removed by you (a manual tombstone) for every playlist / channel that
+    lists it, so no refresh or "load whole" back-fill brings it back. False = not a video."""
+    row = db.execute("SELECT a.feed_id, a.guid FROM articles a JOIN videos v ON v.article_id = a.id WHERE a.id = ?",
+                     (article_id,)).fetchone()
+    if row is None:
+        return False
+    fids = [row["feed_id"]] + [r[0] for r in db.execute(  # every playlist / channel that lists it
+        "SELECT feed_id FROM video_links WHERE article_id = ? AND feed_id != ?", (article_id, row["feed_id"]))]
+    for fid in fids:
+        db.execute("INSERT INTO article_tombstones (feed_id, guid, removed_at, manual) VALUES (?, ?, ?, 1) "
+                   "ON CONFLICT(feed_id, guid) DO UPDATE SET manual = 1, removed_at = excluded.removed_at",
+                   (fid, row["guid"], now()))
+    db.execute("DELETE FROM articles WHERE id = ?", (article_id,))
+    return True
+
+
 @router.delete("/library/videos/{article_id}")
 def remove_video(article_id: int, principal: Principal = Depends(require_write)) -> dict:
     """Remove one video from the library for good: it is not re-added by later fetches or "load whole" back-fills."""
     with get_db() as db:
-        row = db.execute("SELECT a.feed_id, a.guid FROM articles a JOIN videos v ON v.article_id = a.id WHERE a.id = ?",
-                         (article_id,)).fetchone()
-        if row is None:
+        if not _remove_video(db, article_id):
             raise not_found("Video")
-        fids = [row["feed_id"]] + [r[0] for r in db.execute(  # every playlist / channel that lists it
-            "SELECT feed_id FROM video_links WHERE article_id = ? AND feed_id != ?", (article_id, row["feed_id"]))]
-        for fid in fids:
-            db.execute("INSERT INTO article_tombstones (feed_id, guid, removed_at, manual) VALUES (?, ?, ?, 1) "
-                       "ON CONFLICT(feed_id, guid) DO UPDATE SET manual = 1, removed_at = excluded.removed_at",
-                       (fid, row["guid"], now()))
-        db.execute("DELETE FROM articles WHERE id = ?", (article_id,))
     audit("video_removed", principal, article_id=article_id)
     return {"ok": True}
+
+
+class BulkVideosIn(StrictModel):
+    """One action on the videos ticked in ☑ Select (watched / starred go through POST /articles/bulk)."""
+    article_ids: list[Annotated[int, Field(ge=1, le=2**62)]] = Field(min_length=1, max_length=1000)
+    action: Literal["delete", "add_to_playlist"]
+    feed_id: int | None = Field(default=None, ge=1, le=2**31 - 1)   # the playlist, for add_to_playlist
+
+
+@router.post("/library/videos/bulk", dependencies=[Depends(rate_limit("library_groups", 60))])
+def bulk_videos(body: BulkVideosIn, principal: Principal = Depends(require_write)) -> dict:
+    """delete: remove the videos for good (as 🗑 does). add_to_playlist: list them in one of your followed playlists too
+    (in your library only - YouTube's playlist is not changed; they stay where they were as well)."""
+    ids = list(dict.fromkeys(body.article_ids))
+    with get_db() as db:
+        if body.action == "delete":
+            done = sum(1 for aid in ids if _remove_video(db, aid))
+            audit("videos_removed", principal, count=done)
+            return {"removed": done, "skipped": len(ids) - done}
+        if body.feed_id is None or body.feed_id not in _playlist_feeds(db):
+            raise not_found("Playlist")
+        from app import video_links
+
+        added = 0
+        for start in range(0, len(ids), 500):  # SQLite caps bound parameters
+            chunk = ids[start:start + 500]
+            for r in db.execute(f"SELECT v.article_id, a.feed_id FROM videos v JOIN articles a ON a.id = v.article_id "  # nosec B608 - placeholders only
+                                f"WHERE v.article_id IN ({placeholders(len(chunk))})", chunk).fetchall():
+                if r[1] == body.feed_id or db.execute("SELECT 1 FROM video_links WHERE feed_id = ? AND article_id = ?",
+                                                      (body.feed_id, r[0])).fetchone():
+                    continue  # already in that playlist
+                video_links.link(db, body.feed_id, r[0], None)
+                added += 1
+    audit("videos_added_to_playlist", principal, feed_id=body.feed_id, count=added)
+    return {"added": added, "skipped": len(ids) - added}
 
 
 class KeepIn(StrictModel):

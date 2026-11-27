@@ -307,3 +307,73 @@ def test_different_facebook_permalink_posts_are_not_mistaken_for_one():
     assert social_posts._clean_url("https://www.facebook.com/permalink.php?story_fbid=111&id=9&fbclid=zz").endswith("?story_fbid=111&id=9")
     assert social_posts.post_key("https://www.reddit.com/r/netsec/comments/abc123/x/") == social_posts.post_key("https://old.reddit.com/r/netsec/comments/abc123")
     assert social_posts.post_key("javascript:alert(1)") is None
+
+
+# ------------------------------------------------------------------ sign-in pages are not posts
+LI_WALL = ('<html><head><meta property="og:title" content="Sign Up | LinkedIn">'
+           '<meta property="og:description" content="500 million+ members | Manage your professional identity. Build and engage with '
+           'your professional network. Access knowledge, insights and opportunities.">'
+           '<meta property="og:image" content="https://static.licdn.com/scds/common/u/images/logos/favicons/v1/favicon.ico">'
+           '<meta property="og:url" content="https://www.linkedin.com/"></head><body>Join now</body></html>')
+
+
+def test_a_sign_in_page_is_not_taken_for_the_post(authed):
+    wall = resp(LI_WALL, url=LI_LINK, ctype="text/html")
+    with mock.patch("app.social_posts.netguard.request", return_value=wall):
+        assert social_posts.public_preview(LI_LINK) == {}
+        r = authed.post("/api/v1/accounts/posts", json={"url": LI_LINK})
+    assert r.status_code == 422 and "copy the post" in r.text.lower()                         # asked to paste, nothing saved
+    assert social_posts.login_wall("https://www.instagram.com/p/abc123/", "Login • Instagram", "", "")
+    assert not social_posts.login_wall(LI_LINK, "YOUR LAPTOP | António Sousa", "You don't need a PLC",
+                                       "https://www.linkedin.com/posts/antoniosousait_x-activity-7527177742136713216-hB49")
+
+
+def test_saved_sign_in_pages_are_repaired_or_marked_for_pasting(authed):
+    from app.db import get_db
+
+    with mock.patch("app.social_posts.netguard.request", return_value=resp(li_page(), url=LI_LINK, ctype="text/html")):
+        good = authed.post("/api/v1/accounts/posts", json={"url": LI_LINK}).json()["id"]
+    other = "https://www.linkedin.com/feed/update/urn:li:activity:7492069963147603968"
+    with mock.patch("app.social_posts.netguard.request", return_value=resp(li_page(), url=other, ctype="text/html")):
+        bad = authed.post("/api/v1/accounts/posts", json={"url": other}).json()["id"]
+    wall_html = ('<p><img src="https://static.licdn.com/sc/h/1kpzyrn73pn5g9xzl69rhfybi" alt=""></p><p>500 million+ members | Manage '
+                 'your professional identity. Build and engage with your professional network.</p>')
+    with get_db() as db:  # what the older version stored for both
+        for aid in (good, bad):
+            db.execute("UPDATE articles SET content_html = ?, text_content = ?, author = 'LinkedIn', title = '500 million+ members' WHERE id = ?",
+                       (wall_html, social_posts.search_text(wall_html), aid))
+            db.execute("UPDATE social_post_meta SET source = 'og', image_url = 'https://static.licdn.com/sc/h/1kpzyrn73pn5g9xzl69rhfybi' "
+                       "WHERE article_id = ?", (aid,))
+
+    def fake(method, url, **kw):  # LinkedIn shows one of them now, and the sign-in page for the other
+        return resp(li_page() if url.startswith(LI_LINK.rstrip("/")) else LI_WALL, url=url, ctype="text/html")
+
+    with mock.patch("app.social_posts.netguard.request", side_effect=fake):
+        assert social_posts.repair_login_walls() == (1, 1)
+        assert social_posts.repair_login_walls() == (0, 0)                                    # nothing left to do
+    fixed = authed.get(f"/api/v1/accounts/posts/{good}").json()
+    assert fixed["author"] == "António Sousa" and "#OTSecurity" in fixed["text"] and fixed["source"] == "jsonld"
+    marked = authed.get(f"/api/v1/accounts/posts/{bad}").json()
+    assert marked["source"] == "unavailable" and marked["text"] == "" and marked["author"] is None and marked["image"] is None
+    assert "wasn't handed over" in marked["title"]
+    r = authed.put(f"/api/v1/accounts/posts/{bad}/text", json={"text": "The real post, pasted."})   # ✎ Paste fixes it
+    assert r.json()["source"] == "pasted" and r.json()["text"] == "The real post, pasted."
+
+
+def test_linkedin_post_date_comes_from_its_number(authed):
+    from app.db import get_db
+
+    assert social_posts.linkedin_posted_at(LI_LINK) == 1794619021                       # = the date LinkedIn's own data gives
+    assert social_posts.linkedin_posted_at("https://www.linkedin.com/posts/x_y-activity-7492069963147603968-ab") == 1786248675
+    assert social_posts.linkedin_posted_at("https://x.com/a/status/7492069963147603968") is None
+    assert social_posts.linkedin_posted_at("https://www.linkedin.com/feed/update/urn:li:activity:1") is None   # nonsense
+    other = "https://www.linkedin.com/feed/update/urn:li:activity:7492069963147603968"
+    with mock.patch("app.social_posts.netguard.request", return_value=resp(li_page(), url=other, ctype="text/html")):
+        aid = authed.post("/api/v1/accounts/posts", json={"url": other}).json()["id"]
+    social_posts.mark_unavailable(aid)
+    item = authed.get(f"/api/v1/accounts/posts/{aid}").json()
+    assert item["published"] == 1786248675 and item["source"] == "unavailable"
+    with get_db() as db:  # one marked earlier with the save time: the start-up repair puts the posting date on it
+        db.execute("UPDATE articles SET published = 1795000000, sort_ts = 1795000000 WHERE id = ?", (aid,))
+    social_posts.repair_login_walls()
+    assert authed.get(f"/api/v1/accounts/posts/{aid}").json()["published"] == 1786248675

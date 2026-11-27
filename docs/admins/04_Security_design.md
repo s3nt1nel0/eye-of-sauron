@@ -410,6 +410,15 @@ This is a self-hosted personal project; open an issue or contact the maintainer 
   text and length-capped. The daily AI request limit applies.
 
 
+## 1.4.0: feed redirects, bulk video actions
+- **Feeds that send the feed inside a redirect:** when following a redirect gives no feed, the fetcher reads the
+  redirect answer of the *same* URL with the *same* SSRF-guarded client instead of following it, and accepts it only if
+  it parses as a feed. No new hosts are contacted and nothing is bypassed; the site's own answer is just read.
+- **`POST /api/v1/library/videos/bulk`:** write scope + CSRF, rate-limited, IDs capped and bound as parameters
+  (chunks of 500); `add_to_playlist` only links videos to a playlist you follow in your library (YouTube is not changed).
+- **Socials sign-in pages:** the app never tries to get around a sign-in wall; such pages are recognised and stored as
+  "no preview" so you paste the text yourself.
+
 ## 1.3.0: Resources, in-app video player, updater
 - **In-app video player:** CSP gains exactly one directive, `frame-src https://www.youtube-nocookie.com` (YouTube's
   privacy-enhanced player), in a sandboxed iframe. The app-wide `Referrer-Policy: no-referrer` stays; only the player

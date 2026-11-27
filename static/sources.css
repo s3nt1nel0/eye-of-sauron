@@ -622,7 +622,11 @@ body.has-pod-dock .app { height: calc(100vh - var(--pod-dock-h, 62px)); height: 
 .res-locate .repo-folder-menu-list { right: 0; left: auto; }
 
 /* Resources on phones, tablets and landscape (rule: 375x812, 812x375, 768x1024, 1024x768, desktop) */
-.res-dialog { width: min(560px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow: auto; }
+.res-dialog { width: min(560px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow: auto; overflow-x: hidden; }
+/* long tick labels in dialogs wrap (the shared .repo-tick is nowrap for short toolbar ticks) */
+.res-dialog .repo-tick, .res-dialog label { white-space: normal; overflow-wrap: anywhere; min-width: 0; max-width: 100%; }
+.res-dialog .repo-tick { align-items: flex-start; }
+.res-dialog .repo-tick > input { flex: none; margin-top: 3px; }
 @media (max-width: 900px), (max-height: 600px) {
   #resourcesView .studio-header { position: static; backdrop-filter: none; }
 }
@@ -707,7 +711,7 @@ body.has-pod-dock .app { height: calc(100vh - var(--pod-dock-h, 62px)); height: 
 
 /* ＋ add links / repos to a folder */
 .res-add-where { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.res-add-where select { flex: 1 1 200px; min-width: 0; max-width: 100%; }
+.res-add-where select { flex: none; width: 100%; min-width: 0; max-width: 100%; height: auto; }
 .res-add-menu { position: relative; display: inline-block; }
 .res-add-menu > summary { list-style: none; cursor: pointer; }
 .res-add-menu > summary::-webkit-details-marker { display: none; }
@@ -722,3 +726,58 @@ body.has-pod-dock .app { height: calc(100vh - var(--pod-dock-h, 62px)); height: 
 .lib-card-edit.solo { right: 6px; }
 .lib-card-edit .icon-btn { background: rgba(10, 12, 16, .88); color: #fff; border: 1px solid rgba(255, 255, 255, .45); border-radius: 50%; width: 32px; height: 32px; font-size: 1rem; box-shadow: 0 1px 4px rgba(0, 0, 0, .5); }
 .lib-card-edit .icon-btn:hover { background: var(--accent); border-color: var(--accent); }
+
+/* 🧠 editable links / repos in the mind-map panel + 📁 Folders… picker */
+.mm-item-row { display: flex; align-items: flex-start; gap: 6px; justify-content: space-between; }
+.mm-item-row > a { min-width: 0; overflow-wrap: anywhere; }
+.mm-item-menu { flex: none; }
+.mm-item-menu > summary { list-style: none; cursor: pointer; }
+.mm-item-menu > summary::-webkit-details-marker { display: none; }
+.mm-editable li:has(> .mm-item-row > .mm-item-menu[open]) { flex-wrap: wrap; }
+.mm-panel .mm-item-menu[open] { flex-basis: 100%; }
+.mm-panel .mm-item-row:has(.mm-item-menu[open]) { flex-wrap: wrap; }
+.mm-panel .mm-item-menu .repo-folder-menu-list { position: static; margin-top: 6px; min-width: 0; box-shadow: none; }
+.mm-panel .mm-item-menu .repo-folder-menu-list .btn { white-space: normal; text-align: left; justify-content: flex-start; height: auto; }
+.res-place-list { max-height: min(56dvh, 460px); overflow: auto; }
+.res-place-list li { list-style: none; padding: 3px 0; overflow-wrap: anywhere; }
+
+/* ☑ Select videos: a tick box on each card, ticked cards outlined, actions in a bar fixed to the bottom */
+.lib-card.selecting { position: relative; }
+.lib-card.selecting .lib-thumb { cursor: pointer; }
+.lib-video-check { position: absolute; top: 8px; left: 8px; width: 22px; height: 22px; margin: 0; z-index: 3; accent-color: var(--accent); cursor: pointer; }
+.lib-card.picked { outline: 2px solid var(--accent); outline-offset: -2px; }
+.lib-card.picked .lib-thumb img { opacity: .8; }
+.lib-sel-bar { position: fixed; left: 50%; transform: translateX(-50%); bottom: max(12px, env(safe-area-inset-bottom)); z-index: 40;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 10px; width: max-content; max-width: calc(100vw - 24px);
+  background: var(--panel); border: 1px solid var(--accent); border-radius: var(--radius); box-shadow: 0 6px 24px rgba(0, 0, 0, .35); }
+.lib-sel-bar[hidden] { display: none; }
+.lib-sel-count { margin-right: 4px; white-space: nowrap; }
+.lib-sel-sep { width: 1px; align-self: stretch; background: var(--border); margin: 0 2px; }
+.lib-sel-menu { z-index: 45; max-height: 50vh; overflow-y: auto; max-width: min(320px, calc(100vw - 16px)); }
+#libraryView:has(.lib-sel-bar:not([hidden])) .lib-more { padding-bottom: 96px; }  /* the last cards aren't hidden behind the bar */
+@media (max-width: 700px), (max-height: 500px) {  /* phones: one row, swipe it sideways for more actions */
+  .lib-sel-bar { left: 8px; right: 8px; transform: none; width: auto; max-width: none; flex-wrap: nowrap; overflow-x: auto;
+    overscroll-behavior-x: contain; scrollbar-width: thin; }
+  .lib-sel-bar > * { flex: 0 0 auto; white-space: nowrap; }
+  .lib-sel-sep { display: none; }
+}
+/* phones: ☑ Select stays on the folded toolbar (next to ☰ Filters), not hidden behind it */
+@media (max-width: 700px), (max-height: 500px) {
+  #libraryView .lib-header:not(.filters-open) > #libSelectBtn:not([hidden]) { display: inline-flex; align-items: center; }
+}
+
+/* 📦 Repos shown inside Resources */
+#resourcesView #reposView.res-embedded { grid-area: auto; overflow: visible; padding: 0; background: transparent; }
+.res-repos-note { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 2px 0 6px; }
+.res-badge-new { margin-left: 6px; min-width: 18px; padding: 0 5px; border-radius: 9px; background: var(--accent); color: #fff; font-size: .75em; line-height: 18px; text-align: center; }
+.res-repo-hits { border: 1px solid var(--border); border-radius: var(--radius); margin: 4px 16px 10px; padding: 8px 12px; background: var(--panel); }
+.res-repo-hit-list { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 4px; }
+.res-repo-hit-list li { overflow-wrap: anywhere; }
+@media (max-width: 700px) { .res-repo-hits { margin: 4px 8px 10px; } }
+/* Repos cards: tap targets on touch screens and small windows - the owner, your topics, GitHub's #tags, the folder
+   chips and the filter ticks are at least 40 px tall (the all-screens rule); scoped to #reposView (also when shown inside
+   Resources) so Resources' own uses of these classes keep their own rules */
+@media (pointer: coarse), (max-width: 860px) {
+  #reposView :is(.repo-owner-btn, .repo-topic, .repo-tag, .repo-fchip, .repo-tick) { min-height: 40px; display: inline-flex; align-items: center; }
+  #reposView :is(.repo-topic, .repo-tag, .repo-fchip) { min-width: 40px; padding-left: 12px; padding-right: 12px; justify-content: center; }
+}

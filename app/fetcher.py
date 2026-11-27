@@ -259,6 +259,25 @@ def parse_bytes(content: bytes, content_type: str | None, url: str):
     )
 
 
+def _feed_in_redirect(feed, headers: dict[str, str], cfg):
+    """Some sites answer a feed request with a redirect to their home page while still sending the feed itself in the
+    redirect's own body (gbhackers.com since 2026-11-24). Following the redirect gives the home page, which is not a
+    feed. Then ask once more without following redirects and use that body - only when it really is a feed with
+    entries. Same URL, same request: nothing is bypassed, the site's own answer is just read."""
+    try:
+        first = netguard.request("GET", feed["url"], headers=headers, allow_private=cfg.allow_private_feeds,
+                                 timeout=cfg.fetch_timeout, max_bytes=cfg.max_feed_bytes, max_redirects=0)
+    except (netguard.FetchError, netguard.UnsafeURLError):
+        return None
+    if first.status_code not in netguard.REDIRECT_CODES or xml_guard(first.content, first.headers.get("content-type")):
+        return None
+    parsed = parse_bytes(first.content, first.headers.get("content-type"), first.url)
+    if not parsed.get("entries"):
+        return None
+    log.info("Feed %s: read the feed from the body of its redirect to %s", feed["id"], first.headers.get("location", "?")[:200])
+    return first, parsed
+
+
 def fetch_feed(feed_id: int) -> dict:
     cfg = get_settings()
     with get_db() as db:
@@ -307,6 +326,10 @@ def fetch_feed(feed_id: int) -> dict:
         if rejection:
             return _record_error(feed_id, refresh, rejection)
         parsed = parse_bytes(resp.content, resp.headers.get("content-type"), resp.url)
+        if parsed.get("bozo") and not parsed.get("entries") and resp.url != netguard.normalize_url(feed["url"]):
+            first = _feed_in_redirect(feed, headers, cfg)
+            if first is not None:
+                resp, parsed = first
         if parsed.get("bozo") and not parsed.get("entries"):
             return _record_error(feed_id, refresh, "Could not parse feed (not valid RSS/Atom?)")
         entries, feed_meta = parsed.entries, parsed.get("feed", {})

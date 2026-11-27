@@ -210,6 +210,30 @@ def _ld_post(page: str) -> dict:
     return {}
 
 
+WALL_TITLE = re.compile(r"^(?:(?:sign ?up|sign ?in|log ?in|join)\b[^|]*\|\s*linkedin|linkedin:? log ?in or sign ?up|linkedin login.*"
+                        r"|log ?in or sign ?up to view|login\s*•\s*instagram|instagram|facebook|log into facebook.*)$", re.I)
+WALL_TEXT = ("Manage your professional identity", "Log in or sign up to view", "Create an account or log in to Instagram",
+             "See posts, photos and more on Facebook")
+WALL_PATHS = ("", "/", "/login", "/login/", "/signup", "/signup/", "/authwall", "/accounts/login/", "/uas/login")
+
+
+def is_wall_text(text: str | None) -> bool:
+    """Is this the generic text of a site's sign-in / sign-up page (LinkedIn's "500 million+ members | Manage your
+    professional identity…") rather than a post?"""
+    return any(w.lower() in (text or "").lower() for w in WALL_TEXT)
+
+
+def login_wall(link: str, title: str, desc: str, og_url: str = "") -> bool:
+    """The page a site shows instead of the post when it wants you to sign in (its link preview then describes the site,
+    or points at its front / login page, not the post)."""
+    if WALL_TITLE.match((title or "").strip()) or is_wall_text(desc):
+        return True
+    if og_url:
+        page_path, post_path = urlsplit(og_url).path, urlsplit(link).path
+        return page_path in WALL_PATHS and post_path not in WALL_PATHS
+    return False
+
+
 def public_preview(link: str) -> dict:
     """The preview a site shows anyone - what a link preview in a chat app shows: the schema.org JSON-LD (LinkedIn's has
     the whole post, author, profile link and date) and the Open Graph tags. A login wall (no data) simply gives {};
@@ -234,6 +258,8 @@ def public_preview(link: str) -> dict:
     image = safe_image(_ld_url(ld.get("image")) if ld else "", plat, link) or safe_image(_meta(page, "og:image"), plat, link)
     if not (body or title or desc):
         return {}
+    if not body.strip() and login_wall(link, title, desc, _meta(page, "og:url")):
+        return {}  # a sign-in / sign-up page instead of the post: there is no preview (the app never gets around it)
     og_author = title.rsplit(" | ", 1)[1].strip()[:200] if " | " in title else None  # "Post text… | Jane Doe"
     published = _iso(ld.get("datePublished")) if ld else None
     return {"image": image, "title": to_text(title, 500), "text": body.strip()[:MAX_TEXT] or to_text(desc),
@@ -537,6 +563,8 @@ def fetch(url: str, pasted: str | None = None, rsshub: str | None = None, x_toke
             out[key] = out[key] or preview.get(key)
         if plat == "linkedin" and not out["profile_url"] and (v := LI_VANITY.match(path)):
             out["profile_url"] = f"https://www.linkedin.com/in/{v.group(1)}"  # /posts/<their name>_… links
+        if plat == "linkedin" and not out["published"]:
+            out["published"] = linkedin_posted_at(link)  # the post's own number carries its date
         if preview.get("text"):
             out["text"] = preview["text"]
             out["source"] = "jsonld" if preview.get("full") else "og"
@@ -640,3 +668,62 @@ def set_text(article_id: int, text: str) -> None:
                 "handle": meta["handle"] if meta else None, "profile_url": meta["profile_url"] if meta else None,
                 "avatar": meta["avatar_url"] if meta else None}
         _write(db, article_id, post, para_html(text))
+
+
+def mark_unavailable(article_id: int) -> None:
+    """The platform showed its sign-in page instead of this saved post: drop that page's text, "author" and logo and mark
+    the post so its card asks for the post's text (✎ Paste) - the link stays, so ↻ can try again later."""
+    from app.db import get_db
+    with get_db() as db:
+        row = _saved_row(db, article_id)
+        if row is None:
+            return
+        name = {"linkedin": "LinkedIn", "instagram": "Instagram", "facebook": "Facebook", "x": "X"}.get(row["social_platform"] or "", "Saved")
+        db.execute("UPDATE articles SET title = ?, author = NULL, content_html = '', text_content = '' WHERE id = ?",
+                   (f"{name} post - its text wasn't handed over", article_id))
+        posted = linkedin_posted_at(row["url"] or "")
+        if posted:  # at least the day it was posted (from its number), not the day it was saved
+            db.execute("UPDATE articles SET published = ?, sort_ts = ? WHERE id = ?", (posted, posted, article_id))
+        db.execute("DELETE FROM article_topics WHERE article_id = ? AND source = 'keyword'", (article_id,))
+        save_meta(db, article_id, {"source": "unavailable"})
+
+
+def linkedin_posted_at(url: str) -> int | None:
+    """When a LinkedIn post was made, from its own number: activity / share / ugcPost ids are time-ordered ids whose top bits
+    are the creation time in milliseconds (id >> 22). Public in the link itself - no request. None if it doesn't look right."""
+    if platform_of(url) != "linkedin" or not (m := LI_ACTIVITY.search(urlsplit(url).path)):
+        return None
+    ts = (int(m.group(1)) >> 22) // 1000
+    return ts if 1262304000 <= ts <= int(time.time()) + 86400 else None  # 2010 … tomorrow
+
+
+def repair_login_walls(rsshub: str | None = None, x_token: str | None = None) -> tuple[int, int]:
+    """Saved posts that stored a sign-in page's text (before sign-in pages were recognised): read each once more - fixed if
+    the platform now shows the post - otherwise mark it for pasting. -> (fixed, marked). Safe to run on every start."""
+    from app.db import get_db
+    with get_db() as db:
+        rows = [r["id"] for r in db.execute(
+            "SELECT a.id, a.text_content FROM articles a JOIN feeds f ON f.id = a.feed_id LEFT JOIN social_post_meta m ON m.article_id = a.id "
+            "WHERE f.url LIKE ? AND COALESCE(m.source, '') NOT IN ('pasted', 'unavailable')", (SAVED_FEED_PREFIX + "%",))
+            if is_wall_text(r["text_content"])]
+    fixed = marked = 0
+    for article_id in rows:
+        try:
+            post = refresh_saved(article_id, rsshub, x_token)
+            if is_wall_text(post.get("text")):
+                raise PostError("still the sign-in page")
+            fixed += 1
+        except PostError as exc:
+            if str(exc).startswith(("Could not reach", "The site is rate-limiting")):
+                continue  # offline: try again next start
+            mark_unavailable(article_id)
+            marked += 1
+        except LookupError:
+            continue
+    with get_db() as db:  # posts already waiting for their text: show the day they were posted, not the day they were saved
+        for r in db.execute("SELECT a.id, a.url, a.published FROM articles a JOIN social_post_meta m ON m.article_id = a.id "
+                            "WHERE m.source = 'unavailable'").fetchall():
+            posted = linkedin_posted_at(r["url"] or "")
+            if posted and r["published"] != posted:
+                db.execute("UPDATE articles SET published = ?, sort_ts = ? WHERE id = ?", (posted, posted, r["id"]))
+    return fixed, marked

@@ -17,7 +17,7 @@ class RuleSpec(TypedDict, total=False):
     keywords: list[str]
     require: list[str]
     exclude: list[str]
-    match_in: str            # "title" | "title_content" (default)
+    match_in: str            # "title" | "title_opening" (title + opening lines of the article) | "title_content" (default)
     title_keywords: bool     # `keywords` must be in the title; `require`/`exclude` follow match_in
     folder: str              # restrict to the folder with this name (created when missing)
     cve_severity: str        # CRITICAL | HIGH | MEDIUM | LOW
@@ -128,25 +128,58 @@ NOT_ADVISORY = ["CVE", "CVEs", "KEV", "Known Exploited Vulnerabilities", "Known 
                 "employees", "new feature", "feature", "rolls out", "launches"]
 
 # ------------------------------------------------------------------ packs
+# The broad threat collections search the title and the opening lines of an article ("title_opening"), not the whole
+# text: a word mentioned in passing deep in an article ("...a suspected Chinese espionage case...", "sudo apt install",
+# "unlike ransomware...") must not file it (2026-11-26).
+APT_GROUPS = [
+    "Lazarus", "Lazarus Group", "Kimsuky", "Andariel", "BlueNoroff", "ScarCruft", "APT37", "APT38", "APT43",
+    "TraderTraitor", "Moonstone Sleet", "Jade Sleet", "Sapphire Sleet", "Diamond Sleet", "Emerald Sleet", "Onyx Sleet",
+    "Volt Typhoon", "Salt Typhoon", "Silk Typhoon", "Flax Typhoon", "Linen Typhoon", "Violet Typhoon", "Brass Typhoon",
+    "Mustang Panda", "APT1", "APT3", "APT10", "APT15", "APT27", "APT31", "APT40", "APT41", "Winnti", "Earth Lusca",
+    "Earth Estries", "RedHotel", "BlackTech", "Naikon", "Ke3chang", "Lotus Blossom", "UNC3886", "UNC5221", "Storm-0558",
+    "Fancy Bear", "Cozy Bear", "APT28", "APT29", "Sandworm", "Turla", "Gamaredon", "Nobelium", "Midnight Blizzard",
+    "Forest Blizzard", "Seashell Blizzard", "Star Blizzard", "Secret Blizzard", "Cadet Blizzard", "Void Blizzard",
+    "Laundry Bear", "Ember Bear", "Cold River", "ColdRiver", "Callisto",
+    "Charming Kitten", "APT33", "APT34", "APT35", "APT42", "OilRig", "MuddyWater", "Mint Sandstorm", "Peach Sandstorm",
+    "Cobalt Mirage", "Equation Group", "Sidewinder", "Transparent Tribe", "DarkHotel",
+]
+NATION_STATE_WORDS = [
+    "APT", "APTs", "advanced persistent threat", "nation-state", "nation-states", "nation state", "state-sponsored",
+    "state sponsored", "state-backed", "state-linked", "state-aligned", "government-backed", "state hackers",
+    "cyberespionage", "cyber espionage", "cyber-espionage", "espionage", "China-linked", "China-nexus", "China-backed",
+    "Russia-linked", "Russia-backed", "Russia-nexus", "Iran-linked", "Iran-backed", "Iran-nexus", "North Korea-linked",
+    "North Korean hackers", "Chinese hackers", "Russian hackers", "Iranian hackers", "Kremlin-backed", "Beijing-backed",
+    "military hackers", "GRU hackers", "intelligence hackers", "spy agency", "North Korea", "North Korean", "DPRK",
+    "cyberwarfare", "cyber warfare", "cyber-warfare",
+]
+CYBER_CONTEXT = [  # a nation-state word alone ("espionage", "spy agency") is not enough: it must be about hacking
+    "hacker", "hackers", "hacking", "hacked", "cyber", "cyberattack", "cyberattacks", "cyber attack", "cyber attacks",
+    "cyberespionage", "cyber espionage", "cyber-espionage", "malware", "backdoor", "backdoors", "phishing",
+    "spear-phishing", "intrusion", "intrusions", "breach", "breached", "exploit", "exploits", "exploited", "zero-day",
+    "zero-days", "vulnerability", "vulnerabilities", "threat actor", "threat actors", "APT", "ransomware", "spyware",
+    "implant", "wiper", "compromised", "infiltrated", "cybercrime", "botnet", "threat group", "hacking group",
+    "cyber operations",
+]
+ZERO_DAY_WORDS = [
+    "zero-day", "zero-days", "0-day", "0-days", "zeroday", "actively exploited", "exploited in the wild",
+    "proof of concept", "poc exploit", "rce", "remote code execution"]
+
 CORE: list[CollectionSpec] = [
-    {"name": "Ransomware", "color": "#dc2626", "rules": [{"keywords": [
+    {"name": "Ransomware", "color": "#dc2626", "rules": [{"match_in": "title_opening", "keywords": [
         "ransomware", "lockbit", "blackcat", "alphv", "akira", "clop", "cl0p", "play ransomware", "black basta",
         "rhysida", "medusa", "qilin", "extortion", "double extortion", "data leak site"]}]},
-    {"name": "Zero-days & Exploits", "color": "#be185d", "rules": [{"keywords": [
-        "zero-day", "0-day", "zeroday", "actively exploited", "exploited in the wild", "proof of concept",
-        "poc exploit", "rce", "remote code execution"]}]},
-    {"name": "APT & Nation-State", "color": "#7c3aed", "rules": [{"keywords": [
-        "apt", "nation-state", "state-sponsored", "lazarus", "kimsuky", "volt typhoon", "salt typhoon",
-        "fancy bear", "cozy bear", "apt28", "apt29", "sandworm", "turla", "charming kitten", "mustang panda",
-        "espionage", "threat actor"]}]},
-    {"name": "Phishing & Social Eng.", "color": "#0ea5e9", "rules": [{"keywords": [
+    {"name": "Zero-days & Exploits", "color": "#be185d", "rules": [{"match_in": "title_opening", "keywords": ZERO_DAY_WORDS}]},
+    {"name": "APT & Nation-State", "color": "#7c3aed", "rules": [
+        {"match_in": "title_opening", "keywords": APT_GROUPS},
+        {"match_in": "title_opening", "keywords": NATION_STATE_WORDS, "require": CYBER_CONTEXT}]},
+    {"name": "Phishing & Social Eng.", "color": "#0ea5e9", "rules": [{"match_in": "title_opening", "keywords": [
         "phishing", "smishing", "vishing", "business email compromise", "bec", "credential harvesting",
         "social engineering", "qr code phishing"]}]},
-    {"name": "Breaches & Leaks", "color": "#ea580c", "rules": [{"keywords": [
+    {"name": "Breaches & Leaks", "color": "#ea580c", "rules": [{"match_in": "title_opening", "keywords": [
         "data breach", "breach", "leaked", "exposed database", "stolen data", "compromised accounts"]}]},
-    {"name": "Malware", "color": "#16a34a", "rules": [{"keywords": [
+    {"name": "Malware", "color": "#16a34a", "rules": [{"match_in": "title_opening", "keywords": [
         "malware", "trojan", "infostealer", "stealer", "botnet", "loader", "backdoor", "rootkit", "wiper", "rat"]}]},
-    {"name": "Supply Chain", "color": "#0891b2", "rules": [{"keywords": [
+    {"name": "Supply Chain", "color": "#0891b2", "rules": [{"match_in": "title_opening", "keywords": [
         "supply chain", "supply-chain", "malicious package", "npm", "pypi", "dependency confusion", "typosquat"]}]},
 ]
 
@@ -162,10 +195,10 @@ OT_PACK: list[CollectionSpec] = [
 ]
 
 PRACTICE: list[CollectionSpec] = [
-    {"name": "Offensive security", "color": "#e11d48", "rules": [{"keywords": OFFENSIVE_WORDS}]},
-    {"name": "Defensive security", "color": "#2563eb", "rules": [{"keywords": SOC_WORDS}]},
+    {"name": "Offensive security", "color": "#e11d48", "rules": [{"keywords": OFFENSIVE_WORDS, "match_in": "title_opening"}]},
+    {"name": "Defensive security", "color": "#2563eb", "rules": [{"keywords": SOC_WORDS, "match_in": "title_opening"}]},
     {"name": "Threat intelligence", "color": "#7c3aed", "rules": [
-        {"keywords": ["threat intelligence", "threat intel", "CTI", "TTPs", "indicators of compromise", "IOCs",
+        {"match_in": "title_opening", "keywords": ["threat intelligence", "threat intel", "CTI", "TTPs", "indicators of compromise", "IOCs",
                       "threat report", "threat landscape", "threat actor", "threat actors", "attribution",
                       "attributed", "APT", "intrusion set", "tradecraft", "MITRE ATT&CK", "campaign analysis",
                       "threat research", "threat analysis"]},
@@ -426,3 +459,35 @@ PACK_BY_SLUG = {p["slug"]: p for p in PACKS}
 
 def rule_name(collection: str, index: int) -> str:
     return f"Auto: {collection}" if index == 0 else f"Auto: {collection} #{index + 1}"
+
+
+# ------------------------------------------------------------------ upgrades of installed packs
+# Rules installed from an older version of a pack, as they were installed. When an installed rule still looks exactly
+# like this (you never edited it), it is brought up to the current spec once (app.api.automation.upgrade_pack_rules);
+# edited rules are left alone. PACK_RULES_REV says which upgrade the database has had.
+PACK_RULES_REV = "2"
+_OLD_APT = ["apt", "nation-state", "state-sponsored", "lazarus", "kimsuky", "volt typhoon", "salt typhoon", "fancy bear",
+            "cozy bear", "apt28", "apt29", "sandworm", "turla", "charming kitten", "mustang panda", "espionage",
+            "threat actor"]
+_OLD_ZERO_DAY = ["zero-day", "0-day", "zeroday", "actively exploited", "exploited in the wild", "proof of concept",
+                 "poc exploit", "rce", "remote code execution"]
+
+
+def _previous() -> dict[str, RuleSpec]:
+    old: dict[str, RuleSpec] = {}
+    for coll in CORE + PRACTICE:
+        for index, spec in enumerate(coll["rules"]):
+            if spec.get("match_in") != "title_opening" or (coll["name"] == "APT & Nation-State" and index):
+                continue
+            prev: RuleSpec = {k: v for k, v in spec.items() if k != "match_in"}  # type: ignore[assignment]
+            if coll["name"] == "APT & Nation-State":
+                prev["keywords"] = _OLD_APT
+            elif coll["name"] == "Zero-days & Exploits":
+                prev["keywords"] = _OLD_ZERO_DAY
+            old[rule_name(coll["name"], index)] = prev
+    return old
+
+
+PREVIOUS: dict[str, RuleSpec] = _previous()
+CURRENT: dict[str, tuple[str, int, RuleSpec]] = {  # rule name -> (collection, index, spec)
+    rule_name(c["name"], i): (c["name"], i, spec) for p in PACKS for c in p["collections"] for i, spec in enumerate(c["rules"])}

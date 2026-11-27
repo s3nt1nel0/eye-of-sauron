@@ -1,21 +1,27 @@
 """Story grouping: articles from different sources that report the same story share a story_id.
 
 How it works (no network, no AI):
-  * A title is reduced to its significant words (lower-case, without filler words).
-  * Two articles are the same story when they come from *different* feeds, were published within a few days of
-    each other and their titles share most of those words (Jaccard overlap; the threshold is the "how alike"
-    setting). Titles that carry different long numbers (two different CVE IDs, two different case numbers) are
-    never merged, and very short titles are left alone.
+  * Two articles can only be the same story when they come from *different* feeds and were published within a few
+    days of each other. Titles that carry different long numbers (two case numbers), or articles whose title and
+    opening lines name different CVE IDs, are never merged; very short titles are left alone.
+  * Then any of three tests joins them (the "how alike" setting sets how strict each one is):
+      1. the titles share most of their words (plain word overlap - the original rule);
+      2. the titles share most of their *rare* words: words are reduced to a simple stem ("Bulgarian" / "Bulgaria",
+         "hackers" / "hacker", "five" / "5") and each counts by how rare it is among the last week's articles,
+         so "Fortinet" or "Bulgaria" weigh far more than "hackers" or "flaw";
+      3. the titles share at least one rare word and enough weight, AND the title plus the first ~40 words of the
+         two articles say much the same (cosine of rare-word weights) - this catches re-worded headlines of one story.
   * articles.story_id is the id of the first article of the story; NULL = on its own.
 
 Only Reader articles are grouped (not videos, podcast episodes or account posts).
 New articles are grouped as they arrive (assign); rebuild() regroups everything, in the background, after the
-setting changes.
+setting (or this matcher, REV) changes.
 """
 
 from __future__ import annotations
 
 import logging
+import math
 import re
 import sqlite3
 import threading
@@ -27,13 +33,21 @@ from app.db import get_db, now, placeholders
 
 log = logging.getLogger("eos.stories")
 
-REV = 1
+REV = 2
 WINDOW = 4 * 86400
+KEEP = 2 * WINDOW            # how far back the index looks (word rarity is measured over this span)
 MIN_WORDS = 4
 MIN_SHARED = 3
 THRESHOLDS = {"strict": 0.75, "normal": 0.6, "loose": 0.5}
+# per "how alike" setting: (weighted title overlap, opening-lines cosine (0 = off), min shared title weight,
+#                           a shared title word must be in at most this many recent articles)
+PROFILES = {"strict": (0.65, 0.0, 0.0, 0), "normal": (0.5, 0.40, 14.0, 12), "loose": (0.42, 0.36, 10.0, 16)}
+LEAD_WORDS = 40              # opening words of the article compared in test 3
+LEAD_CHARS = 700             # read at most this much text per article (bounded work, whatever the feed sends)
+MIN_DOCS = 300               # word rarity is never judged against fewer articles than this
 TOKEN = re.compile(r"[^\W_]+", re.UNICODE)
 YEAR = re.compile(r"^(19|20)\d\d$")
+CVE = re.compile(r"\bCVE-\d{4}-\d{4,7}\b", re.IGNORECASE)
 STOP = frozenset("""
 a an the and or but nor of in on at to for from by with without into onto over under after before about against
 between during through via per as is are was were be been being it its this that these those their his her our your
@@ -42,10 +56,58 @@ says said say report reports reported reportedly according amid here there than 
 you we they he she us them out up down off all any some after again update updated
 """.split())
 ELIGIBLE = "COALESCE(f.kind, 'rss') NOT IN ('youtube', 'podcast') AND f.social_platform IS NULL"  # fixed SQL fragment
+LEAD_SQL = f"substr(COALESCE(a.text_content, ''), 1, {LEAD_CHARS}) AS lead"                         # fixed SQL fragment
+NUMBER_WORDS = {"one": "1", "two": "2", "three": "3", "four": "4", "five": "5", "six": "6", "seven": "7",
+                "eight": "8", "nine": "9", "ten": "10", "twelve": "12", "twenty": "20", "hundred": "100"}
+IRREGULAR = {"stole": "steal", "stolen": "steal", "spies": "spy", "spying": "spy", "led": "lead", "found": "find",
+             "took": "take", "taken": "take", "children": "child", "men": "man", "says": "say"}
 
 
 def words(title: str) -> frozenset[str]:
     return frozenset(w for w in (t.lower() for t in TOKEN.findall(title or "")) if w not in STOP and (len(w) > 1 or w.isdigit()))
+
+
+def stem(w: str) -> str:
+    """A deliberately small stemmer: plurals, -ing/-ed, country adjectives (Bulgarian -> bulgar), number words."""
+    if w in NUMBER_WORDS:
+        return NUMBER_WORDS[w]
+    if w in IRREGULAR:
+        return IRREGULAR[w]
+    if w.isdigit() or len(w) <= 3:
+        return w
+    for suffix, repl, keep in (("ies", "y", 3), ("ing", "", 4), ("ied", "y", 3), ("ed", "", 4), ("es", "", 4), ("s", "", 3)):
+        if w.endswith(suffix) and len(w) - len(suffix) >= keep and not w.endswith("ss"):
+            w = w[: -len(suffix)] + repl
+            break
+    for suffix in ("ians", "ian", "ia", "ese"):
+        if w.endswith(suffix) and len(w) - len(suffix) >= 4:
+            return w[: -len(suffix)]
+    return w
+
+
+def stems(text: str, limit: int | None = None) -> list[str]:
+    out: list[str] = []
+    for t in TOKEN.finditer(text or ""):
+        w = t.group(0).lower()
+        if w in STOP or (len(w) < 2 and not w.isdigit()):
+            continue
+        out.append(stem(w))
+        if limit is not None and len(out) >= limit:
+            break
+    return out
+
+
+class Doc:
+    """What the matcher keeps of one article."""
+
+    __slots__ = ("raw", "title", "bag", "cves")
+
+    def __init__(self, title: str, text: str = "") -> None:
+        lead = (text or "")[:LEAD_CHARS]
+        self.raw = words(title)                       # test 1 + the long-number guard
+        self.title = frozenset(stems(title))          # test 2
+        self.bag = self.title | frozenset(stems(lead, LEAD_WORDS))  # test 3
+        self.cves = frozenset(m.group(0).upper() for m in CVE.finditer(f"{title or ''} {lead}"))
 
 
 def _long_numbers(ws: frozenset[str]) -> frozenset[str]:
@@ -53,7 +115,7 @@ def _long_numbers(ws: frozenset[str]) -> frozenset[str]:
 
 
 def same_story(a: frozenset[str], b: frozenset[str], threshold: float) -> float:
-    """Overlap score (0 = not the same story)."""
+    """Test 1, plain title-word overlap (0 = not the same story)."""
     if len(a) < MIN_WORDS or len(b) < MIN_WORDS:
         return 0.0
     shared = len(a & b)
@@ -69,57 +131,98 @@ def same_story(a: frozenset[str], b: frozenset[str], threshold: float) -> float:
 
 
 class _Index:
-    """Recent articles by word, for finding candidates without comparing against everything."""
+    """Recent articles by title word (for finding candidates) and how many recent articles use each word."""
 
     def __init__(self) -> None:
-        self.docs: dict[int, tuple[int, frozenset[str], int]] = {}  # id -> (feed_id, words, ts)
+        self.docs: dict[int, tuple[int, Doc, int]] = {}            # id -> (feed_id, doc, ts)
         self.story: dict[int, int | None] = {}
         self.start: dict[int, int] = {}                             # story id -> when its first article appeared
-        self.postings: dict[str, set[int]] = {}
+        self.postings: dict[str, set[int]] = {}                     # title stem -> ids
+        self.df: dict[str, int] = {}                                # stem -> how many recent articles use it
         self.order: deque[tuple[int, int]] = deque()                # (ts, id), oldest first
 
-    def add(self, aid: int, feed_id: int, ws: frozenset[str], ts: int, story: int | None) -> None:
+    def add(self, aid: int, feed_id: int, doc: Doc, ts: int, story: int | None) -> None:
         if aid in self.docs:
             return
-        self.docs[aid] = (feed_id, ws, ts)
+        self.docs[aid] = (feed_id, doc, ts)
         self.story[aid] = story
         if story is not None:
             self.start[story] = min(self.start.get(story, ts), ts)
-        for w in ws:
+        for w in doc.title:
             self.postings.setdefault(w, set()).add(aid)
+        for w in doc.bag:
+            self.df[w] = self.df.get(w, 0) + 1
         self.order.append((ts, aid))
 
     def prune(self, before: int) -> None:
         while self.order and self.order[0][0] < before:
             _, aid = self.order.popleft()
-            doc = self.docs.pop(aid, None)
+            item = self.docs.pop(aid, None)
             self.story.pop(aid, None)  # self.start is kept: it is what stops a story from chaining on
-            if doc:
-                for w in doc[1]:
-                    ids = self.postings.get(w)
-                    if ids:
-                        ids.discard(aid)
-                        if not ids:
-                            del self.postings[w]
-
-    def best(self, feed_id: int, ws: frozenset[str], ts: int, threshold: float) -> int | None:
-        if len(ws) < MIN_WORDS:
-            return None
-        shared: dict[int, int] = {}
-        for w in ws:
-            for other in self.postings.get(w, ()):
-                shared[other] = shared.get(other, 0) + 1
-        best_id, best_score = None, 0.0
-        for other, n in shared.items():
-            if n < MIN_SHARED:
+            if item is None:
                 continue
-            ofeed, ows, ots = self.docs[other]
-            if ofeed == feed_id or abs(ts - ots) > WINDOW:
+            doc = item[1]
+            for w in doc.title:
+                ids = self.postings.get(w)
+                if ids:
+                    ids.discard(aid)
+                    if not ids:
+                        del self.postings[w]
+            for w in doc.bag:
+                n = self.df.get(w, 0) - 1
+                if n > 0:
+                    self.df[w] = n
+                else:
+                    self.df.pop(w, None)
+
+    def best(self, feed_id: int, doc: Doc, ts: int, threshold: float, profile: tuple = PROFILES["normal"]) -> int | None:
+        if len(doc.title) < MIN_WORDS or len(doc.raw) < MIN_WORDS:
+            return None
+        title_th, lead_th, min_weight, rare_df = profile
+        total = max(len(self.docs), MIN_DOCS)
+        weights: dict[str, float] = {}
+
+        def weight(w: str) -> float:
+            v = weights.get(w)
+            if v is None:
+                v = weights[w] = math.log((total + 1) / (1 + self.df.get(w, 0)))
+            return v
+
+        candidates: set[int] = set()
+        for w in doc.title:
+            candidates.update(self.postings.get(w, ()))
+        mine = _long_numbers(doc.raw)
+        best_id, best_score = None, 0.0
+        for other in candidates:
+            ofeed, odoc, ots = self.docs[other]
+            if ofeed == feed_id or abs(ts - ots) > WINDOW or len(odoc.title) < MIN_WORDS:
                 continue
             ostory = self.story.get(other)
             if ostory is not None and ts - self.start.get(ostory, ots) > WINDOW:
                 continue  # a story ends a few days after it began: recurring headlines must not chain for weeks
-            score = same_story(ws, ows, threshold)
+            theirs = _long_numbers(odoc.raw)
+            if (mine and theirs and not (mine & theirs)) or (doc.cves and odoc.cves and not (doc.cves & odoc.cves)):
+                continue  # different case numbers / CVE IDs: different stories, however alike the wording
+            score = 0.0
+            plain = same_story(doc.raw, odoc.raw, threshold)
+            if plain:
+                score = 2.0 + plain                                   # test 1 ranks first
+            else:
+                shared = doc.title & odoc.title
+                if len(shared) < 2:
+                    continue
+                shared_w = sum(weight(w) for w in shared)
+                union_w = sum(weight(w) for w in doc.title | odoc.title)
+                title_score = shared_w / union_w if union_w else 0.0
+                if title_score >= title_th:
+                    score = 1.0 + title_score                         # test 2
+                elif lead_th and shared_w >= min_weight and any(self.df.get(w, 0) <= rare_df for w in shared):
+                    common = doc.bag & odoc.bag
+                    num = sum(weight(w) ** 2 for w in common)
+                    den = math.sqrt(sum(weight(w) ** 2 for w in doc.bag) * sum(weight(w) ** 2 for w in odoc.bag))
+                    cosine = num / den if den else 0.0
+                    if cosine >= lead_th:
+                        score = cosine                                # test 3
             if score > best_score or (score == best_score and score and other < (best_id or other + 1)):
                 best_id, best_score = other, score
         return best_id
@@ -129,14 +232,15 @@ _lock = threading.Lock()
 _live: _Index | None = None
 
 
-def _prefs(db: sqlite3.Connection) -> tuple[bool, float]:
+def _prefs(db: sqlite3.Connection) -> tuple[bool, float, tuple]:
     prefs = app_settings.get_all(db)
-    return bool(prefs["story_grouping"]), THRESHOLDS[prefs["story_match"]]
+    return bool(prefs["story_grouping"]), THRESHOLDS[prefs["story_match"]], PROFILES[prefs["story_match"]]
 
 
-def _join(db: sqlite3.Connection, index: _Index, aid: int, feed_id: int, ws: frozenset[str], ts: int, threshold: float) -> int | None:
+def _join(db: sqlite3.Connection, index: _Index, aid: int, feed_id: int, doc: Doc, ts: int, threshold: float,
+          profile: tuple) -> int | None:
     """Put one article into the index and return its story id (None = on its own)."""
-    other = index.best(feed_id, ws, ts, threshold)
+    other = index.best(feed_id, doc, ts, threshold, profile)
     story = None
     if other is not None:
         story = index.story.get(other) or other
@@ -144,7 +248,7 @@ def _join(db: sqlite3.Connection, index: _Index, aid: int, feed_id: int, ws: fro
         if index.story.get(other) is None:
             index.story[other] = story
             db.execute("UPDATE articles SET story_id = ? WHERE id = ?", (story, other))
-    index.add(aid, feed_id, ws, ts, story)
+    index.add(aid, feed_id, doc, ts, story)
     return story
 
 
@@ -153,12 +257,12 @@ def assign(db: sqlite3.Connection, article_ids: list[int]) -> None:
     global _live
     if not article_ids:
         return
-    on, threshold = _prefs(db)
+    on, threshold, profile = _prefs(db)
     if not on:
         return
     with _lock:
         rows = db.execute(
-            "SELECT a.id, a.feed_id, a.title, a.sort_ts FROM articles a JOIN feeds f ON f.id = a.feed_id "
+            f"SELECT a.id, a.feed_id, a.title, a.sort_ts, {LEAD_SQL} FROM articles a JOIN feeds f ON f.id = a.feed_id "
             f"WHERE a.id IN ({placeholders(len(article_ids))}) AND {ELIGIBLE} ORDER BY a.sort_ts, a.id",  # nosec B608 - fixed fragments
             article_ids).fetchall()
         if not rows:
@@ -167,13 +271,13 @@ def assign(db: sqlite3.Connection, article_ids: list[int]) -> None:
             _live = _Index()
             new = set(article_ids)
             for r in db.execute(
-                    "SELECT a.id, a.feed_id, a.title, a.sort_ts, a.story_id FROM articles a JOIN feeds f ON f.id = a.feed_id "
-                    f"WHERE a.sort_ts >= ? AND {ELIGIBLE} ORDER BY a.sort_ts, a.id", (now() - 2 * WINDOW,)):  # nosec B608
+                    f"SELECT a.id, a.feed_id, a.title, a.sort_ts, a.story_id, {LEAD_SQL} FROM articles a JOIN feeds f ON f.id = a.feed_id "
+                    f"WHERE a.sort_ts >= ? AND {ELIGIBLE} ORDER BY a.sort_ts, a.id", (now() - KEEP,)):  # nosec B608
                 if r["id"] not in new:
-                    _live.add(r["id"], r["feed_id"], words(r["title"]), r["sort_ts"], r["story_id"])
-        _live.prune(now() - 2 * WINDOW)
+                    _live.add(r["id"], r["feed_id"], Doc(r["title"], r["lead"]), r["sort_ts"], r["story_id"])
+        _live.prune(now() - KEEP)
         for r in rows:
-            story = _join(db, _live, r["id"], r["feed_id"], words(r["title"]), r["sort_ts"], threshold)
+            story = _join(db, _live, r["id"], r["feed_id"], Doc(r["title"], r["lead"]), r["sort_ts"], threshold, profile)
             if story is not None:
                 db.execute("UPDATE articles SET story_id = ? WHERE id = ?", (story, r["id"]))
 
@@ -218,14 +322,14 @@ rebuilder = Rebuilder()
 
 
 def _wanted(db: sqlite3.Connection) -> str:
-    on, _ = _prefs(db)
+    on = _prefs(db)[0]
     return f"{REV}:{app_settings.get_all(db)['story_match']}" if on else "off"
 
 
 def rebuild() -> dict:
     """Regroup every stored article with the current setting (short transactions; the app stays usable)."""
     with get_db() as db:
-        on, threshold = _prefs(db)
+        on, threshold, profile = _prefs(db)
         wanted = _wanted(db)
         ids = [r[0] for r in db.execute(
             f"SELECT a.id FROM articles a JOIN feeds f ON f.id = a.feed_id WHERE {ELIGIBLE} ORDER BY a.sort_ts, a.id")] if on else []  # nosec B608
@@ -239,11 +343,11 @@ def rebuild() -> dict:
     for start in range(0, len(ids), 2000):
         chunk = ids[start : start + 2000]
         with get_db() as db:
-            rows = db.execute(f"SELECT id, feed_id, title, sort_ts FROM articles WHERE id IN ({placeholders(len(chunk))}) "
-                              "ORDER BY sort_ts, id", chunk).fetchall()
+            rows = db.execute(f"SELECT a.id, a.feed_id, a.title, a.sort_ts, {LEAD_SQL} FROM articles a "  # nosec B608 - fixed fragments
+                              f"WHERE a.id IN ({placeholders(len(chunk))}) ORDER BY a.sort_ts, a.id", chunk).fetchall()
             for r in rows:
-                index.prune(r["sort_ts"] - WINDOW)
-                story = _join(db, index, r["id"], r["feed_id"], words(r["title"]), r["sort_ts"], threshold)
+                index.prune(r["sort_ts"] - KEEP)
+                story = _join(db, index, r["id"], r["feed_id"], Doc(r["title"], r["lead"]), r["sort_ts"], threshold, profile)
                 if story is not None:
                     db.execute("UPDATE articles SET story_id = ? WHERE id = ?", (story, r["id"]))
                     grouped += 1

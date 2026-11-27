@@ -299,6 +299,10 @@ def _fill_saved_post_meta() -> None:
                 time.sleep(2)  # gentle on the platforms
             if rows:
                 log.info("Saved posts: author/picture details filled on %d of %d post(s)", done, len(rows))
+            # posts that saved a sign-in page's text (LinkedIn's "500 million+ members…") before those pages were recognised
+            fixed, marked = social_posts.repair_login_walls(rsshub, secrets.get("bearer_token"))
+            if fixed or marked:
+                log.info("Saved posts with a sign-in page's text: %d read properly now, %d marked for pasting", fixed, marked)
         except Exception:  # optional clean-up; try again next start
             log.exception("Saved-post details fill failed")
 
@@ -407,6 +411,12 @@ def _smart_feature_upkeep() -> None:
             stories.ensure_current()
         except Exception:
             logging.getLogger("eos").exception("Story grouping could not start")
+        try:
+            from app.api.automation import upgrade_pack_rules
+
+            upgrade_pack_rules()  # stricter ready-made collection rules (unedited ones only), once per pack revision
+        except Exception:
+            logging.getLogger("eos").exception("Collection rules could not be upgraded")
         try:
             declutter.ensure_current()
         except Exception:

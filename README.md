@@ -41,6 +41,9 @@ you run yourself. It reads public sources only, keeps everything in a single SQL
   into topics, with new releases — paste up to 200 links at once.
 - **🔗 Resources**: your bookmarks (training platforms, labs, cheat sheets, tools…) imported from your browser and sorted
   into topics, with a ★ Launchpad, a mind map and a **⌘/Ctrl+K launcher** that opens any saved site from every tab.
+  📦 Repos lives inside Resources by default.
+- **Smarter news:** same-story grouping (🧩 +n sources) that catches re-worded headlines, accurate ready-made threat
+  collections, ad-free article text, and every article shows the feed and folder it came from.
 - **▶ Videos play inside the app** (YouTube's privacy-enhanced player), one stored copy per video.
 - **📅 Custom date ranges** on every tab, whole collection folders at once, podcast skip buttons and older episodes,
   and tabs in the order you like.

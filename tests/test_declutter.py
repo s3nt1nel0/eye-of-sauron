@@ -82,7 +82,7 @@ def _article(db, fid, i, html):
 
 def test_feed_learns_its_repeated_ad_and_stored_articles_are_cleaned_once(client):
     fid = _feed()
-    ad = '<p>Protect every endpoint today. <a href="https://vendor.example/edr?utm_medium=placement">See how Vendor EDR stops ransomware</a>.</p>'
+    ad = '<p>Protect every endpoint today. <a href="https://vendor.example/edr?utm_campaign=q4-push">See how Vendor EDR stops ransomware</a>.</p>'
     with get_db() as db:
         feed = db.execute("SELECT * FROM feeds WHERE id = ?", (fid,)).fetchone()
         first = [_article(db, fid, i, sanitize_html(f"<p>Unique paragraph number {'x' * i} about incident {i} with enough words.</p>" + ad)) for i in range(2)]
@@ -153,3 +153,64 @@ def test_hostile_markup_is_cheap_and_left_alone():
         declutter.clean(html, own_sites=OWN)
     assert time.monotonic() - start < 6
     assert declutter.clean("<div>" * 25000 + "x" + "</div>" * 25000)[1] == 0      # over the cost guard: untouched
+
+
+# ------------------------------------------------------------------ REV 2 (2026-11-26)
+def test_paid_placement_box_goes_with_its_heading_and_sales_lines():
+    paid = "https://vendor.example/lp/scan?utm_source=display_network&utm_medium=paid_display&utm_campaign=q4"
+    box = (f'<div><div><a href="{paid}"><img alt="ad" src="https://cdn.news.example/ad.jpg"></a></div>'
+           f'<div><h2><a href="{paid}">Uncover email threats your defenses miss.</a></h2>'
+           '<p>Vendor agents analyze email intent to uncover phishing and invoice fraud.</p>'
+           f'<p>See what gets through with a 14-day scan.</p><a href="{paid}">Start your free scan.</a></div></div>')
+    inline = ('<p><strong>Give your SOC the context it needs -&gt; <a href="https://sandbox.example/ti?utm_medium=link+placement">'
+              'Integrate Threat Intel</a></strong>:</p>')
+    html, n = cleaned(STORY + box + "<h3>Related Articles:</h3>" + inline)
+    assert n >= 2 and "Vendor agents" not in html and "Threat Intel" not in html and "14-day" not in html
+    assert "Researchers found a flaw" in html and "The vendor published a fix" in html
+
+
+def test_editorial_links_with_ordinary_campaign_tags_stay():
+    body = STORY + '<p>Details are in <a href="https://other.example/report?utm_source=twitter&utm_medium=social">the report</a>.</p>'
+    html, n = cleaned(body)
+    assert n == 0 and "the report" in html
+
+
+def test_paid_link_inside_a_short_summary_never_takes_the_whole_article():
+    body = ('<div><p>A short summary of the story, a few lines long.</p>'
+            '<p><a href="https://vendor.example/x?utm_medium=sponsored">Sponsored: try Vendor</a></p></div>')
+    html, n = cleaned(body)
+    assert n == 1 and "short summary" in html and "Vendor" not in html
+
+
+def test_disclosures_paywall_and_audio_player_go():
+    pic = ('<p><img src="https://news.example/mac.jpg" width="800" height="400"><em><small>Note: News is an affiliate partner with '
+           'some of these vendors. When you click a link and make a purchase, we may receive a small payment.</small></em></p>')
+    body = ('<div><div><p>Listen to this article</p><p></p></div><div><span>0:00</span></div><div>Speed</div>'
+            '<p>Press play to start listening</p></div>' + STORY + pic +
+            "<div><div>You’re out of free articles for this month</div><div>To continue reading the rest of this article, please log in.</div></div>"
+            '<p>When you purchase through links in our articles, we may earn a small commission. This doesn’t affect our editorial independence.</p>')
+    html, n = cleaned(body)
+    assert "mac.jpg" in html, "the picture stays, only the disclosure goes"
+    for gone in ("affiliate partner", "free articles", "please log in", "small commission", "Listen to this article", "Press play"):
+        assert gone not in html
+    assert "Researchers found a flaw" in html
+
+
+def test_closing_product_plug_after_the_last_rule():
+    plug = ('<hr><p><strong>From reporting threats to removing them.</strong></p>'
+            '<p>Keep threats off your devices by <a href="https://news.example/for-home">downloading Vendor today</a>.</p>')
+    html, n = cleaned(STORY + "<p>" + "More of the story. " * 20 + "</p>" + plug)
+    assert n == 2 and "downloading Vendor" not in html and "<hr" not in html and "More of the story" in html
+    notes = '<hr><p>Acknowledgements: thanks to <a href="https://other.example/team">the research team</a>.</p>'
+    html, n = cleaned(STORY + notes)
+    assert n == 0 and "Acknowledgements" in html                      # no download / install link: not a plug
+
+
+def test_rev2_is_idempotent_and_keeps_long_paragraphs():
+    long_para = ("<p>The lawsuit says affiliates may earn a commission on every sale and that the company hid this from "
+                 + "buyers for years, " * 12 + "according to the filing.</p>")
+    html, n = cleaned(STORY + long_para)
+    assert n == 0
+    once, _ = cleaned(STORY + '<p>Add on Google</p><p>[link] [comments]</p>')
+    again, n2 = declutter.clean(once, own_sites=OWN)
+    assert "Add on Google" not in once and "[link]" not in once and n2 == 0 and again == once
